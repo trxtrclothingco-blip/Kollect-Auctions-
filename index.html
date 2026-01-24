@@ -38,8 +38,8 @@
 
     <!-- Search Bar -->
     <div class="search-bar">
-        <input type="text" placeholder="Search items...">
-        <select>
+        <input type="text" placeholder="Search items..." id="searchInput">
+        <select id="categorySelect">
             <option value="">All Categories</option>
             <option value="tgc-graded">TGC's Graded</option>
             <option value="tgc-raw">TGC's Raw</option>
@@ -51,12 +51,12 @@
             <option value="comics">Comics</option>
             <option value="historical">Historical Items</option>
         </select>
-        <select>
+        <select id="typeSelect">
             <option value="">All Types</option>
             <option value="auction">Auction</option>
             <option value="private">Private Sale</option>
         </select>
-        <button class="button">Search</button>
+        <button class="button" id="searchBtn">Search</button>
     </div>
 
     <!-- Cards -->
@@ -111,6 +111,21 @@
             hero.src = 'IMG_1604.jpeg';
         }
     };
+
+    // Search button functionality
+    const searchBtn = document.getElementById('searchBtn');
+    searchBtn.addEventListener('click', () => {
+        const type = document.getElementById('typeSelect').value;
+
+        if(type === 'private') {
+            window.location.href = 'private_sales.html';
+        } else if(type === 'auction') {
+            window.location.href = 'live_auctions.html';
+        } else {
+            // Default: go to private sales if nothing selected
+            window.location.href = 'private_sales.html';
+        }
+    });
 </script>
 </body>
 </html>
