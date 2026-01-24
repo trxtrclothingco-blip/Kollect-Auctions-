@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Make password screen blurry */
+  #passwordScreen {
+    backdrop-filter: blur(12px);
+  }
+
+  /* Optional: blur content behind modal if needed */
+  #passwordScreen::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    backdrop-filter: blur(12px);
+    z-index: 0;
+  }
+
+  #passwordScreen .card {
+    position: relative;
+    z-index: 1;
+  }
+</style>
 </head>
 <body>
 
@@ -44,17 +64,6 @@
   <div class="container">
     <h1>Admin Dashboard</h1>
 
-    <!-- Manage Auctions Card -->
-    <div class="card">
-      <h2>Manage Auctions</h2>
-      <p>Edit, pause or end existing auctions.</p>
-      <ul>
-        <li>Rare Pokémon Card – Live</li>
-        <li>Vintage Comic – Scheduled</li>
-        <li>Signed Memorabilia – Ended</li>
-      </ul>
-    </div>
-
     <!-- Create Listing Card -->
     <div class="card">
       <h2>Create Listing</h2>
@@ -82,7 +91,7 @@
         <input type="file" multiple>
         <textarea rows="3" placeholder="Listing Description"></textarea>
 
-        <!-- Auction start and end -->
+        <!-- Auction start and end (only relevant for Auction type) -->
         <input type="datetime-local" placeholder="Auction Start">
         <input type="datetime-local" placeholder="Auction End">
 
