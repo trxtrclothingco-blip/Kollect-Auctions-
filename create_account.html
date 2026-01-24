@@ -26,7 +26,9 @@
 </nav>
 
 <div class="container">
-  <img src="IMG_1558.jpeg" alt="Kollect Auctions" style="width:300px;">
+  <!-- Updated hero image class for light/dark mode -->
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
+  
   <h1>Create Account</h1>
 
   <div class="card">
@@ -45,5 +47,30 @@
 </div>
 
 <script src="script.js"></script>
+
+<script>
+  // Switch hero image depending on mode
+  const heroImages = document.querySelectorAll('.hero-image');
+
+  function updateHeroImages() {
+    heroImages.forEach(img => {
+      if(document.body.classList.contains('light-mode')) {
+        img.src = 'IMG_1558.jpeg'; // Light mode image
+      } else {
+        img.src = 'IMG_1604.jpeg'; // Dark mode image
+      }
+    });
+  }
+
+  // Call on page load
+  window.addEventListener('load', updateHeroImages);
+
+  // Update on toggle
+  const modeToggle = document.getElementById('modeToggle');
+  modeToggle.addEventListener('click', () => {
+    setTimeout(updateHeroImages, 100); // slight delay for class toggle
+  });
+</script>
+
 </body>
 </html>
