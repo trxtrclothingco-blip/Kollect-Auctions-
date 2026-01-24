@@ -8,10 +8,12 @@
 </head>
 <body>
 
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
 
+<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
   <a href="about.html">About Us</a>
@@ -26,11 +28,22 @@
 </nav>
 
 <div class="container">
-  <!-- Updated hero image class for light/dark mode -->
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
-  
+  <!-- Hero Image with light/dark mode -->
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px; margin-bottom:30px;">
+
+  <!-- Sign In Section -->
+  <div class="card" style="padding:30px; margin-bottom:40px; max-width:400px; width:100%;">
+    <h2>Sign In</h2>
+    <form>
+      <input type="email" placeholder="Email Address" required>
+      <input type="password" placeholder="Password" required>
+      <button class="button" type="submit">Sign In</button>
+    </form>
+  </div>
+
   <h1>Create Account</h1>
 
+  <!-- Create Account Form -->
   <div class="card">
     <form>
       <input type="text" placeholder="First Name" required>
@@ -49,20 +62,20 @@
 <script src="script.js"></script>
 
 <script>
-  // Switch hero image depending on mode
+  // Hero image switching for light/dark mode
   const heroImages = document.querySelectorAll('.hero-image');
 
   function updateHeroImages() {
     heroImages.forEach(img => {
       if(document.body.classList.contains('light-mode')) {
-        img.src = 'IMG_1558.jpeg'; // Light mode image
+        img.src = 'IMG_1558.jpeg'; // Light mode
       } else {
-        img.src = 'IMG_1604.jpeg'; // Dark mode image
+        img.src = 'IMG_1604.jpeg'; // Dark mode
       }
     });
   }
 
-  // Call on page load
+  // On page load
   window.addEventListener('load', updateHeroImages);
 
   // Update on toggle
