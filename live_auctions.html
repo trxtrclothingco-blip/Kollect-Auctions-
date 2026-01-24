@@ -27,9 +27,38 @@
 </nav>
 
 <div class="container coming-soon">
+    <!-- Hero/logo image -->
+    <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px; margin-bottom:30px;">
+
     <h1>Live Auctions Coming Soon!</h1>
     <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
+
 <script src="script.js"></script>
+
+<script>
+  // Switch hero image depending on mode
+  const heroImages = document.querySelectorAll('.hero-image');
+
+  function updateHeroImages() {
+    heroImages.forEach(img => {
+      if(document.body.classList.contains('light-mode')) {
+        img.src = 'IMG_1558.jpeg'; // Light mode image
+      } else {
+        img.src = 'IMG_1604.jpeg'; // Dark mode image
+      }
+    });
+  }
+
+  // Call on page load
+  window.addEventListener('load', updateHeroImages);
+
+  // Update on toggle
+  const modeToggle = document.getElementById('modeToggle');
+  modeToggle.addEventListener('click', () => {
+    setTimeout(updateHeroImages, 100); // slight delay for class toggle
+  });
+</script>
+
 </body>
 </html>
