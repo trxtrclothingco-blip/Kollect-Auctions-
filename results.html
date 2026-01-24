@@ -1,28 +1,36 @@
-<!-- results.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kollect Auctions - Results</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auction Results – Kollect</title>
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-mode">
-    <header>
-        <!-- Same header -->
-        <!-- ... -->
-    </header>
-    <main>
-        <section class="coming-soon">
-            <h1>Coming Soon</h1>
-            <a href="index.html" class="button">Back to Home</a>
-        </section>
-    </main>
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            document.body.classList.toggle('dark-mode');
-        }
-    </script>
+<body>
+
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<div class="container coming-soon">
+  <h1>Past Auction Results</h1>
+  <p>Coming Soon</p>
+  <button class="button" onclick="window.location='index.html'">Back to Home</button>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
