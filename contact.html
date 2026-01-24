@@ -26,7 +26,7 @@
 </nav>
 
 <div class="container">
-  <!-- Updated hero image class for light/dark mode -->
+  <!-- Hero Image -->
   <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
   
   <h1>Consign Your Item</h1>
@@ -44,6 +44,14 @@
       <input type="text" placeholder="Item Name" required>
       <input type="text" placeholder="Estimated Value (£)" required>
       <textarea rows="4" placeholder="Item Description"></textarea>
+
+      <!-- New Sale Type select field -->
+      <select required>
+        <option value="">Select Sale Type</option>
+        <option value="auction">Auction</option>
+        <option value="private">Private Sale</option>
+      </select>
+
       <input type="file" multiple>
       <button class="button" type="submit">Submit Item</button>
     </form>
