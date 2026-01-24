@@ -143,7 +143,7 @@ nav ul li a:hover {
 
 /* Item Card with gold neon glow */
 .item-card {
-  background-color: #ffffff; /* White card for light theme */
+  background-color: #f2f2f2; /* Light grey card */
   border-radius: 10px;
   overflow: hidden;
   transition: transform 0.3s, box-shadow 0.3s;
@@ -195,7 +195,7 @@ nav ul li a:hover {
 form {
   max-width: 600px;
   margin: 20px auto;
-  background: #ffffff; /* White form */
+  background: #f2f2f2; /* Light grey form */
   padding: 20px;
   border-radius: 10px;
   border: 2px solid #ffd700;
