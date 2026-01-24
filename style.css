@@ -32,7 +32,7 @@ body.light-mode {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 80px 20px 40px; /* ⬅ extra top padding for burger */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -66,8 +66,8 @@ a {
 
 .burger {
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: 16px;
+    left: 16px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -101,7 +101,7 @@ body.light-mode .burger div {
     backdrop-filter: blur(12px);
     display: flex;
     flex-direction: column;
-    padding: 60px 20px;
+    padding: 80px 20px; /* ⬅ more breathing room */
     transition: right 0.35s ease;
     z-index: 1000;
     overflow-y: auto;
@@ -147,6 +147,18 @@ body.light-mode #modeToggle {
 }
 
 /* =====================
+   HEADER / HERO IMAGES
+===================== */
+
+header img,
+.hero img {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 30px;
+    display: block;
+}
+
+/* =====================
    CARDS (NEON GLOW)
 ===================== */
 
@@ -187,7 +199,7 @@ body.light-mode .card {
 }
 
 /* =====================
-   SEARCH BAR
+   SEARCH BAR (FIXED)
 ===================== */
 
 .search-bar {
@@ -197,10 +209,13 @@ body.light-mode .card {
     gap: 10px;
     justify-content: center;
     margin: 30px auto;
+    flex-wrap: wrap;          /* ⬅ prevents overflow */
 }
 
 .search-bar input,
 .search-bar select {
+    width: 100%;
+    min-width: 0;             /* ⬅ iOS fix */
     padding: 12px;
     border-radius: 8px;
     border: 2px solid gold;
@@ -285,4 +300,19 @@ body.light-mode form select {
     border-color: #00bfff;
     background: #ffffff;
     color: #000;
+}
+
+/* =====================
+   MOBILE ONLY FIXES
+===================== */
+
+@media (max-width: 768px) {
+    .search-bar {
+        flex-direction: column;
+    }
+
+    header img,
+    .hero img {
+        max-width: 90%;
+    }
 }
