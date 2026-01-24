@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Header / Navigation with Burger Menu -->
   <header>
-    <!-- Same nav -->
     <nav>
+      <div class="burger">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="items.html">Current Auctions</a></li>
@@ -21,20 +26,41 @@
     </nav>
   </header>
 
+  <!-- Past Auctions Section -->
   <section class="container">
-    <h2>Past Auctions</h2>
+    <h2 style="color: #b8860b; text-shadow: 0 0 8px #ffd700; text-align:center; margin-bottom:20px;">Past Auctions</h2>
     <div class="auction-grid">
       <div class="item-card">
         <img src="assets/past-item1.jpg" alt="Past Collectible">
         <h3>Sold: Antique Coin</h3>
         <p>Final Bid: $500 | Sold on Jan 1, 2026</p>
       </div>
-      <!-- Add more -->
+      <div class="item-card">
+        <img src="assets/past-item2.jpg" alt="Past Collectible">
+        <h3>Sold: Rare Comic Book</h3>
+        <p>Final Bid: $300 | Sold on Jan 5, 2026</p>
+      </div>
+      <div class="item-card">
+        <img src="assets/past-item3.jpg" alt="Past Collectible">
+        <h3>Sold: Vintage Figurine</h3>
+        <p>Final Bid: $450 | Sold on Jan 10, 2026</p>
+      </div>
+      <!-- Add more past items as needed -->
     </div>
   </section>
 
+  <!-- Footer -->
   <footer>
     <p>&copy; 2026 Kollect Auctions. All rights reserved.</p>
   </footer>
+
+  <!-- Burger Menu Script -->
+  <script>
+    const burger = document.querySelector('.burger');
+    const navUl = document.querySelector('nav ul');
+    burger.addEventListener('click', () => {
+      navUl.classList.toggle('active');
+    });
+  </script>
 </body>
 </html>
