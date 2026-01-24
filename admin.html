@@ -10,7 +10,6 @@
 
 <!-- PASSWORD SCREEN -->
 <div class="container" id="passwordScreen">
-  <!-- Updated hero image class for light/dark mode -->
   <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
   
   <div class="card">
@@ -45,6 +44,7 @@
   <div class="container">
     <h1>Admin Dashboard</h1>
 
+    <!-- Manage Auctions Card -->
     <div class="card">
       <h2>Manage Auctions</h2>
       <p>Edit, pause or end existing auctions.</p>
@@ -55,22 +55,38 @@
       </ul>
     </div>
 
+    <!-- Create Listing Card -->
     <div class="card">
-      <h2>Create New Auction</h2>
+      <h2>Create Listing</h2>
       <form>
-        <input type="text" placeholder="Item Name">
-        <select>
-          <option>Category</option>
-          <option>TGC's Graded</option>
-          <option>TGC's Raw</option>
-          <option>Comics</option>
-          <option>Memorabilia</option>
-          <option>Historical Items</option>
+        <input type="text" placeholder="Item Name" required>
+
+        <!-- Sale Type -->
+        <select required>
+          <option value="">Select Sale Type</option>
+          <option value="auction">Auction</option>
+          <option value="private">Private Sale</option>
         </select>
-        <input type="number" placeholder="Starting Price (£)">
+
+        <!-- Category -->
+        <select required>
+          <option value="">Category</option>
+          <option value="tgc-graded">TGC's Graded</option>
+          <option value="tgc-raw">TGC's Raw</option>
+          <option value="comics">Comics</option>
+          <option value="memorabilia">Memorabilia</option>
+          <option value="historical">Historical Items</option>
+        </select>
+
+        <input type="number" placeholder="Starting Price (£)" required>
         <input type="file" multiple>
-        <textarea rows="3" placeholder="Auction Description"></textarea>
-        <button class="button">Create Auction</button>
+        <textarea rows="3" placeholder="Listing Description"></textarea>
+
+        <!-- Auction start and end -->
+        <input type="datetime-local" placeholder="Auction Start">
+        <input type="datetime-local" placeholder="Auction End">
+
+        <button class="button" type="submit">Create Listing</button>
       </form>
     </div>
   </div>
