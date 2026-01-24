@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Header / Navigation with Burger Menu -->
   <header>
-    <!-- Same nav as above -->
     <nav>
+      <div class="burger">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="items.html">Current Auctions</a></li>
@@ -21,8 +26,11 @@
     </nav>
   </header>
 
+  <!-- Current Auctions Section -->
   <section class="container">
-    <h2>Current Auctions</h2>
+    <h2 style="color: #b8860b; text-shadow: 0 0 8px #ffd700; text-align:center; margin-bottom:20px;">Current Auctions</h2>
+    
+    <!-- Search and Filters -->
     <div class="filters">
       <input type="text" placeholder="Search items...">
       <select>
@@ -31,18 +39,40 @@
         <option>Lowest Bid</option>
       </select>
     </div>
+
+    <!-- Auction Grid -->
     <div class="auction-grid">
       <div class="item-card">
         <img src="assets/item1.jpg" alt="Collectible 1">
         <h3>Vintage Comic Book</h3>
         <p>Current Bid: $150 | Ends in 2 days</p>
       </div>
-      <!-- Add more mocked items -->
+      <div class="item-card">
+        <img src="assets/item2.jpg" alt="Collectible 2">
+        <h3>Rare Trading Card</h3>
+        <p>Current Bid: $300 | Ends in 1 day</p>
+      </div>
+      <div class="item-card">
+        <img src="assets/item3.jpg" alt="Collectible 3">
+        <h3>Antique Figurine</h3>
+        <p>Current Bid: $500 | Ends in 3 days</p>
+      </div>
+      <!-- Add more mocked items as needed -->
     </div>
   </section>
 
+  <!-- Footer -->
   <footer>
     <p>&copy; 2026 Kollect Auctions. All rights reserved.</p>
   </footer>
+
+  <!-- Burger Menu Script -->
+  <script>
+    const burger = document.querySelector('.burger');
+    const navUl = document.querySelector('nav ul');
+    burger.addEventListener('click', () => {
+      navUl.classList.toggle('active');
+    });
+  </script>
 </body>
 </html>
