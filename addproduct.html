@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kollect Auctions - Add Product</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Additional styles for password overlay */
+    .password-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 18, 18, 0.95); /* Dark semi-transparent */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .password-form {
+      background: #1e1e1e;
+      padding: 40px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+    }
+    .password-form h2 {
+      color: #ffd700;
+      margin-bottom: 20px;
+    }
+    .password-form input {
+      background: #121212;
+      color: #ffffff;
+      border: 1px solid #ffd700;
+    }
+    .password-form button {
+      margin-top: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="password-overlay" id="passwordOverlay">
+    <div class="password-form">
+      <h2>Admin Access Required</h2>
+      <p>Enter password to access Add Item page.</p>
+      <input type="password" id="passwordInput" placeholder="Password" required>
+      <button onclick="checkPassword()">Submit</button>
+    </div>
+  </div>
+
+  <div id="mainContent" class="hidden">
+    <header>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="items.html">Current Auctions</a></li>
+          <li><a href="past-auctions.html">Past Auctions</a></li>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="contact.html">Contact Us</a></li>
+          <li><a href="add-product.html">Add Item (Admin)</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section class="container">
+      <h2>Add New Auction Item</h2>
+      <form>
+        <input type="text" placeholder="Item Name" required>
+        <textarea placeholder="Description" rows="5" required></textarea>
+        <input type="number" placeholder="Starting Bid" required>
+        <input type="datetime-local" placeholder="End Date/Time" required>
+        <input type="file" accept="image/*" required> <!-- For item photo -->
+        <button type="submit">Upload Item</button>
+      </form>
+    </section>
+
+    <footer>
+      <p>&copy; 2026 Kollect Auctions. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script>
+    function checkPassword() {
+      const password = document.getElementById('passwordInput').value;
+      if (password === '@PJL2025') {
+        document.getElementById('passwordOverlay').style.display = 'none';
+        document.getElementById('mainContent').classList.remove('hidden');
+      } else {
+        alert('Incorrect password. Try again.');
+      }
+    }
+  </script>
+</body>
+</html>
