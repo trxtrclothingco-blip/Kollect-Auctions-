@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account – Kollect Auctions</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<div class="container">
+  <img src="IMG_1558.jpeg" alt="Kollect Auctions" style="width:300px;">
+  <h1>Create Account</h1>
+
+  <div class="card">
+    <form>
+      <input type="text" placeholder="First Name" required>
+      <input type="text" placeholder="Last Name" required>
+      <input type="email" placeholder="Email Address" required>
+      <input type="tel" placeholder="Contact Number" required>
+      <input type="text" placeholder="Address Line 1" required>
+      <input type="text" placeholder="Address Line 2">
+      <input type="text" placeholder="City" required>
+      <input type="text" placeholder="Postcode" required>
+      <button class="button" type="submit">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
