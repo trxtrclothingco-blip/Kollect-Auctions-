@@ -1,160 +1,206 @@
-/* style.css */
-:root {
-    --bg-color: lightgrey;
-    --border-color: gold;
-    --glow: 0 0 10px gold;
-    --text-color: black;
-}
-
-body.light-mode {
-    --bg-color: white;
-    --border-color: lightblue;
-    --glow: 0 0 10px lightblue;
-    --text-color: black;
-}
-
-body.dark-mode {
-    --bg-color: lightgrey; /* Assuming light grey as "dark" base, adjust if needed */
-    --text-color: black; /* Adjust for contrast */
+/* Global reset and font */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
 }
 
 body {
-    font-family: sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    margin: 0;
-    padding: 0;
+    background-color: #121212; /* Dark mode default */
+    color: #fff;
+    transition: all 0.3s ease;
 }
 
-header {
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px 0;
+}
+
+/* Light mode */
+body.light-mode {
+    background-color: #fff;
+    color: #000;
+}
+
+/* Burger menu */
+.burger {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.logo img {
-    height: 50px;
-}
-
-.search-bar {
-    display: flex;
-}
-
-.search-bar input, .search-bar select, .search-bar button {
-    margin: 0 5px;
-}
-
-.burger-menu {
-    position: relative;
-}
-
-#menu-toggle {
-    display: none;
-}
-
-.hamburger {
-    font-size: 30px;
+    flex-direction: column;
     cursor: pointer;
+    gap: 5px;
+    z-index: 1001;
+}
+
+.burger div {
+    width: 30px;
+    height: 4px;
+    background-color: #fff;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+body.light-mode .burger div {
+    background-color: #00bfff; /* baby blue for light mode */
 }
 
 .nav-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 40px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--glow);
-    max-height: 300px;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 250px;
+    height: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    padding: 50px 20px;
+    transition: right 0.3s ease;
+    z-index: 1000;
     overflow-y: auto;
-    z-index: 1;
 }
 
-#menu-toggle:checked + .hamburger + .nav-menu {
-    display: block;
+body.light-mode .nav-menu {
+    background-color: #f5f5f5;
 }
 
-.nav-menu ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.nav-menu li {
-    padding: 10px;
+.nav-menu.open {
+    right: 0;
 }
 
 .nav-menu a {
-    text-decoration: none;
-    color: var(--text-color);
+    padding: 10px 0;
+    border-bottom: 1px solid #444;
+    font-weight: 600;
 }
 
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    padding: 20px;
+body.light-mode .nav-menu a {
+    border-color: #ccc;
 }
 
-.product-card {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--glow);
+/* Toggle dark/light button */
+#modeToggle {
+    cursor: pointer;
+    margin-top: 20px;
     padding: 10px;
-    text-align: center;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    background-color: #333;
+    color: #fff;
+    transition: all 0.3s ease;
 }
 
-.product-card img {
-    max-width: 100%;
+body.light-mode #modeToggle {
+    background-color: #00bfff;
+    color: #fff;
 }
 
-.text-box {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--glow);
-    padding: 5px;
-    margin: 5px 0;
+/* Product card */
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 2px solid gold;
+    border-radius: 15px;
+    padding: 15px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
 }
 
+body.light-mode .card {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: #00bfff;
+}
+
+.card img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+.card h3, .card p {
+    margin: 10px 0;
+}
+
+/* Search bar */
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.search-bar input, .search-bar select {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid gold;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    flex: 1;
+}
+
+body.light-mode .search-bar input, 
+body.light-mode .search-bar select {
+    border-color: #00bfff;
+    background: #f5f5f5;
+    color: #000;
+}
+
+/* Buttons */
 .button {
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--glow);
-    padding: 10px;
-    text-decoration: none;
-    color: var(--text-color);
+    padding: 10px 20px;
+    background: gold;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
-.coming-soon, .about, .contact, .admin, .sign-up {
+body.light-mode .button {
+    background: #00bfff;
+    color: #fff;
+}
+
+/* Coming soon overlay */
+.coming-soon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    font-size: 2rem;
     text-align: center;
-    padding: 20px;
 }
 
-.tabs {
+.coming-soon button {
+    margin-top: 20px;
+}
+
+/* Forms */
+form {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
 }
 
-.tabs button {
-    margin: 0 10px;
+form input, form textarea {
     padding: 10px;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--glow);
+    border-radius: 5px;
+    border: 2px solid gold;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
 }
 
-.tab-content {
-    padding: 20px;
-}
-
-.make-offer {
-    display: flex;
-    justify-content: center;
-}
-
-.make-offer input {
-    width: 100px;
-    margin-right: 5px;
+body.light-mode form input,
+body.light-mode form textarea {
+    border-color: #00bfff;
+    background: #f5f5f5;
+    color: #000;
 }
