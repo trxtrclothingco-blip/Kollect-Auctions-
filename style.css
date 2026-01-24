@@ -151,7 +151,6 @@ body.light-mode #modeToggle {
 ===================== */
 
 .hero-image {
-    content: url('IMG_1604.jpeg'); /* Dark mode image default */
     width: 100%;
     max-width: 600px;
     border-radius: 20px;
@@ -164,16 +163,7 @@ body.light-mode #modeToggle {
     );
     display: block;
     margin: 0 auto 40px; /* space between image and button */
-}
-
-/* Light mode hero image */
-body.light-mode .hero-image {
-    content: url('IMG_1558.jpeg'); /* Light mode image */
-    background: linear-gradient(
-        180deg,
-        rgba(0,191,255,0.3) 0%,
-        rgba(255,255,255,0.6) 100%
-    );
+    transition: all 0.5s ease; /* smooth transition when JS swaps src */
 }
 
 /* =====================
