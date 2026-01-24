@@ -62,6 +62,59 @@
     .hidden {
       display: none;
     }
+
+    /* Form Styles */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    input, textarea, select, button {
+      padding: 10px;
+      border-radius: 5px;
+      border: 2px solid #ffd700;
+      box-shadow: 0 0 5px #ffd700 inset;
+    }
+
+    input[type="file"] {
+      background: #f2f2f2;
+    }
+
+    input[type="number"], input[type="datetime-local"], input[type="text"], textarea {
+      background: #f2f2f2;
+      color: #121212;
+    }
+
+    button {
+      background-color: #b8860b;
+      color: #f2f2f2;
+      cursor: pointer;
+      box-shadow: 0 0 10px #ffd700;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    button:hover {
+      background-color: #ffdf00;
+      box-shadow: 0 0 15px #ffd700;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .checkbox-group input {
+      width: auto;
+      margin: 0;
+    }
+
+    .form-section {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
   </style>
 </head>
 <body>
@@ -106,8 +159,27 @@
           <input type="text" placeholder="Item Name" required>
           <textarea placeholder="Description" rows="5" required></textarea>
           <input type="number" placeholder="Starting Bid" required>
-          <input type="datetime-local" placeholder="End Date/Time" required>
-          <input type="file" accept="image/*" required>
+          <input type="number" placeholder="Reserve Price" required>
+          
+          <div class="form-section">
+            <label>Auction Length (check one):</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" name="auctionLength" value="7"> 7 days</label>
+              <label><input type="checkbox" name="auctionLength" value="14"> 14 days</label>
+              <label><input type="checkbox" name="auctionLength" value="30"> 30 days</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label>Start Date & Time:</label>
+            <input type="datetime-local" required>
+          </div>
+
+          <div class="form-section">
+            <label>Upload Item Images (multiple allowed):</label>
+            <input type="file" accept="image/*" multiple required>
+          </div>
+
           <button type="submit">Upload Item</button>
         </form>
       </div>
