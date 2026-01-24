@@ -20,7 +20,7 @@ body {
 
 /* Header/Navigation */
 header {
-  background-color: #e0e0e0; /* Lighter grey header */
+  background-color: #e0e0e0; /* Light grey header */
   padding: 15px 0;
   position: sticky;
   top: 0;
@@ -84,7 +84,7 @@ nav ul li a:hover {
     top: 60px;
     left: 0;
     width: 100%;
-    background-color: #e0e0e0; /* Lighter grey */
+    background-color: #e0e0e0; /* Light grey for mobile menu */
     max-height: 0;
     overflow: hidden;
   }
@@ -143,7 +143,7 @@ nav ul li a:hover {
 
 /* Item Card with gold neon glow */
 .item-card {
-  background-color: #f2f2f2; /* Light grey card */
+  background-color: #d9d9d9 !important; /* Light grey */
   border-radius: 10px;
   overflow: hidden;
   transition: transform 0.3s, box-shadow 0.3s;
@@ -195,7 +195,7 @@ nav ul li a:hover {
 form {
   max-width: 600px;
   margin: 20px auto;
-  background: #f2f2f2; /* Light grey form */
+  background: #d9d9d9 !important; /* Light grey form */
   padding: 20px;
   border-radius: 10px;
   border: 2px solid #ffd700;
@@ -212,7 +212,7 @@ input, textarea, button {
 }
 
 input, textarea {
-  background-color: #f2f2f2; /* Light grey */
+  background-color: #d9d9d9 !important; /* Light grey inputs */
   color: #121212;
 }
 
@@ -240,11 +240,13 @@ button:hover {
   margin-right: 10px;
   border: 2px solid #ffd700;
   box-shadow: 0 0 5px #ffd700 inset;
+  background-color: #d9d9d9 !important;
+  color: #121212;
 }
 
 .filters select {
   padding: 10px;
-  background: #f2f2f2; /* Light grey */
+  background: #d9d9d9 !important;
   color: #121212;
   border: 2px solid #ffd700;
   border-radius: 5px;
