@@ -1,34 +1,53 @@
-<!-- contact.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kollect Auctions - Contact Us</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact – Kollect Auctions</title>
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-mode">
-    <header>
-        <!-- Same header -->
-        <!-- ... -->
-    </header>
-    <main>
-        <section class="contact">
-            <h1>Contact Us</h1>
-            <p>Specify all consignments final sales are subject to a 20% success fee.</p>
-            <form>
-                <input type="text" placeholder="Item Name" class="text-box">
-                <input type="number" placeholder="Value" class="text-box">
-                <input type="file" multiple class="text-box">
-                <button type="submit">Send</button>
-            </form>
-        </section>
-    </main>
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            document.body.classList.toggle('dark-mode');
-        }
-    </script>
+<body>
+
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<div class="container">
+  <img src="IMG_1558.jpeg" alt="Kollect Auctions" style="width:300px;">
+  <h1>Consign Your Item</h1>
+
+  <div class="card">
+    <p>
+      Submit your collectible for auction or private sale.  
+      <strong>All consignments are subject to a 20% success fee upon final sale.</strong>
+    </p>
+
+    <form>
+      <input type="text" placeholder="Your Full Name" required>
+      <input type="email" placeholder="Email Address" required>
+      <input type="tel" placeholder="Contact Number" required>
+      <input type="text" placeholder="Item Name" required>
+      <input type="text" placeholder="Estimated Value (£)" required>
+      <textarea rows="4" placeholder="Item Description"></textarea>
+      <input type="file" multiple>
+      <button class="button" type="submit">Submit Item</button>
+    </form>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
