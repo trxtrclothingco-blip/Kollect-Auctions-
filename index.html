@@ -3,19 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>About Kollect Auctions</title>
+<title>Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<!-- BURGER MENU -->
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
     <div></div>
     <div></div>
     <div></div>
 </div>
 
-<!-- NAVIGATION MENU -->
+<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
     <a href="index.html">Home</a>
     <a href="about.html">About Us</a>
@@ -29,21 +28,54 @@
     <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-<!-- MAIN CONTENT -->
+<!-- Main Container -->
 <div class="container">
-    <!-- Hero image with glow effect and class for light/dark switching -->
+    <!-- Hero Image with glow -->
     <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
-    <h1>About Kollect Auctions</h1>
-    <p>
-        Kollect Auctions was started by Peter James, a lifetime collector and fan of all things collectible.
-        We created Kollect to share these rare and exciting items with the world. Our platform connects 
-        collectors with auctions for comics, cards, antiques, and other unique treasures, providing a secure 
-        and engaging experience for every enthusiast.
-    </p>
+    <!-- Hero Button linking to Private Sales -->
+    <a href="private_sales.html" class="button">Private Sales</a>
+
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <input type="text" placeholder="Search items...">
+        <select>
+            <option value="">All Categories</option>
+            <option value="tgc-graded">TGC's Graded</option>
+            <option value="tgc-raw">TGC's Raw</option>
+            <option value="movies-books">Movies & Books</option>
+            <option value="figures">Figures</option>
+            <option value="lego">LEGO</option>
+            <option value="video-games">Video Games</option>
+            <option value="memorabilia">Memorabilia</option>
+            <option value="comics">Comics</option>
+            <option value="historical">Historical Items</option>
+        </select>
+        <select>
+            <option value="">All Types</option>
+            <option value="auction">Auction</option>
+            <option value="private">Private Sale</option>
+        </select>
+        <button class="button">Search</button>
+    </div>
+
+    <!-- Cards -->
+    <div class="card">
+        <img src="IMG_1558.jpeg" alt="Product 1">
+        <h3>Rare Collectible 1</h3>
+        <p>Price: £200</p>
+        <button class="button">Buy Now</button>
+    </div>
+
+    <div class="card">
+        <img src="IMG_1558.jpeg" alt="Product 2">
+        <h3>Rare Collectible 2</h3>
+        <p>Price: £350</p>
+        <button class="button">Buy Now</button>
+    </div>
 </div>
 
-<!-- SCRIPT -->
+<!-- Script -->
 <script>
     // Toggle burger menu
     function toggleMenu() {
@@ -51,7 +83,7 @@
         menu.classList.toggle('open');
     }
 
-    // Light/Dark mode toggle with persistence and hero image switching
+    // Light/Dark mode toggle with hero image switching
     function toggleMode() {
         const body = document.body;
         const hero = document.querySelector('.hero-image');
@@ -59,9 +91,9 @@
         body.classList.toggle('light-mode');
 
         if(body.classList.contains('light-mode')) {
-            hero.src = 'IMG_1558.jpeg'; // Light mode image
+            hero.src = 'IMG_1558.jpeg'; // Light mode hero
         } else {
-            hero.src = 'IMG_1604.jpeg'; // Dark mode image
+            hero.src = 'IMG_1604.jpeg'; // Dark mode hero
         }
 
         localStorage.setItem('lightMode', body.classList.contains('light-mode'));
@@ -80,6 +112,5 @@
         }
     };
 </script>
-
 </body>
 </html>
