@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Header / Navigation -->
+  <!-- Header / Navigation with Burger Menu -->
   <header>
     <nav>
+      <div class="burger">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
       <ul>
         <li><a href="index.html">Home</a></li>
         <li><a href="items.html">Current Auctions</a></li>
@@ -39,5 +44,15 @@
   <footer>
     <p>&copy; 2026 Kollect Auctions. All rights reserved.</p>
   </footer>
+
+  <!-- Burger Menu Script -->
+  <script>
+    const burger = document.querySelector('.burger');
+    const navUl = document.querySelector('nav ul');
+
+    burger.addEventListener('click', () => {
+      navUl.classList.toggle('active');
+    });
+  </script>
 </body>
 </html>
