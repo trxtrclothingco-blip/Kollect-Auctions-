@@ -32,7 +32,7 @@ body.light-mode {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 20px 40px;
+    padding: 80px 20px 40px; /* extra top padding for burger */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -147,41 +147,33 @@ body.light-mode #modeToggle {
 }
 
 /* =====================
-   HEADER / HERO IMAGES
+   HERO / HEADER IMAGE
 ===================== */
 
-header img,
-.hero img {
+.hero-image {
+    content: url('IMG_1604.jpeg'); /* Dark mode image default */
     width: 100%;
     max-width: 600px;
-    margin: 0 auto 30px;
-    display: block;
-    border-radius: 20px;                  /* Rounded edges */
-    backdrop-filter: blur(8px);           /* Glass blur effect */
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
     box-shadow: 0 0 30px rgba(0,191,255,0.4);
     background: linear-gradient(
         180deg,
         rgba(0,191,255,0.4) 0%,
         rgba(11,11,15,0.6) 100%
-    );                                     /* Blue fade to black */
+    );
+    display: block;
+    margin: 0 auto 40px; /* space between image and button */
 }
 
-/* Light mode hero gradient */
-body.light-mode header img,
-body.light-mode .hero img {
+/* Light mode hero image */
+body.light-mode .hero-image {
+    content: url('IMG_1558.jpeg'); /* Light mode image */
     background: linear-gradient(
         180deg,
         rgba(0,191,255,0.3) 0%,
         rgba(255,255,255,0.6) 100%
     );
-}
-
-/* =====================
-   HERO BUTTON SPACING
-===================== */
-
-.container > .button {
-    margin-top: 20px;  /* Space between logo and Private Sales button */
 }
 
 /* =====================
@@ -225,7 +217,7 @@ body.light-mode .card {
 }
 
 /* =====================
-   SEARCH BAR (FIXED)
+   SEARCH BAR
 ===================== */
 
 .search-bar {
@@ -235,7 +227,7 @@ body.light-mode .card {
     gap: 10px;
     justify-content: center;
     margin: 30px auto;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* prevents overflow */
 }
 
 .search-bar input,
@@ -329,7 +321,7 @@ body.light-mode form select {
 }
 
 /* =====================
-   MOBILE ONLY FIXES
+   MOBILE FIXES
 ===================== */
 
 @media (max-width: 768px) {
@@ -337,8 +329,7 @@ body.light-mode form select {
         flex-direction: column;
     }
 
-    header img,
-    .hero img {
+    .hero-image {
         max-width: 90%;
     }
 }
