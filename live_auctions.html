@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Auction</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
-
 <script type="module" src="firebase.js"></script>
-<script type="module" src="ui.js"></script>
-<script type="module" src="live_auction.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-
 <body>
 
 <div class="burger" onclick="toggleMenu()">
@@ -18,19 +16,24 @@
 
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
-  <a href="create_account.html">Account</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-<div class="container">
-  <h1>🔥 Live Auction</h1>
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-  <p>Highest Bid</p>
-  <h2 id="highestBid">£0</h2>
-
-  <input id="bidInput" type="number" placeholder="Enter bid (£)">
-  <button id="bidBtn">Place Bid</button>
-
-  <ul id="bidList"></ul>
+<div class="container coming-soon">
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <h1>Live Auctions Coming Soon!</h1>
+  <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
 
 </body>
