@@ -13,49 +13,45 @@ const logoutButton = document.getElementById("logout-button");
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    userStatus.textContent = `Logged in as ${user.email}`;
-    logoutButton.style.display = "inline-block";
+    if (userStatus) userStatus.textContent = `Logged in as ${user.email}`;
+    if (logoutButton) logoutButton.style.display = "inline-block";
   } else {
-    userStatus.textContent = "Not logged in";
-    logoutButton.style.display = "none";
+    if (userStatus) userStatus.textContent = "Not logged in";
+    if (logoutButton) logoutButton.style.display = "none";
   }
 });
 
 window.logoutUser = () => {
-  signOut(auth).then(() => {
-    userStatus.textContent = "Logged out";
-    logoutButton.style.display = "none";
-  }).catch((error) => console.error("Logout error:", error));
+  signOut(auth)
+    .then(() => {
+      if (userStatus) userStatus.textContent = "Logged out";
+      if (logoutButton) logoutButton.style.display = "none";
+    })
+    .catch((error) => console.error("Logout error:", error));
 };
 
 // ---------- Burger Menu ----------
 window.toggleMenu = () => {
-  const menu = document.getElementById("navMenu");
-  menu.classList.toggle("show");
+  const navMenu = document.getElementById("navMenu");
+  navMenu?.classList.toggle("open"); // matches CSS
 };
 
 // ---------- Light/Dark Mode ----------
-const modeToggle = document.getElementById("modeToggle");
 const body = document.body;
 
 // Load saved mode from localStorage
-if (localStorage.getItem("mode") === "dark") {
-  body.classList.add("dark-mode");
+if (localStorage.getItem("lightMode") === "true") {
+  body.classList.add("light-mode");
 } else {
-  body.classList.remove("dark-mode");
+  body.classList.remove("light-mode");
 }
 
 window.toggleMode = () => {
-  body.classList.toggle("dark-mode");
-  if (body.classList.contains("dark-mode")) {
-    localStorage.setItem("mode", "dark");
-  } else {
-    localStorage.setItem("mode", "light");
-  }
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight); // saves true/false
 };
 
-// ---------- Optional: Forms (Contact / Signup / Login) ----------
-// You can extend this part for Firebase auth forms
+// ---------- Forms (Optional Firebase or Contact) ----------
 document.querySelectorAll("form").forEach((form) => {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -66,6 +62,7 @@ document.querySelectorAll("form").forEach((form) => {
       form.reset();
     }
 
-    // Add signup/login handling if you have forms with IDs like create-account-form, login-form
+    // Extend for signup/login forms if needed
+    // e.g., create-account-form, login-form
   });
 });
