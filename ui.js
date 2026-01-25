@@ -1,17 +1,19 @@
+// Toggle burger menu
 window.toggleMenu = () => {
-  document.getElementById("navMenu")?.classList.toggle("open");
+  const navMenu = document.getElementById("navMenu");
+  navMenu?.classList.toggle("open");
 };
 
+// Toggle light/dark mode
 window.toggleMode = () => {
-  document.body.classList.toggle("light-mode");
-  localStorage.setItem(
-    "lightMode",
-    document.body.classList.contains("light-mode")
-  );
+  const isLight = document.body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight); // saves true/false
 };
 
+// Apply saved mode on load
 window.addEventListener("load", () => {
-  if (localStorage.getItem("lightMode") === "true") {
+  const lightMode = localStorage.getItem("lightMode") === "true";
+  if (lightMode) {
     document.body.classList.add("light-mode");
   }
 });
