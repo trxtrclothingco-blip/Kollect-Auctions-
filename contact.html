@@ -4,41 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contact – Kollect Auctions</title>
-
-  <script type="module" src="firebase.js"></script>
-  
 <link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-
-  <script type="module">
-  import { auth, db } from './firebase.js';
-
-  // Example 1: Check if a user is logged in
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log("User logged in:", user.email);
-      // You could show their info on the page
-      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
-    } else {
-      console.log("No user logged in");
-    }
-  });
-
-  // Example 2: Write data to Firestore
-  const sendMessageButton = document.getElementById("sendMessage");
-  sendMessageButton.addEventListener("click", async () => {
-    const message = document.getElementById("messageInput").value;
-    try {
-      await db.collection("messages").add({ text: message, timestamp: Date.now() });
-      console.log("Message sent!");
-    } catch (err) {
-      console.error("Error adding message:", err);
-    }
-  });
-</script>
-
-  <script src="script.js"></script>
-  
 <body>
 
 <div class="burger" onclick="toggleMenu()">
@@ -58,64 +27,33 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
 <div class="container">
-  <!-- Hero Image -->
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
-  
-  <h1>Consign Your Item</h1>
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+
+  <h1>Contact Us</h1>
+  <p>Submit your collectible or get in touch with our team.</p>
 
   <div class="card">
-    <p>
-      Submit your collectible for auction or private sale.  
-      <strong>All consignments are subject to a 20% success fee upon final sale.</strong>
-    </p>
-
-    <form>
-      <input type="text" placeholder="Your Full Name" required>
+    <form id="contact-form">
+      <input type="text" placeholder="Full Name" required>
       <input type="email" placeholder="Email Address" required>
-      <input type="tel" placeholder="Contact Number" required>
+      <input type="tel" placeholder="Phone Number" required>
       <input type="text" placeholder="Item Name" required>
       <input type="text" placeholder="Estimated Value (£)" required>
       <textarea rows="4" placeholder="Item Description"></textarea>
-
-      <!-- New Sale Type select field -->
       <select required>
         <option value="">Select Sale Type</option>
         <option value="auction">Auction</option>
         <option value="private">Private Sale</option>
       </select>
-
       <input type="file" multiple>
-      <button class="button" type="submit">Submit Item</button>
+      <button class="button" type="submit">Submit</button>
     </form>
   </div>
 </div>
-
-<script src="script.js"></script>
-
-<script>
-  // Switch hero image depending on mode
-  const heroImages = document.querySelectorAll('.hero-image');
-
-  function updateHeroImages() {
-    heroImages.forEach(img => {
-      if(document.body.classList.contains('light-mode')) {
-        img.src = 'IMG_1558.jpeg'; // Light mode image
-      } else {
-        img.src = 'IMG_1604.jpeg'; // Dark mode image
-      }
-    });
-  }
-
-  // Call on page load
-  window.addEventListener('load', updateHeroImages);
-
-  // Update on toggle
-  const modeToggle = document.getElementById('modeToggle');
-  modeToggle.addEventListener('click', () => {
-    setTimeout(updateHeroImages, 100); // slight delay for class toggle
-  });
-</script>
 
 </body>
 </html>
