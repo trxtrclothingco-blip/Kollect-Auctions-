@@ -2,209 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Account – Kollect Auctions</title>
-
-  <script type="module" src="firebase.js"></script>
-  
+<title>Account</title>
 <link rel="stylesheet" href="style.css">
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="auth.js"></script>
+<script type="module" src="ui.js"></script>
 </head>
 
-  <script type="module">
-  import { auth, db } from './firebase.js';
-
-  // Example 1: Check if a user is logged in
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log("User logged in:", user.email);
-      // You could show their info on the page
-      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
-    } else {
-      console.log("No user logged in");
-    }
-  });
-
-  // Example 2: Write data to Firestore
-  const sendMessageButton = document.getElementById("sendMessage");
-  sendMessageButton.addEventListener("click", async () => {
-    const message = document.getElementById("messageInput").value;
-    try {
-      await db.collection("messages").add({ text: message, timestamp: Date.now() });
-      console.log("Message sent!");
-    } catch (err) {
-      console.error("Error adding message:", err);
-    }
-  });
-
-  // Sign-In Form Handler
-  const loginForm = document.getElementById('login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault(); // Prevent page reload
-
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          console.log('Signed in:', userCredential.user.uid);
-          alert('Login successful!');
-          loginForm.reset(); // Clear form
-          // Optional: Redirect to a dashboard, e.g., window.location.href = '/dashboard.html';
-        })
-        .catch((error) => {
-          console.error('Login error:', error.message);
-          alert('Error: ' + error.message);
-        });
-    });
-  }
-
-  // Sign-Up Form Handler
-  const signupForm = document.getElementById('signup-form');
-  if (signupForm) {
-    signupForm.addEventListener('submit', (e) => {
-      e.preventDefault(); // Prevent page reload
-
-      const firstName = document.getElementById('signup-firstname').value;
-      const lastName = document.getElementById('signup-lastname').value;
-      const email = document.getElementById('signup-email').value;
-      const password = document.getElementById('signup-password').value;
-      const confirmPassword = document.getElementById('signup-confirm-password').value;
-      const contact = document.getElementById('signup-contact').value;
-      const address1 = document.getElementById('signup-address1').value;
-      const address2 = document.getElementById('signup-address2').value;
-      const city = document.getElementById('signup-city').value;
-      const postcode = document.getElementById('signup-postcode').value;
-
-      if (password !== confirmPassword) {
-        alert('Passwords do not match!');
-        return;
-      }
-
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          console.log('Signed up:', user.uid);
-
-          // Store additional user info in Firestore
-          db.collection('users').doc(user.uid).set({
-            firstName,
-            lastName,
-            email,
-            contact,
-            address: {
-              line1: address1,
-              line2: address2,
-              city,
-              postcode
-            },
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          })
-          .then(() => {
-            alert('Account created successfully!');
-            signupForm.reset(); // Clear form
-            // Optional: Redirect to a dashboard, e.g., window.location.href = '/dashboard.html';
-          })
-          .catch((error) => {
-            console.error('Error saving user data:', error.message);
-            alert('Error saving data: ' + error.message);
-          });
-        })
-        .catch((error) => {
-          console.error('Sign-up error:', error.message);
-          alert('Error: ' + error.message);
-        });
-    });
-  }
-</script>
-
-  <script src="script.js"></script>
-  
 <body>
 
-<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
 
-<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
-  <a href="about.html">About Us</a>
   <a href="live_auctions.html">Live Auctions</a>
-  <a href="kollect_100.html">Kollect 100</a>
-  <a href="private_sales.html">Private Sales</a>
-  <a href="contact.html">Contact Us</a>
-  <a href="admin.html">Admin</a>
-  <a href="results.html">Results</a>
-  <a href="create_account.html">Sign In</a>
-  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-  <div id="user-status">Not logged in</div>
-<form id="signup-form">...</form>
-<form id="login-form">...</form>
-<button id="logout-button" style="display:none;">Logout</button>
-
 <div class="container">
-  <!-- Hero Image with light/dark mode -->
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px; margin-bottom:30px;">
+  <p id="user-status">Checking login…</p>
+  <button id="logout-button" style="display:none">Logout</button>
 
-  <!-- Sign In Section -->
-  <div class="card" style="padding:30px; margin-bottom:40px; max-width:400px; width:100%;">
-    <h2>Sign In</h2>
+  <div class="card">
+    <h3>Login</h3>
     <form id="login-form">
-      <input type="email" id="login-email" placeholder="Email Address" required>
-      <input type="password" id="login-password" placeholder="Password" required>
-      <button class="button" type="submit">Sign In</button>
+      <input name="email" type="email" required>
+      <input name="password" type="password" required>
+      <button>Login</button>
     </form>
   </div>
 
-  <h1>Create Account</h1>
-
-  <!-- Create Account Form -->
   <div class="card">
+    <h3>Create Account</h3>
     <form id="signup-form">
-      <input type="text" id="signup-firstname" placeholder="First Name" required>
-      <input type="text" id="signup-lastname" placeholder="Last Name" required>
-      <input type="email" id="signup-email" placeholder="Email Address" required>
-      <input type="password" id="signup-password" placeholder="Password" required>
-      <input type="password" id="signup-confirm-password" placeholder="Confirm Password" required>
-      <input type="tel" id="signup-contact" placeholder="Contact Number" required>
-      <input type="text" id="signup-address1" placeholder="Address Line 1" required>
-      <input type="text" id="signup-address2" placeholder="Address Line 2">
-      <input type="text" id="signup-city" placeholder="City" required>
-      <input type="text" id="signup-postcode" placeholder="Postcode" required>
-      <button class="button" type="submit">Create Account</button>
+      <input name="email" type="email" required>
+      <input name="password" type="password" required>
+      <button>Create</button>
     </form>
   </div>
 </div>
-
-<script src="script.js"></script>
-
-<script>
-  // Hero image switching for light/dark mode
-  const heroImages = document.querySelectorAll('.hero-image');
-
-  function updateHeroImages() {
-    heroImages.forEach(img => {
-      if(document.body.classList.contains('light-mode')) {
-        img.src = 'IMG_1558.jpeg'; // Light mode
-      } else {
-        img.src = 'IMG_1604.jpeg'; // Dark mode
-      }
-    });
-  }
-
-  // On page load
-  window.addEventListener('load', updateHeroImages);
-
-  // Update on toggle
-  const modeToggle = document.getElementById('modeToggle');
-  modeToggle.addEventListener('click', () => {
-    setTimeout(updateHeroImages, 100); // slight delay for class toggle
-  });
-</script>
 
 </body>
 </html>
