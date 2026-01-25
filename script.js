@@ -52,51 +52,73 @@ window.onload = () => {
 // =====================
 // window.addEventListener('resize', updateHeroImages);
 
+// =====================
+// FIREBASE AUTH & USER STATE
+// =====================
+import { auth, db } from './firebase.js';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+// User State Observer
+onAuthStateChanged(auth, (user) => {
+    const userStatus = document.getElementById('user-status');
+    if (user) {
+        // User is signed in
+        console.log('Current user:', user);
+        if(userStatus) userStatus.textContent = `Logged in as: ${user.email}`;
+        // Optional: Show/hide elements
+        const loginForm = document.getElementById('login-form');
+        if(loginForm) loginForm.style.display = 'none';
+    } else {
+        // User is signed out
+        console.log('No user logged in');
+        if(userStatus) userStatus.textContent = 'Not logged in';
+        const loginForm = document.getElementById('login-form');
+        if(loginForm) loginForm.style.display = 'block';
+    }
+});
+
+// =====================
+// SIGN-UP & LOGIN FORMS
+// =====================
 document.addEventListener('DOMContentLoaded', () => {
-  const signupForm = document.getElementById('signup-form');
-  const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('login-form');
 
-  // Sign-Up Event Listener
-  signupForm.addEventListener('submit', (e) => {
-    e.preventDefault(); // Prevent page reload
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
+    if(signupForm) {
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
 
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Signed up successfully
-        const user = userCredential.user;
-        console.log('User signed up:', user);
-        alert('Sign-up successful!');
-        // Optional: Redirect to another page or update UI
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error('Sign-up error:', errorCode, errorMessage);
-        alert(`Error: ${errorMessage}`);
-      });
-  });
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('User signed up:', user);
+                    alert('Sign-up successful!');
+                })
+                .catch((error) => {
+                    console.error('Sign-up error:', error.code, error.message);
+                    alert(`Error: ${error.message}`);
+                });
+        });
+    }
 
-  // Login Event Listener
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault(); // Prevent page reload
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+    if(loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Logged in successfully
-        const user = userCredential.user;
-        console.log('User logged in:', user);
-        alert('Login successful!');
-        // Optional: Redirect or update UI
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error('Login error:', errorCode, errorMessage);
-        alert(`Error: ${errorMessage}`);
-      });
-  });
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    console.log('User logged in:', user);
+                    alert('Login successful!');
+                })
+                .catch((error) => {
+                    console.error('Login error:', error.code, error.message);
+                    alert(`Error: ${error.message}`);
+                });
+        });
+    }
 });
