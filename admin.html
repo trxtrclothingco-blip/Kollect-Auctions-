@@ -2,167 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin – Kollect Auctions</title>
-
-  <script type="module" src="firebase.js"></script>
-  
+<title>Admin</title>
 <link rel="stylesheet" href="style.css">
-<style>
-  /* Make password screen blurry */
-  #passwordScreen {
-    backdrop-filter: blur(12px);
-  }
 
-  /* Optional: blur content behind modal if needed */
-  #passwordScreen::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    backdrop-filter: blur(12px);
-    z-index: 0;
-  }
+<script type="module">
+  import { auth } from "./firebase.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-  #passwordScreen .card {
-    position: relative;
-    z-index: 1;
-  }
-</style>
+  onAuthStateChanged(auth, user => {
+    if (!user) window.location.href = "create_account.html";
+  });
+</script>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="ui.js"></script>
 </head>
 
-  <script type="module">
-  import { auth, db } from './firebase.js';
-
-  // Example 1: Check if a user is logged in
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log("User logged in:", user.email);
-      // You could show their info on the page
-      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
-    } else {
-      console.log("No user logged in");
-    }
-  });
-
-  // Example 2: Write data to Firestore
-  const sendMessageButton = document.getElementById("sendMessage");
-  sendMessageButton.addEventListener("click", async () => {
-    const message = document.getElementById("messageInput").value;
-    try {
-      await db.collection("messages").add({ text: message, timestamp: Date.now() });
-      console.log("Message sent!");
-    } catch (err) {
-      console.error("Error adding message:", err);
-    }
-  });
-</script>
-
-  <script src="script.js"></script>
-  
 <body>
 
-<!-- PASSWORD SCREEN -->
-<div class="container" id="passwordScreen">
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px;">
-  
-  <div class="card">
-    <h2>Admin Access</h2>
-    <p>Please enter the admin password.</p>
-    <input type="password" id="adminPassword" placeholder="Enter password">
-    <button class="button" onclick="checkPassword()">Enter</button>
-    <p id="errorMsg" style="color:red; display:none;">Incorrect password</p>
-  </div>
+<div class="container">
+  <h1>Admin Panel</h1>
+  <p>Restricted access</p>
 </div>
-
-<!-- ADMIN CONTENT (HIDDEN BY DEFAULT) -->
-<div id="adminContent" style="display:none;">
-
-  <div class="burger" onclick="toggleMenu()">
-    <div></div><div></div><div></div>
-  </div>
-
-  <nav class="nav-menu" id="navMenu">
-    <a href="index.html">Home</a>
-    <a href="about.html">About Us</a>
-    <a href="live_auctions.html">Live Auctions</a>
-    <a href="kollect_100.html">Kollect 100</a>
-    <a href="private_sales.html">Private Sales</a>
-    <a href="contact.html">Contact Us</a>
-    <a href="admin.html">Admin</a>
-    <a href="results.html">Results</a>
-    <a href="create_account.html">Sign In</a>
-    <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
-  </nav>
-
-  <div class="container">
-    <h1>Admin Dashboard</h1>
-
-    <!-- Create Listing Card -->
-    <div class="card">
-      <h2>Create Listing</h2>
-      <form>
-        <input type="text" placeholder="Item Name" required>
-
-        <!-- Sale Type -->
-        <select required>
-          <option value="">Select Sale Type</option>
-          <option value="auction">Auction</option>
-          <option value="private">Private Sale</option>
-        </select>
-
-        <!-- Category -->
-        <select required>
-          <option value="">Category</option>
-          <option value="tgc-graded">TGC's Graded</option>
-          <option value="tgc-raw">TGC's Raw</option>
-          <option value="comics">Comics</option>
-          <option value="memorabilia">Memorabilia</option>
-          <option value="historical">Historical Items</option>
-        </select>
-
-        <input type="number" placeholder="Starting Price (£)" required>
-        <input type="file" multiple>
-        <textarea rows="3" placeholder="Listing Description"></textarea>
-
-        <!-- Auction start and end renamed -->
-        <input type="datetime-local" placeholder="Start Date">
-        <input type="datetime-local" placeholder="End Date">
-
-        <button class="button" type="submit">Create Listing</button>
-      </form>
-    </div>
-  </div>
-
-</div>
-
-<script src="script.js"></script>
-
-<script>
-const PASSWORD = "@PJL2025";
-
-function checkPassword() {
-  const input = document.getElementById("adminPassword").value;
-  const error = document.getElementById("errorMsg");
-
-  if (input === PASSWORD) {
-    sessionStorage.setItem("adminAuth", "true");
-    showAdmin();
-  } else {
-    error.style.display = "block";
-  }
-}
-
-function showAdmin() {
-  document.getElementById("passwordScreen").style.display = "none";
-  document.getElementById("adminContent").style.display = "block";
-}
-
-window.onload = () => {
-  if (sessionStorage.getItem("adminAuth") === "true") {
-    showAdmin();
-  }
-};
-</script>
 
 </body>
 </html>
