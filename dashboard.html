@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard – Kollect Auctions</title>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase.js";
+
+// ---------- Firebase Initialization ----------
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ---------- Elements ----------
+const userStatus = document.getElementById("user-status");
+const logoutButton = document.getElementById("logout-button");
+const body = document.body;
+
+// ---------- Burger Menu & Light/Dark Mode ----------
+window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+
+if(localStorage.getItem("lightMode") === "true") body.classList.add("light-mode");
+window.toggleMode = () => {
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight);
+};
+
+// ---------- Logout ----------
+window.logoutUser = async () => {
+  try { 
+    await signOut(auth); 
+    window.location.href = "create_account.html";
+  } catch(e) { console.error("Logout failed:", e); }
+};
+
+// ---------- Auth check & live dashboard update ----------
+onAuthStateChanged(auth, (user) => {
+  if (!user) return window.location.href = "create_account.html";
+
+  userStatus.textContent = `Logged in as ${user.email}`;
+  logoutButton.style.display = "inline-block";
+
+  // Live user info from Firestore
+  const docRef = doc(db, "users", user.uid);
+  onSnapshot(docRef, (docSnap) => {
+    if(docSnap.exists()){
+      const data = docSnap.data();
+      document.getElementById("first-name").textContent = data.firstName || "—";
+      document.getElementById("last-name").textContent = data.lastName || "—";
+      document.getElementById("user-email").textContent = data.email || "—";
+      document.getElementById("contact").textContent = data.contact || "—";
+      document.getElementById("address1").textContent = data.address1 || "—";
+      document.getElementById("address2").textContent = data.address2 || "—";
+      document.getElementById("city").textContent = data.city || "—";
+      document.getElementById("postcode").textContent = data.postcode || "—";
+    }
+  });
+});
+</script>
+</head>
+<body>
+
+<!-- Burger Menu -->
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<!-- User Status -->
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
+<!-- Dashboard Content -->
+<div class="container">
+  <h1>Welcome, <span id="first-name">User</span>!</h1>
+  
+  <div class="card">
+    <h2>Your Account Info</h2>
+    <ul>
+      <li>First Name: <span id="first-name">—</span></li>
+      <li>Last Name: <span id="last-name">—</span></li>
+      <li>Email: <span id="user-email">—</span></li>
+      <li>Contact: <span id="contact">—</span></li>
+      <li>Address: <span id="address1">—</span> <span id="address2">—</span></li>
+      <li>City: <span id="city">—</span></li>
+      <li>Postcode: <span id="postcode">—</span></li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
