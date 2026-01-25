@@ -51,3 +51,52 @@ window.onload = () => {
 // OPTIONAL: CALL UPDATE WHEN RESIZING OR DYNAMIC CONTENT LOADED
 // =====================
 // window.addEventListener('resize', updateHeroImages);
+
+document.addEventListener('DOMContentLoaded', () => {
+  const signupForm = document.getElementById('signup-form');
+  const loginForm = document.getElementById('login-form');
+
+  // Sign-Up Event Listener
+  signupForm.addEventListener('submit', (e) => {
+    e.preventDefault(); // Prevent page reload
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed up successfully
+        const user = userCredential.user;
+        console.log('User signed up:', user);
+        alert('Sign-up successful!');
+        // Optional: Redirect to another page or update UI
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.error('Sign-up error:', errorCode, errorMessage);
+        alert(`Error: ${errorMessage}`);
+      });
+  });
+
+  // Login Event Listener
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault(); // Prevent page reload
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Logged in successfully
+        const user = userCredential.user;
+        console.log('User logged in:', user);
+        alert('Login successful!');
+        // Optional: Redirect or update UI
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.error('Login error:', errorCode, errorMessage);
+        alert(`Error: ${errorMessage}`);
+      });
+  });
+});
