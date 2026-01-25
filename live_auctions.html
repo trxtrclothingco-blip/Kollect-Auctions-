@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Auctions</title>
+<title>Live Auction</title>
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="firebase.js"></script>
 <script type="module" src="ui.js"></script>
+<script type="module" src="live_auction.js"></script>
 </head>
 
 <body>
@@ -21,8 +22,15 @@
 </nav>
 
 <div class="container">
-  <h1>Live Auctions</h1>
-  <p>Coming next 🔥</p>
+  <h1>🔥 Live Auction</h1>
+
+  <p>Highest Bid</p>
+  <h2 id="highestBid">£0</h2>
+
+  <input id="bidInput" type="number" placeholder="Enter bid (£)">
+  <button id="bidBtn">Place Bid</button>
+
+  <ul id="bidList"></ul>
 </div>
 
 </body>
