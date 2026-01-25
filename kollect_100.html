@@ -4,94 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kollect 100</title>
-
-    <script type="module" src="firebase.js"></script>
-    
 <link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-
-    <script type="module">
-  import { auth, db } from './firebase.js';
-
-  // Example 1: Check if a user is logged in
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log("User logged in:", user.email);
-      // You could show their info on the page
-      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
-    } else {
-      console.log("No user logged in");
-    }
-  });
-
-  // Example 2: Write data to Firestore
-  const sendMessageButton = document.getElementById("sendMessage");
-  sendMessageButton.addEventListener("click", async () => {
-    const message = document.getElementById("messageInput").value;
-    try {
-      await db.collection("messages").add({ text: message, timestamp: Date.now() });
-      console.log("Message sent!");
-    } catch (err) {
-      console.error("Error adding message:", err);
-    }
-  });
-</script>
-
-    <script src="script.js"></script>
-    
 <body>
+
 <div class="burger" onclick="toggleMenu()">
-    <div></div>
-    <div></div>
-    <div></div>
+  <div></div><div></div><div></div>
 </div>
 
 <nav class="nav-menu" id="navMenu">
-    <a href="index.html">Home</a>
-    <a href="about.html">About Us</a>
-    <a href="live_auctions.html">Live Auctions</a>
-    <a href="kollect_100.html">Kollect 100</a>
-    <a href="private_sales.html">Private Sales</a>
-    <a href="contact.html">Contact Us</a>
-    <a href="admin.html">Admin</a>
-    <a href="results.html">Results</a>
-    <a href="create_account.html">Sign In</a>
-    <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+  <a href="index.html">Home</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
 <div class="container coming-soon">
-    <!-- Hero/logo image added -->
-    <img src="IMG_1604.jpeg" alt="Kollect Auctions" class="hero-image" style="width:300px; margin-bottom:30px;">
-
-    <h1>Kollect 100 Coming Soon!</h1>
-    <button class="button" onclick="window.location='index.html'">Back to Home</button>
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <h1>Kollect 100 Coming Soon!</h1>
+  <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
-
-<script src="script.js"></script>
-
-<script>
-  // Switch hero image depending on mode
-  const heroImages = document.querySelectorAll('.hero-image');
-
-  function updateHeroImages() {
-    heroImages.forEach(img => {
-      if(document.body.classList.contains('light-mode')) {
-        img.src = 'IMG_1558.jpeg'; // Light mode image
-      } else {
-        img.src = 'IMG_1604.jpeg'; // Dark mode image
-      }
-    });
-  }
-
-  // Call on page load
-  window.addEventListener('load', updateHeroImages);
-
-  // Update on toggle
-  const modeToggle = document.getElementById('modeToggle');
-  modeToggle.addEventListener('click', () => {
-    setTimeout(updateHeroImages, 100); // slight delay for class toggle
-  });
-</script>
 
 </body>
 </html>
