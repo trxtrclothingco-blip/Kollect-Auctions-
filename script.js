@@ -55,7 +55,7 @@ window.onload = () => {
 // =====================
 // FIREBASE AUTH & USER STATE
 // =====================
-import { auth, db } from './firebase.js';
+import { auth, db, storage } from './firebase.js';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 // User State Observer
@@ -65,13 +65,11 @@ onAuthStateChanged(auth, (user) => {
     const loginForm = document.getElementById('login-form');
 
     if (user) {
-        // User is signed in
         console.log('Current user:', user);
         if(userStatus) userStatus.textContent = `Logged in as: ${user.email}`;
         if(loginForm) loginForm.style.display = 'none';
         if(logoutButton) logoutButton.style.display = 'inline-block';
     } else {
-        // User is signed out
         console.log('No user logged in');
         if(userStatus) userStatus.textContent = 'Not logged in';
         if(loginForm) loginForm.style.display = 'block';
@@ -144,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =====================
     // FIRESTORE LISTING ADD
     // =====================
-    // Example: automatically add a new listing when page loads
     db.collection("listings").add({
         title: "Rare Card",
         description: "Description here",
@@ -158,4 +155,35 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then(docRef => console.log("Listing created", docRef.id))
     .catch(error => console.error(error));
+
+    // =====================
+    // FIREBASE STORAGE UPLOAD
+    // =====================
+    const fileInput = document.getElementById('file-input'); // make sure you have <input type="file" id="file-input">
+    if(fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            const storageRef = storage.ref();
+            const fileRef = storageRef.child('images/' + file.name);
+            fileRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(url => {
+                    console.log("File URL:", url);
+                });
+            }).catch(err => console.error("Upload error:", err));
+        });
+    }
+
+    // =====================
+    // LISTEN TO BIDS FOR A LISTING
+    // =====================
+    const listingId = "exampleListingId"; // replace with the actual listing ID
+    db.collection("bids")
+      .where("listingId", "==", listingId)
+      .orderBy("bidAmount", "desc")
+      .onSnapshot(snapshot => {
+        snapshot.docs.forEach(doc => console.log(doc.data()));
+      });
+
 });
