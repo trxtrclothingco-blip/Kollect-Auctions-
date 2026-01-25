@@ -22,10 +22,17 @@ const storage = getStorage(app);
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
 const body = document.body;
+const editBtn = document.getElementById("edit-btn");
+const saveBtn = document.getElementById("save-btn");
+const profilePicEl = document.getElementById("profile-pic");
+const profileUpload = document.getElementById("profile-upload");
+
+const fields = ["first-name","last-name","contact","address1","address2","city","postcode"];
+const inputs = fields.map(f => document.getElementById(f));
 
 // ---------- Burger Menu & Light/Dark Mode ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
-if(localStorage.getItem("lightMode") === "true") body.classList.add("light-mode");
+if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
 window.toggleMode = () => {
   const isLight = body.classList.toggle("light-mode");
   localStorage.setItem("lightMode", isLight);
@@ -47,9 +54,7 @@ onAuthStateChanged(auth, (user) => {
   logoutButton.style.display = "inline-block";
 
   const docRef = doc(db, "users", user.uid);
-  const profilePicEl = document.getElementById("profile-pic");
 
-  // Load user info live
   onSnapshot(docRef, (docSnap) => {
     if(docSnap.exists()){
       const data = docSnap.data();
@@ -65,31 +70,48 @@ onAuthStateChanged(auth, (user) => {
     }
   });
 
-  // Save changes button
-  document.getElementById("save-btn").addEventListener("click", async () => {
-    const updatedData = {
-      firstName: document.getElementById("first-name").value,
-      lastName: document.getElementById("last-name").value,
-      contact: document.getElementById("contact").value,
-      address1: document.getElementById("address1").value,
-      address2: document.getElementById("address2").value,
-      city: document.getElementById("city").value,
-      postcode: document.getElementById("postcode").value
-    };
-    await updateDoc(docRef, updatedData);
+  // ---------- Enable editing ----------
+  editBtn.addEventListener("click", () => {
+    inputs.forEach(i => i.removeAttribute("readonly"));
+    profileUpload.style.display = "block";
+    editBtn.style.display = "none";
+    saveBtn.style.display = "inline-block";
+  });
+
+  // ---------- Save changes ----------
+  saveBtn.addEventListener("click", async () => {
+    let profilePicUrl = profilePicEl.src;
+
+    if(profileUpload.files.length > 0){
+      const file = profileUpload.files[0];
+      const storageReference = ref(storage, `profilePics/${user.uid}`);
+      await uploadBytes(storageReference, file);
+      profilePicUrl = await getDownloadURL(storageReference);
+      profilePicEl.src = profilePicUrl;
+    }
+
+    await updateDoc(docRef, {
+      firstName: document.getElementById("first-name").value.trim(),
+      lastName: document.getElementById("last-name").value.trim(),
+      contact: document.getElementById("contact").value.trim(),
+      address1: document.getElementById("address1").value.trim(),
+      address2: document.getElementById("address2").value.trim(),
+      city: document.getElementById("city").value.trim(),
+      postcode: document.getElementById("postcode").value.trim(),
+      profilePicUrl
+    });
+
+    inputs.forEach(i => i.setAttribute("readonly",""));
+    profileUpload.style.display = "none";
+    editBtn.style.display = "inline-block";
+    saveBtn.style.display = "none";
     alert("Profile updated!");
   });
 
-  // Profile picture upload
-  document.getElementById("profile-upload").addEventListener("change", async (e) => {
+  // ---------- Profile picture preview ----------
+  profileUpload.addEventListener("change", (e) => {
     const file = e.target.files[0];
-    if(!file) return;
-    const storageRef = ref(storage, `profilePics/${user.uid}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    await updateDoc(docRef, { profilePicUrl: url });
-    profilePicEl.src = url;
-    alert("Profile picture updated!");
+    if(file) profilePicEl.src = URL.createObjectURL(file);
   });
 });
 </script>
@@ -119,24 +141,27 @@ onAuthStateChanged(auth, (user) => {
 
 <!-- Dashboard Content -->
 <div class="container">
-  <h1>Welcome, <input id="first-name" placeholder="First Name" /></h1>
-  
+  <h1>Welcome, <input id="first-name" readonly placeholder="First Name"></h1>
   <div class="card">
-    <h2>Your Account Info</h2>
-    <img id="profile-pic" src="default-profile.png" alt="Profile Picture" style="width:120px; height:120px; border-radius:50%; display:block; margin:0 auto 15px;">
-    <input type="file" id="profile-upload" accept="image/*">
+    <h2>Your Profile</h2>
+    <img id="profile-pic" src="default-profile.png" alt="Profile Picture" style="width:120px; height:120px; border-radius:50%; display:block; margin:0 auto 10px;">
+    <input type="file" id="profile-upload" accept="image/*" style="display:none; margin-bottom:15px;">
 
     <ul>
-      <li>First Name: <input id="first-name" placeholder="First Name" /></li>
-      <li>Last Name: <input id="last-name" placeholder="Last Name" /></li>
+      <li>First Name: <input id="first-name" readonly placeholder="First Name" /></li>
+      <li>Last Name: <input id="last-name" readonly placeholder="Last Name" /></li>
       <li>Email: <span id="user-email">—</span></li>
-      <li>Contact: <input id="contact" placeholder="Phone Number" /></li>
-      <li>Address 1: <input id="address1" placeholder="Address Line 1" /></li>
-      <li>Address 2: <input id="address2" placeholder="Address Line 2" /></li>
-      <li>City: <input id="city" placeholder="City" /></li>
-      <li>Postcode: <input id="postcode" placeholder="Postcode" /></li>
+      <li>Contact: <input id="contact" readonly placeholder="Phone Number" /></li>
+      <li>Address 1: <input id="address1" readonly placeholder="Address Line 1" /></li>
+      <li>Address 2: <input id="address2" readonly placeholder="Address Line 2" /></li>
+      <li>City: <input id="city" readonly placeholder="City" /></li>
+      <li>Postcode: <input id="postcode" readonly placeholder="Postcode" /></li>
     </ul>
-    <button class="button" id="save-btn">Save Changes</button>
+
+    <div style="margin-top:10px;">
+      <button id="edit-btn">Edit Profile</button>
+      <button id="save-btn" style="display:none;">Save Profile</button>
+    </div>
   </div>
 </div>
 
