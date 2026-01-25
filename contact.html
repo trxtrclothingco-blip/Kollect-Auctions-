@@ -9,6 +9,34 @@
   
 <link rel="stylesheet" href="style.css">
 </head>
+
+  <script type="module">
+  import { auth, db } from './firebase.js';
+
+  // Example 1: Check if a user is logged in
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      console.log("User logged in:", user.email);
+      // You could show their info on the page
+      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
+    } else {
+      console.log("No user logged in");
+    }
+  });
+
+  // Example 2: Write data to Firestore
+  const sendMessageButton = document.getElementById("sendMessage");
+  sendMessageButton.addEventListener("click", async () => {
+    const message = document.getElementById("messageInput").value;
+    try {
+      await db.collection("messages").add({ text: message, timestamp: Date.now() });
+      console.log("Message sent!");
+    } catch (err) {
+      console.error("Error adding message:", err);
+    }
+  });
+</script>
+  
 <body>
 
 <div class="burger" onclick="toggleMenu()">
