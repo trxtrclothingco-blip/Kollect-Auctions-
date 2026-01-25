@@ -1,13 +1,22 @@
 // script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { 
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, signOut 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { 
+  getFirestore, doc, setDoc, updateDoc 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { 
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
 // ---------- Firebase App ----------
 import { firebaseConfig } from "./firebase.js";
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // ---------- DOM Elements ----------
 const userStatus = document.getElementById("user-status");
@@ -17,13 +26,45 @@ const signupForm = document.getElementById("signup-form");
 const body = document.body;
 
 // ---------- Auth State ----------
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
-    if (userStatus) userStatus.textContent = `Logged in as ${user.email}`;
-    if (logoutButton) logoutButton.style.display = "inline-block";
+    userStatus.textContent = `Logged in as ${user.email}`;
+    logoutButton.style.display = "inline-block";
+
+    // Live update dashboard fields if present
+    const docRef = doc(db, "users", user.uid);
+    const dashFields = [
+      "first-name","last-name","user-email","contact",
+      "address1","address2","city","postcode","profile-pic"
+    ];
+    dashFields.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.textContent = ""; // reset placeholders
+    });
+
+    try {
+      const docSnap = await docRef.get ? await docRef.get() : null;
+      if(docSnap && docSnap.exists()){
+        const data = docSnap.data();
+        if(document.getElementById("first-name")) document.getElementById("first-name").textContent = data.firstName || "—";
+        if(document.getElementById("last-name")) document.getElementById("last-name").textContent = data.lastName || "—";
+        if(document.getElementById("user-email")) document.getElementById("user-email").textContent = data.email || "—";
+        if(document.getElementById("contact")) document.getElementById("contact").textContent = data.contact || "—";
+        if(document.getElementById("address1")) document.getElementById("address1").textContent = data.address1 || "—";
+        if(document.getElementById("address2")) document.getElementById("address2").textContent = data.address2 || "—";
+        if(document.getElementById("city")) document.getElementById("city").textContent = data.city || "—";
+        if(document.getElementById("postcode")) document.getElementById("postcode").textContent = data.postcode || "—";
+        if(document.getElementById("profile-pic") && data.profilePicUrl) {
+          document.getElementById("profile-pic").src = data.profilePicUrl;
+        }
+      }
+    } catch(e) {
+      console.error("Error fetching user data:", e);
+    }
+
   } else {
-    if (userStatus) userStatus.textContent = "Not logged in";
-    if (logoutButton) logoutButton.style.display = "none";
+    userStatus.textContent = "Not logged in";
+    logoutButton.style.display = "none";
   }
 });
 
@@ -31,8 +72,9 @@ onAuthStateChanged(auth, (user) => {
 window.logoutUser = async () => {
   try {
     await signOut(auth);
-    if (userStatus) userStatus.textContent = "Logged out";
-    if (logoutButton) logoutButton.style.display = "none";
+    userStatus.textContent = "Logged out";
+    logoutButton.style.display = "none";
+    window.location.href = "create_account.html";
   } catch (err) {
     console.error("Logout error:", err);
   }
@@ -41,7 +83,7 @@ window.logoutUser = async () => {
 // ---------- Burger Menu ----------
 window.toggleMenu = () => {
   const navMenu = document.getElementById("navMenu");
-  navMenu?.classList.toggle("open"); // matches CSS
+  navMenu?.classList.toggle("open");
 };
 
 // ---------- Light/Dark Mode ----------
@@ -79,7 +121,7 @@ if (loginForm) {
       loginForm.reset();
       loginMessage.style.color = "green";
       loginMessage.textContent = "Login successful! Redirecting…";
-      setTimeout(() => window.location.href = "index.html", 1000);
+      setTimeout(() => window.location.href = "dashboard.html", 1000);
     } catch (err) {
       loginMessage.style.color = "red";
       loginMessage.textContent = err.message;
@@ -124,7 +166,7 @@ if (signupForm) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save extra fields to Firestore
+      // Save extra fields to Firestore with default profile picture
       await setDoc(doc(db, "users", user.uid), {
         firstName: signupForm["signup-firstname"].value.trim(),
         lastName: signupForm["signup-lastname"].value.trim(),
@@ -134,13 +176,15 @@ if (signupForm) {
         city: signupForm["signup-city"].value.trim(),
         postcode: signupForm["signup-postcode"].value.trim(),
         email: email,
+        profilePicUrl: "https://via.placeholder.com/150", // default picture
         createdAt: new Date()
       });
 
       signupForm.reset();
       signupMessage.style.color = "green";
       signupMessage.textContent = "Account created! Redirecting…";
-      setTimeout(() => window.location.href = "index.html", 1500);
+      setTimeout(() => window.location.href = "dashboard.html", 1500);
+
     } catch (err) {
       signupMessage.style.color = "red";
       signupMessage.textContent = err.message;
@@ -148,13 +192,40 @@ if (signupForm) {
   });
 }
 
-// ---------- Contact / Other Forms ----------
-document.querySelectorAll("form").forEach((form) => {
-  if (!["login-form", "signup-form"].includes(form.id)) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      alert("Form submitted! Add your Firestore logic here.");
-      form.reset();
-    });
+// ---------- Profile Update Function ----------
+window.updateProfile = async () => {
+  const user = auth.currentUser;
+  if (!user) return alert("Not logged in");
+
+  const docRef = doc(db, "users", user.uid);
+
+  const firstName = document.getElementById("first-name-input").value.trim();
+  const lastName = document.getElementById("last-name-input").value.trim();
+  const contact = document.getElementById("contact-input").value.trim();
+  const address1 = document.getElementById("address1-input").value.trim();
+  const address2 = document.getElementById("address2-input").value.trim();
+  const city = document.getElementById("city-input").value.trim();
+  const postcode = document.getElementById("postcode-input").value.trim();
+
+  // Profile picture
+  const fileInput = document.getElementById("profile-pic-input");
+  let profilePicUrl = null;
+  if(fileInput && fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const storageReference = storageRef(storage, `profilePics/${user.uid}`);
+    await uploadBytes(storageReference, file);
+    profilePicUrl = await getDownloadURL(storageReference);
   }
-});
+
+  try {
+    await updateDoc(docRef, {
+      firstName, lastName, contact, address1, address2, city, postcode,
+      ...(profilePicUrl ? { profilePicUrl } : {})
+    });
+    alert("Profile updated successfully!");
+    location.reload(); // refresh dashboard
+  } catch(e) {
+    console.error("Profile update failed:", e);
+    alert("Profile update failed: " + e.message);
+  }
+};
