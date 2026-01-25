@@ -38,7 +38,7 @@ window.logoutUser = async () => {
   }
 };
 
-// ---------- Auth State (works on all pages) ----------
+// ---------- Auth State ----------
 onAuthStateChanged(auth, (user) => {
   if (user) {
     userStatus.textContent = `Logged in as ${user.email}`;
@@ -49,7 +49,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ---------- Login Form ----------
+// ---------- Login ----------
 if (loginForm) {
   const loginMessage = document.createElement("div");
   loginMessage.className = "form-message";
@@ -80,7 +80,7 @@ if (loginForm) {
   });
 }
 
-// ---------- Signup Form ----------
+// ---------- Signup ----------
 if (signupForm) {
   const signupMessage = document.createElement("div");
   signupMessage.className = "form-message";
@@ -113,11 +113,9 @@ if (signupForm) {
     }
 
     try {
-      // Create Auth account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save extra fields to Firestore with default profile picture
       await setDoc(doc(db, "users", user.uid), {
         firstName: signupForm["signup-firstname"].value.trim(),
         lastName: signupForm["signup-lastname"].value.trim(),
@@ -127,7 +125,7 @@ if (signupForm) {
         city: signupForm["signup-city"].value.trim(),
         postcode: signupForm["signup-postcode"].value.trim(),
         email: email,
-        profilePicUrl: "https://via.placeholder.com/150",
+        profilepicurl: "https://via.placeholder.com/150",
         createdAt: new Date()
       });
 
@@ -142,7 +140,7 @@ if (signupForm) {
   });
 }
 
-// ---------- Dashboard Specific Logic ----------
+// ---------- Dashboard ----------
 const profileInputs = {
   firstName: document.getElementById("first-name-input"),
   lastName: document.getElementById("last-name-input"),
@@ -152,6 +150,7 @@ const profileInputs = {
   city: document.getElementById("city-input"),
   postcode: document.getElementById("postcode-input")
 };
+
 const profilePicEl = document.getElementById("profile-pic");
 const profileUpload = document.getElementById("profile-upload");
 const editBtn = document.getElementById("edit-btn");
@@ -180,12 +179,11 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
       profileInputs.address2.value = data.address2 || "";
       profileInputs.city.value = data.city || "";
       profileInputs.postcode.value = data.postcode || "";
-      if (data.profilePicUrl) profilePicEl.src = data.profilePicUrl;
+      if (data.profilepicurl) profilePicEl.src = data.profilepicurl;
 
       welcomeNameEl.textContent = data.firstName || "";
     });
 
-    // Profile editing
     Object.values(profileInputs).forEach(i => i.setAttribute("readonly", ""));
     profileUpload.style.display = "none";
     saveBtn.style.display = "none";
@@ -198,14 +196,14 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
     });
 
     saveBtn.addEventListener("click", async () => {
-      let profilePicUrl = profilePicEl.src;
+      let profilepicurl = profilePicEl.src;
 
       if (profileUpload.files.length > 0) {
         const file = profileUpload.files[0];
         const storageReference = storageRef(storage, `profilePics/${user.uid}`);
         await uploadBytes(storageReference, file);
-        profilePicUrl = await getDownloadURL(storageReference);
-        profilePicEl.src = profilePicUrl;
+        profilepicurl = await getDownloadURL(storageReference);
+        profilePicEl.src = profilepicurl;
       }
 
       await updateDoc(docRef, {
@@ -216,7 +214,7 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
         address2: profileInputs.address2.value.trim(),
         city: profileInputs.city.value.trim(),
         postcode: profileInputs.postcode.value.trim(),
-        profilePicUrl
+        profilepicurl
       });
 
       welcomeNameEl.textContent = profileInputs.firstName.value.trim();
@@ -234,21 +232,32 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
     });
 
     // Load bids
-    const bidsQuery = query(collection(db, "bids"), where("userId", "==", user.uid), orderBy("bidAmount", "desc"));
+    const bidsQuery = query(
+      collection(db, "bids"),
+      where("userId", "==", user.uid),
+      orderBy("bidAmount", "desc")
+    );
+
     onSnapshot(bidsQuery, (snapshot) => {
       bidsContainer.innerHTML = "<h2>My Bids</h2>";
       if (snapshot.empty) {
         bidsContainer.innerHTML += "<p>No active bids yet.</p>";
         return;
       }
+
       snapshot.forEach(doc => {
         const bid = doc.data();
         const bidEl = document.createElement("div");
         bidEl.className = "bid-card";
+
         const itemLink = document.createElement("a");
         itemLink.href = `item.html?id=${bid.itemId}`;
         itemLink.textContent = `${bid.itemName} – £${bid.bidAmount}`;
-        if (bid.outbid) itemLink.innerHTML += " <span style='color:red;'>(Outbid!)</span>";
+
+        if (bid.outbid) {
+          itemLink.innerHTML += " <span style='color:red;'>(Outbid!)</span>";
+        }
+
         bidEl.appendChild(itemLink);
         bidsContainer.appendChild(bidEl);
       });
