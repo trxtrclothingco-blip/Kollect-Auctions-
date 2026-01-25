@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.getElementById("logout-button");
   const userStatus = document.getElementById("user-status");
 
+  // -----------------
+  // Track auth state
+  // -----------------
   onAuthStateChanged(auth, user => {
     if (user) {
       if (userStatus) userStatus.textContent = `Logged in as ${user.email}`;
@@ -22,29 +25,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // -----------------
+  // Login
+  // -----------------
   if (loginForm) {
-    loginForm.addEventListener("submit", e => {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      signInWithEmailAndPassword(
-        auth,
-        loginForm.email.value,
-        loginForm.password.value
-      ).catch(err => alert(err.message));
+      const email = loginForm.email.value.trim();
+      const password = loginForm.password.value.trim();
+
+      if (!email || !password) return alert("Enter email and password");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginForm.reset();
+      } catch (err) {
+        alert(err.message);
+      }
     });
   }
 
+  // -----------------
+  // Signup
+  // -----------------
   if (signupForm) {
-    signupForm.addEventListener("submit", e => {
+    signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      createUserWithEmailAndPassword(
-        auth,
-        signupForm.email.value,
-        signupForm.password.value
-      ).catch(err => alert(err.message));
+      const email = signupForm.email.value.trim();
+      const password = signupForm.password.value.trim();
+
+      if (!email || !password) return alert("Enter email and password");
+      if (password.length < 6) return alert("Password must be at least 6 characters");
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        signupForm.reset();
+      } catch (err) {
+        alert(err.message);
+      }
     });
   }
 
+  // -----------------
+  // Logout
+  // -----------------
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => signOut(auth));
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        alert("Failed to log out: " + err.message);
+      }
+    });
   }
 });
