@@ -56,24 +56,26 @@ window.onload = () => {
 // FIREBASE AUTH & USER STATE
 // =====================
 import { auth, db } from './firebase.js';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 // User State Observer
 onAuthStateChanged(auth, (user) => {
     const userStatus = document.getElementById('user-status');
+    const logoutButton = document.getElementById('logout-button');
+    const loginForm = document.getElementById('login-form');
+
     if (user) {
         // User is signed in
         console.log('Current user:', user);
         if(userStatus) userStatus.textContent = `Logged in as: ${user.email}`;
-        // Optional: Show/hide elements
-        const loginForm = document.getElementById('login-form');
         if(loginForm) loginForm.style.display = 'none';
+        if(logoutButton) logoutButton.style.display = 'inline-block';
     } else {
         // User is signed out
         console.log('No user logged in');
         if(userStatus) userStatus.textContent = 'Not logged in';
-        const loginForm = document.getElementById('login-form');
         if(loginForm) loginForm.style.display = 'block';
+        if(logoutButton) logoutButton.style.display = 'none';
     }
 });
 
@@ -83,7 +85,9 @@ onAuthStateChanged(auth, (user) => {
 document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
+    const logoutButton = document.getElementById('logout-button');
 
+    // Sign-Up Event Listener
     if(signupForm) {
         signupForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -103,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Login Event Listener
     if(loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -118,6 +123,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 .catch((error) => {
                     console.error('Login error:', error.code, error.message);
                     alert(`Error: ${error.message}`);
+                });
+        });
+    }
+
+    // Logout Event Listener
+    if(logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            signOut(auth)
+                .then(() => {
+                    console.log('User signed out');
+                    alert('Logged out successfully!');
+                })
+                .catch((error) => {
+                    console.error('Logout error:', error.message);
                 });
         });
     }
