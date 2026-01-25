@@ -2,174 +2,30 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kollect Auctions</title>
-
-    <!-- Logout Button -->
-<button id="logout-button">Logout</button>
-
-    <script type="module" src="firebase.js"></script>
-    
 <link rel="stylesheet" href="style.css">
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="auth.js"></script>
+<script type="module" src="ui.js"></script>
 </head>
 
-    <script type="module">
-  import { auth, db } from './firebase.js';
-
-  // Example 1: Check if a user is logged in
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      console.log("User logged in:", user.email);
-      // You could show their info on the page
-      document.getElementById("welcome").textContent = `Welcome, ${user.email}`;
-    } else {
-      console.log("No user logged in");
-    }
-  });
-
-  // Example 2: Write data to Firestore
-  const sendMessageButton = document.getElementById("sendMessage");
-  sendMessageButton.addEventListener("click", async () => {
-    const message = document.getElementById("messageInput").value;
-    try {
-      await db.collection("messages").add({ text: message, timestamp: Date.now() });
-      console.log("Message sent!");
-    } catch (err) {
-      console.error("Error adding message:", err);
-    }
-  });
-</script>
-
-    <script src="script.js"></script>
-    
 <body>
-<!-- Burger Menu -->
+
 <div class="burger" onclick="toggleMenu()">
-    <div></div>
-    <div></div>
-    <div></div>
+  <div></div><div></div><div></div>
 </div>
 
-<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
-    <a href="index.html">Home</a>
-    <a href="about.html">About Us</a>
-    <a href="live_auctions.html">Live Auctions</a>
-    <a href="kollect_100.html">Kollect 100</a>
-    <a href="private_sales.html">Private Sales</a>
-    <a href="contact.html">Contact Us</a>
-    <a href="admin.html">Admin</a>
-    <a href="results.html">Results</a>
-    <a href="create_account.html">Sign In</a>
-    <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+  <a href="index.html">Home</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="create_account.html">Account</a>
 </nav>
 
-    <div id="user-status">Not logged in</div>
-<form id="signup-form">...</form>
-<form id="login-form">...</form>
-<button id="logout-button" style="display:none;">Logout</button>
-    
-    <!-- User Status Display -->
-<div id="user-status">Checking login status...</div>
-    
-<!-- Main Container -->
 <div class="container">
-    <!-- Hero Image with glow -->
-    <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-
-    <!-- Hero Button linking to Private Sales -->
-    <a href="private_sales.html" class="button">Private Sales</a>
-
-    <!-- Search Bar -->
-    <div class="search-bar">
-        <input type="text" placeholder="Search items..." id="searchInput">
-        <select id="categorySelect">
-            <option value="">All Categories</option>
-            <option value="tgc-graded">TGC's Graded</option>
-            <option value="tgc-raw">TGC's Raw</option>
-            <option value="movies-books">Movies & Books</option>
-            <option value="figures">Figures</option>
-            <option value="lego">LEGO</option>
-            <option value="video-games">Video Games</option>
-            <option value="memorabilia">Memorabilia</option>
-            <option value="comics">Comics</option>
-            <option value="historical">Historical Items</option>
-        </select>
-        <select id="typeSelect">
-            <option value="">All Types</option>
-            <option value="auction">Auction</option>
-            <option value="private">Private Sale</option>
-        </select>
-        <button class="button" id="searchBtn">Search</button>
-    </div>
-
-    <!-- Cards -->
-    <div class="card">
-        <img src="IMG_1558.jpeg" alt="Product 1">
-        <h3>Rare Collectible 1</h3>
-        <p>Price: £200</p>
-        <button class="button">Buy Now</button>
-    </div>
-
-    <div class="card">
-        <img src="IMG_1558.jpeg" alt="Product 2">
-        <h3>Rare Collectible 2</h3>
-        <p>Price: £350</p>
-        <button class="button">Buy Now</button>
-    </div>
+  <h1>Kollect Auctions</h1>
+  <p id="user-status">Checking login…</p>
 </div>
 
-<!-- Script -->
-<script>
-    // Toggle burger menu
-    function toggleMenu() {
-        const menu = document.getElementById('navMenu');
-        menu.classList.toggle('open');
-    }
-
-    // Light/Dark mode toggle with hero image switching
-    function toggleMode() {
-        const body = document.body;
-        const hero = document.querySelector('.hero-image');
-
-        body.classList.toggle('light-mode');
-
-        if(body.classList.contains('light-mode')) {
-            hero.src = 'IMG_1558.jpeg'; // Light mode hero
-        } else {
-            hero.src = 'IMG_1604.jpeg'; // Dark mode hero
-        }
-
-        localStorage.setItem('lightMode', body.classList.contains('light-mode'));
-    }
-
-    // Apply persisted mode on load
-    window.onload = () => {
-        const body = document.body;
-        const hero = document.querySelector('.hero-image');
-
-        if(localStorage.getItem('lightMode') === 'true'){
-            body.classList.add('light-mode');
-            hero.src = 'IMG_1558.jpeg';
-        } else {
-            hero.src = 'IMG_1604.jpeg';
-        }
-    };
-
-    // Search button functionality
-    const searchBtn = document.getElementById('searchBtn');
-    searchBtn.addEventListener('click', () => {
-        const type = document.getElementById('typeSelect').value;
-
-        if(type === 'private') {
-            window.location.href = 'private_sales.html';
-        } else if(type === 'auction') {
-            window.location.href = 'live_auctions.html';
-        } else {
-            // Default: go to private sales if nothing selected
-            window.location.href = 'private_sales.html';
-        }
-    });
-</script>
 </body>
 </html>
