@@ -140,4 +140,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+
+    // =====================
+    // FIRESTORE LISTING ADD
+    // =====================
+    // Example: automatically add a new listing when page loads
+    db.collection("listings").add({
+        title: "Rare Card",
+        description: "Description here",
+        category: "TGC's Graded",
+        saleType: "auction",
+        startPrice: 200,
+        images: ["url1.jpg", "url2.jpg"],
+        auctionStart: "2026-01-25T10:00",
+        auctionEnd: "2026-01-27T18:00",
+        status: "active"
+    })
+    .then(docRef => console.log("Listing created", docRef.id))
+    .catch(error => console.error(error));
 });
