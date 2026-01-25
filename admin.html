@@ -2,27 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
-
-<script type="module">
-  import { auth } from "./firebase.js";
-  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-  onAuthStateChanged(auth, user => {
-    if (!user) window.location.href = "create_account.html";
-  });
-</script>
-
 <script type="module" src="firebase.js"></script>
-<script type="module" src="ui.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-
 <body>
 
+<!-- Burger Menu -->
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<!-- Navigation -->
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
 <div class="container">
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+
   <h1>Admin Panel</h1>
-  <p>Restricted access</p>
+  <p>Only authorized personnel can access and manage auction data here.</p>
+
+  <!-- Example admin controls -->
+  <div class="card">
+    <h3>Create New Auction</h3>
+    <form id="create-auction-form">
+      <input type="text" id="auction-title" placeholder="Auction Title" required>
+      <input type="date" id="auction-date" required>
+      <input type="time" id="auction-time" required>
+      <button type="submit" class="button">Create Auction</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Manage Items</h3>
+    <button class="button">View All Bids</button>
+    <button class="button">Add New Item</button>
+  </div>
 </div>
 
 </body>
