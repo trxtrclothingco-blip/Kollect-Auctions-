@@ -30,8 +30,8 @@ const profileUpload = document.getElementById("profile-upload");
 const bidsContainer = document.getElementById("bids-container");
 const welcomeName = document.getElementById("welcome-name");
 
-// Updated input IDs
-const fields = ["first-name-input","last-name-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
+// Updated input IDs (added email input)
+const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
 const inputs = fields.map(f => document.getElementById(f));
 
 // ---------- Burger Menu & Light/Dark Mode ----------
@@ -65,7 +65,7 @@ onAuthStateChanged(auth, async (user) => {
       const data = docSnap.data();
       document.getElementById("first-name-input").value = data.firstName || "";
       document.getElementById("last-name-input").value = data.lastName || "";
-      document.getElementById("user-email").textContent = data.email || "";
+      document.getElementById("email-input").value = data.email || "";
       document.getElementById("contact-input").value = data.contact || "";
       document.getElementById("address1-input").value = data.address1 || "";
       document.getElementById("address2-input").value = data.address2 || "";
@@ -99,6 +99,7 @@ onAuthStateChanged(auth, async (user) => {
     await updateDoc(docRef, {
       firstName: document.getElementById("first-name-input").value.trim(),
       lastName: document.getElementById("last-name-input").value.trim(),
+      email: document.getElementById("email-input").value.trim(),
       contact: document.getElementById("contact-input").value.trim(),
       address1: document.getElementById("address1-input").value.trim(),
       address2: document.getElementById("address2-input").value.trim(),
@@ -227,7 +228,7 @@ onAuthStateChanged(auth, async (user) => {
     <ul>
       <li>First Name: <input id="first-name-input" readonly placeholder="First Name" /></li>
       <li>Last Name: <input id="last-name-input" readonly placeholder="Last Name" /></li>
-      <li>Email: <span id="user-email">—</span></li>
+      <li>Email: <input id="email-input" readonly placeholder="Email" /></li>
       <li>Contact: <input id="contact-input" readonly placeholder="Phone Number" /></li>
       <li>Address 1: <input id="address1-input" readonly placeholder="Address Line 1" /></li>
       <li>Address 2: <input id="address2-input" readonly placeholder="Address Line 2" /></li>
