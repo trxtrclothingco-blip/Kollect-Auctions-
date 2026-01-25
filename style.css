@@ -10,54 +10,20 @@
     box-sizing: border-box;
 }
 
+/* =====================
+   BODY / MODES
+===================== */
+
 body {
-    background-color: #0b0b0f;
-    color: #ffffff;
     font-family: 'Space Grotesk', sans-serif;
+    background: #0b0b0f;
+    color: #ffffff;
     transition: background 0.4s ease, color 0.4s ease;
-    text-align: center;
 }
 
-/* Light mode */
 body.light-mode {
-    background-color: #ffffff;
-    color: #000000;
-}
-
-/* =====================
-   GLOBAL LAYOUT
-===================== */
-
-.container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 80px 20px 40px; /* extra top padding for burger */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Headings */
-h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
-    letter-spacing: 0.5px;
-    margin-bottom: 15px;
-}
-
-p {
-    max-width: 800px;
-    margin: 0 auto 15px;
-    line-height: 1.6;
-}
-
-/* =====================
-   LINKS
-===================== */
-
-a {
-    text-decoration: none;
-    color: inherit;
+    background: #f2f2f2;
+    color: #000;
 }
 
 /* =====================
@@ -68,23 +34,23 @@ a {
     position: fixed;
     top: 16px;
     left: 16px;
+    cursor: pointer;
+    z-index: 1001;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    cursor: pointer;
-    z-index: 1001;
 }
 
 .burger div {
     width: 32px;
     height: 4px;
-    background-color: #ffffff;
+    background: currentColor;
     border-radius: 2px;
-    transition: all 0.3s ease;
+    transition: 0.3s;
 }
 
 body.light-mode .burger div {
-    background-color: #00bfff;
+    background: #00bfff;
 }
 
 /* =====================
@@ -94,31 +60,30 @@ body.light-mode .burger div {
 .nav-menu {
     position: fixed;
     top: 0;
-    right: -100%;
+    left: -260px;
     width: 260px;
     height: 100%;
-    background: rgba(20, 20, 30, 0.9);
+    background: rgba(20, 20, 30, 0.95);
     backdrop-filter: blur(12px);
-    display: flex;
-    flex-direction: column;
     padding: 80px 20px;
-    transition: right 0.35s ease;
+    transition: left 0.35s ease;
     z-index: 1000;
-    overflow-y: auto;
-    text-align: left;
+}
+
+.nav-menu.open {
+    left: 0;
 }
 
 body.light-mode .nav-menu {
     background: rgba(245, 245, 245, 0.95);
 }
 
-.nav-menu.open {
-    right: 0;
-}
-
 .nav-menu a {
-    padding: 12px 0;
+    display: block;
+    margin: 15px 0;
     font-weight: 600;
+    text-decoration: none;
+    color: inherit;
     border-bottom: 1px solid rgba(255,255,255,0.15);
 }
 
@@ -127,47 +92,35 @@ body.light-mode .nav-menu a {
 }
 
 /* =====================
-   MODE TOGGLE BUTTON
+   CONTAINER
 ===================== */
 
-#modeToggle {
-    margin-top: 25px;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    background: #222;
-    color: #fff;
-}
-
-body.light-mode #modeToggle {
-    background: #00bfff;
-    color: #fff;
-}
-
-/* =====================
-   HERO / HEADER IMAGE
-===================== */
-
-.hero-image {
+.container {
     width: 100%;
-    max-width: 600px;
-    border-radius: 20px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 0 30px rgba(0,191,255,0.4);
-    background: linear-gradient(
-        180deg,
-        rgba(0,191,255,0.4) 0%,
-        rgba(11,11,15,0.6) 100%
-    );
-    display: block;
-    margin: 0 auto 40px; /* space between image and button */
-    transition: all 0.5s ease; /* smooth transition when JS swaps src */
+    max-width: 1200px;
+    margin: 80px auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* =====================
-   CARDS (NEON GLOW)
+   HEADINGS / TEXT
+===================== */
+
+h1, h2, h3 {
+    font-family: 'Playfair Display', serif;
+    margin-bottom: 15px;
+}
+
+p {
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+/* =====================
+   CARDS
 ===================== */
 
 .card {
@@ -177,13 +130,13 @@ body.light-mode #modeToggle {
     backdrop-filter: blur(14px);
     border-radius: 18px;
     padding: 25px;
-    margin: 25px auto;
+    margin-bottom: 20px;
     border: 2px solid gold;
     box-shadow:
         0 0 10px rgba(255, 215, 0, 0.6),
         0 0 25px rgba(255, 215, 0, 0.4),
         inset 0 0 15px rgba(255, 215, 0, 0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 .card:hover {
@@ -191,92 +144,57 @@ body.light-mode #modeToggle {
 }
 
 body.light-mode .card {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.9);
     border-color: #00bfff;
     box-shadow:
-        0 0 10px rgba(0, 191, 255, 0.7),
-        0 0 25px rgba(0, 191, 255, 0.5),
+        0 0 10px rgba(0, 191, 255, 0.6),
+        0 0 25px rgba(0, 191, 255, 0.4),
         inset 0 0 15px rgba(0, 191, 255, 0.2);
 }
 
-.card img {
-    width: 100%;
-    max-width: 300px;
-    margin: 0 auto 15px;
-    border-radius: 12px;
-}
-
 /* =====================
-   SEARCH BAR
+   INPUTS & BUTTONS
 ===================== */
 
-.search-bar {
+input,
+button,
+select,
+textarea {
     width: 100%;
-    max-width: 900px;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin: 30px auto;
-    flex-wrap: wrap; /* prevents overflow */
-}
-
-.search-bar input,
-.search-bar select {
-    width: 100%;
-    min-width: 0;
     padding: 12px;
+    margin-top: 10px;
     border-radius: 8px;
     border: 2px solid gold;
     background: rgba(255, 255, 255, 0.06);
     color: #fff;
-    flex: 1;
+    font-family: inherit;
 }
 
-body.light-mode .search-bar input,
-body.light-mode .search-bar select {
+body.light-mode input,
+body.light-mode textarea,
+body.light-mode select {
+    background: #fff;
+    color: #000;
     border-color: #00bfff;
-    background: #ffffff;
-    color: #000;
 }
 
-/* =====================
-   BUTTONS
-===================== */
-
-.button {
-    padding: 12px 26px;
-    background: gold;
-    color: #000;
-    border-radius: 8px;
-    border: none;
+button {
     cursor: pointer;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    background: gold;
+    color: #000;
     box-shadow: 0 0 15px rgba(255,215,0,0.6);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
-.button:hover {
+button:hover {
     transform: scale(1.05);
 }
 
-body.light-mode .button {
+body.light-mode button {
     background: #00bfff;
     color: #fff;
     box-shadow: 0 0 15px rgba(0,191,255,0.6);
-}
-
-/* =====================
-   COMING SOON
-===================== */
-
-.coming-soon {
-    min-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 2rem;
 }
 
 /* =====================
@@ -288,38 +206,14 @@ form {
     max-width: 500px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin: 20px auto;
-}
-
-form input,
-form textarea,
-form select {
-    padding: 12px;
-    border-radius: 8px;
-    border: 2px solid gold;
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-}
-
-body.light-mode form input,
-body.light-mode form textarea,
-body.light-mode form select {
-    border-color: #00bfff;
-    background: #ffffff;
-    color: #000;
 }
 
 /* =====================
-   MOBILE FIXES
+   MOBILE
 ===================== */
 
 @media (max-width: 768px) {
-    .search-bar {
-        flex-direction: column;
-    }
-
-    .hero-image {
-        max-width: 90%;
+    .container {
+        padding: 100px 15px 40px;
     }
 }
