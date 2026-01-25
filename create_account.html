@@ -35,6 +35,87 @@
       console.error("Error adding message:", err);
     }
   });
+
+  // Sign-In Form Handler
+  const loginForm = document.getElementById('login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault(); // Prevent page reload
+
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          console.log('Signed in:', userCredential.user.uid);
+          alert('Login successful!');
+          loginForm.reset(); // Clear form
+          // Optional: Redirect to a dashboard, e.g., window.location.href = '/dashboard.html';
+        })
+        .catch((error) => {
+          console.error('Login error:', error.message);
+          alert('Error: ' + error.message);
+        });
+    });
+  }
+
+  // Sign-Up Form Handler
+  const signupForm = document.getElementById('signup-form');
+  if (signupForm) {
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault(); // Prevent page reload
+
+      const firstName = document.getElementById('signup-firstname').value;
+      const lastName = document.getElementById('signup-lastname').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const confirmPassword = document.getElementById('signup-confirm-password').value;
+      const contact = document.getElementById('signup-contact').value;
+      const address1 = document.getElementById('signup-address1').value;
+      const address2 = document.getElementById('signup-address2').value;
+      const city = document.getElementById('signup-city').value;
+      const postcode = document.getElementById('signup-postcode').value;
+
+      if (password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return;
+      }
+
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log('Signed up:', user.uid);
+
+          // Store additional user info in Firestore
+          db.collection('users').doc(user.uid).set({
+            firstName,
+            lastName,
+            email,
+            contact,
+            address: {
+              line1: address1,
+              line2: address2,
+              city,
+              postcode
+            },
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          })
+          .then(() => {
+            alert('Account created successfully!');
+            signupForm.reset(); // Clear form
+            // Optional: Redirect to a dashboard, e.g., window.location.href = '/dashboard.html';
+          })
+          .catch((error) => {
+            console.error('Error saving user data:', error.message);
+            alert('Error saving data: ' + error.message);
+          });
+        })
+        .catch((error) => {
+          console.error('Sign-up error:', error.message);
+          alert('Error: ' + error.message);
+        });
+    });
+  }
 </script>
   
 <body>
@@ -65,9 +146,9 @@
   <!-- Sign In Section -->
   <div class="card" style="padding:30px; margin-bottom:40px; max-width:400px; width:100%;">
     <h2>Sign In</h2>
-    <form>
-      <input type="email" placeholder="Email Address" required>
-      <input type="password" placeholder="Password" required>
+    <form id="login-form">
+      <input type="email" id="login-email" placeholder="Email Address" required>
+      <input type="password" id="login-password" placeholder="Password" required>
       <button class="button" type="submit">Sign In</button>
     </form>
   </div>
@@ -76,15 +157,17 @@
 
   <!-- Create Account Form -->
   <div class="card">
-    <form>
-      <input type="text" placeholder="First Name" required>
-      <input type="text" placeholder="Last Name" required>
-      <input type="email" placeholder="Email Address" required>
-      <input type="tel" placeholder="Contact Number" required>
-      <input type="text" placeholder="Address Line 1" required>
-      <input type="text" placeholder="Address Line 2">
-      <input type="text" placeholder="City" required>
-      <input type="text" placeholder="Postcode" required>
+    <form id="signup-form">
+      <input type="text" id="signup-firstname" placeholder="First Name" required>
+      <input type="text" id="signup-lastname" placeholder="Last Name" required>
+      <input type="email" id="signup-email" placeholder="Email Address" required>
+      <input type="password" id="signup-password" placeholder="Password" required>
+      <input type="password" id="signup-confirm-password" placeholder="Confirm Password" required>
+      <input type="tel" id="signup-contact" placeholder="Contact Number" required>
+      <input type="text" id="signup-address1" placeholder="Address Line 1" required>
+      <input type="text" id="signup-address2" placeholder="Address Line 2">
+      <input type="text" id="signup-city" placeholder="City" required>
+      <input type="text" id="signup-postcode" placeholder="Postcode" required>
       <button class="button" type="submit">Create Account</button>
     </form>
   </div>
