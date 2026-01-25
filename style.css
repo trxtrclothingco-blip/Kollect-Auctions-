@@ -208,6 +208,18 @@ form {
     flex-direction: column;
 }
 
+#highestBid {
+  font-size: 2rem;
+  margin: 10px 0;
+  color: #2ecc71;
+}
+
+#bidList li {
+  font-size: 0.9rem;
+  border-bottom: 1px solid #333;
+  padding: 5px 0;
+}
+
 /* =====================
    MOBILE
 ===================== */
