@@ -27,7 +27,7 @@ async function uploadToCloudinary(file) {
   return data.secure_url; // this is the uploaded image URL
 }
 
-// ---------- Firebase Storage Upload for Contact Form ----------
+// ---------- Firebase Storage Upload ----------
 export async function uploadFileToFirebase(file) {
   try {
     const storageRef = ref(storage, 'contact_uploads/' + Date.now() + '_' + file.name);
@@ -175,7 +175,6 @@ if (contactForm) {
   contactForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // Upload files to Firebase Storage and get URLs
     const fileInput = document.getElementById("item_image");
     const files = fileInput.files;
     const uploadedUrls = [];
@@ -185,17 +184,13 @@ if (contactForm) {
       if (url) uploadedUrls.push(url);
     }
 
-    // Add URLs to hidden input for EmailJS
-    const urlsInput = document.createElement("input");
-    urlsInput.type = "hidden";
-    urlsInput.name = "file_urls";
-    urlsInput.value = uploadedUrls.join(", ");
-    contactForm.appendChild(urlsInput);
+    // Add URLs to hidden input
+    document.getElementById("file_urls").value = uploadedUrls.join(", ");
 
     // Add timestamp
     document.getElementById("time").value = new Date().toLocaleString();
 
-    // Send form with EmailJS
+    // Send form via EmailJS
     emailjs.sendForm(
       "service_899s2nl",
       "template_2sqqyrk",
