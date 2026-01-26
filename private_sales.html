@@ -6,9 +6,9 @@
 <title>Private Sales – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
+<script type="module" src="products.js"></script>
 </head>
-<body>
+<body data-page="private_sales">
 
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
@@ -36,33 +36,40 @@
   <h1>Private Sales</h1>
   <p>Make an Offer or Buy It Now</p>
 
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 1">
-    <h3>Private Collectible 1</h3>
-    <p>Price: £500</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 2">
-    <h3>Private Collectible 2</h3>
-    <p>Price: £700</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 3">
-    <h3>Private Collectible 3</h3>
-    <p>Price: £350</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 4">
-    <h3>Private Collectible 4</h3>
-    <p>Price: £1200</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
+  <!-- Products Container -->
+  <div id="products-container" class="products-grid">
+    <!-- Example Product Cards -->
+    <div class="product-card">
+      <img src="IMG_1558.jpeg" alt="Private Collectible 1">
+      <h3>Private Collectible 1</h3>
+      <p>Price: £500</p>
+      <button class="button">Buy Now</button>
+      <button class="button">Make an Offer</button>
+    </div>
+
+    <div class="product-card">
+      <img src="IMG_1558.jpeg" alt="Private Collectible 2">
+      <h3>Private Collectible 2</h3>
+      <p>Price: £700</p>
+      <button class="button">Buy Now</button>
+      <button class="button">Make an Offer</button>
+    </div>
+
+    <div class="product-card">
+      <img src="IMG_1558.jpeg" alt="Private Collectible 3">
+      <h3>Private Collectible 3</h3>
+      <p>Price: £350</p>
+      <button class="button">Buy Now</button>
+      <button class="button">Make an Offer</button>
+    </div>
+
+    <div class="product-card">
+      <img src="IMG_1558.jpeg" alt="Private Collectible 4">
+      <h3>Private Collectible 4</h3>
+      <p>Price: £1200</p>
+      <button class="button">Buy Now</button>
+      <button class="button">Make an Offer</button>
+    </div>
   </div>
 </div>
 
