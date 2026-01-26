@@ -28,7 +28,7 @@ const profileUpload = document.getElementById("profile-upload");
 const bidsContainer = document.getElementById("bids-container");
 const welcomeName = document.getElementById("welcome-name");
 
-// Updated input IDs (added email input)
+// Updated input IDs
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
 const inputs = fields.map(f => document.getElementById(f));
 
@@ -70,7 +70,7 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById("city-input").value = data.city || "";
       document.getElementById("postcode-input").value = data.postcode || "";
       welcomeName.textContent = data.firstName || "User";
-      if(data.profilePicUrl) profilePicEl.src = data.profilePicUrl;
+      if(data.profilepicurl) profilePicEl.src = data.profilepicurl;
     }
   });
 
@@ -84,27 +84,25 @@ onAuthStateChanged(auth, async (user) => {
 
   // ---------- Save changes ----------
   saveBtn.addEventListener("click", async () => {
-    let profilePicUrl = profilePicEl.src;
+    let profilepicurl = profilePicEl.src;
 
     if(profileUpload.files.length > 0){
       const file = profileUpload.files[0];
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "Profile_pictures"); // Your Cloudinary preset
-      formData.append("folder", "profilePics"); // Optional folder in Cloudinary
+      formData.append("upload_preset", "Profile_pictures"); 
+      formData.append("folder", "profilePics");
 
-      // Upload to Cloudinary
-      const cloudName = "Kollect_Auctions"; // Replace with your actual cloud name
+      // ✅ Use your actual Cloudinary cloud name
+      const cloudName = "def0sfrxq";
       const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-      const res = await fetch(url, {
-        method: "POST",
-        body: formData
-      });
+      const res = await fetch(url, { method: "POST", body: formData });
       const data = await res.json();
-      profilePicUrl = data.secure_url;
-      profilePicEl.src = profilePicUrl;
+      profilepicurl = data.secure_url;
+      profilePicEl.src = profilepicurl;
     }
 
+    // Update Firestore
     await updateDoc(docRef, {
       firstName: document.getElementById("first-name-input").value.trim(),
       lastName: document.getElementById("last-name-input").value.trim(),
@@ -114,7 +112,7 @@ onAuthStateChanged(auth, async (user) => {
       address2: document.getElementById("address2-input").value.trim(),
       city: document.getElementById("city-input").value.trim(),
       postcode: document.getElementById("postcode-input").value.trim(),
-      profilePicUrl
+      profilepicurl
     });
 
     inputs.forEach(i => i.setAttribute("readonly",""));
@@ -122,7 +120,6 @@ onAuthStateChanged(auth, async (user) => {
     editBtn.style.display = "inline-block";
     saveBtn.style.display = "none";
 
-    // Update welcome name after saving
     welcomeName.textContent = document.getElementById("first-name-input").value.trim() || "User";
     alert("Profile updated!");
   });
