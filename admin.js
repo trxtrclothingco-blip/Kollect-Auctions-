@@ -16,6 +16,7 @@ const passwordScreen = document.getElementById("password-screen");
 const adminPanel = document.getElementById("admin-panel");
 
 const ADMIN_EMAIL = "peterjames-barrett@outlook.com";
+const ADMIN_UID = "gBrbEobcS5RCG47acE5ySqxO8yB2";
 
 passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -24,8 +25,7 @@ passwordForm.addEventListener("submit", async (e) => {
 
   try {
     const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
-    // Ensure only the correct UID can access
-    if (userCredential.user.uid !== "gBrbEobcS5RCG47acE5ySqxO8yB2") {
+    if (userCredential.user.uid !== ADMIN_UID) {
       alert("You are not authorized to access this panel.");
       await auth.signOut();
       return;
@@ -44,7 +44,7 @@ passwordForm.addEventListener("submit", async (e) => {
 
 /* ---------- Persist login ---------- */
 onAuthStateChanged(auth, (user) => {
-  if (user && user.uid === "gBrbEobcS5RCG47acE5ySqxO8yB2") {
+  if (user && user.uid === ADMIN_UID) {
     passwordScreen.style.display = "none";
     adminPanel.style.display = "block";
     loadItems();
@@ -60,7 +60,7 @@ itemForm.addEventListener("submit", async (e) => {
 
   try {
     const formData = new FormData(itemForm);
-    const saleType = formData.get("sale_type");
+    const saleType = formData.get("sale_type"); // "private_sales", "kollect_100", "live_auctions"
     if (!saleType) return alert("Select sale type");
 
     const data = {
@@ -71,6 +71,7 @@ itemForm.addEventListener("submit", async (e) => {
       createdAt: new Date()
     };
 
+    // Upload image to Cloudinary
     const file = formData.get("item_image");
     if (file && file.name) {
       const uploadForm = new FormData();
@@ -89,10 +90,14 @@ itemForm.addEventListener("submit", async (e) => {
     }
 
     const itemId = document.getElementById("item_id").value;
+
+    // Decide collection based on saleType
+    let col = (saleType === "private_sales") ? "privatesales" : "listings";
+
     if (itemId) {
-      await updateDoc(doc(db, saleType, itemId), data);
+      await updateDoc(doc(db, col, itemId), data);
     } else {
-      await addDoc(collection(db, saleType), data);
+      await addDoc(collection(db, col), data);
     }
 
     itemForm.reset();
