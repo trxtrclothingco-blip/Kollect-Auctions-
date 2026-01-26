@@ -10,6 +10,7 @@
 </head>
 <body>
 
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
@@ -27,6 +28,7 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
+<!-- User Status -->
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
@@ -61,6 +63,108 @@
     </form>
   </div>
 </div>
+
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { collection, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// ---------- DOM ----------
+const loginForm = document.getElementById("login-form");
+const signupForm = document.getElementById("signup-form");
+const userStatus = document.getElementById("user-status");
+const logoutButton = document.getElementById("logout-button");
+
+// ---------- Burger Menu ----------
+window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+
+// ---------- Light/Dark Mode ----------
+const body = document.body;
+if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
+window.toggleMode = () => {
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight);
+};
+
+// ---------- Logout ----------
+window.logoutUser = async () => {
+  try { 
+    await signOut(auth);
+    window.location.reload();
+  } catch(e) { console.error(e); }
+};
+
+// ---------- Auth State ----------
+onAuthStateChanged(auth, user => {
+  if(user){
+    userStatus.textContent = `Logged in as ${user.email}`;
+    logoutButton.style.display = "inline-block";
+  } else {
+    userStatus.textContent = "Not logged in";
+    logoutButton.style.display = "none";
+  }
+});
+
+// ---------- Login ----------
+loginForm?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Login successful!");
+    loginForm.reset();
+    window.location.href = "index.html"; // redirect after login
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
+});
+
+// ---------- Signup ----------
+signupForm?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const firstName = document.getElementById("signup-firstname").value;
+  const lastName = document.getElementById("signup-lastname").value;
+  const email = document.getElementById("signup-email").value;
+  const password = document.getElementById("signup-password").value;
+  const confirmPassword = document.getElementById("signup-confirm-password").value;
+  const contact = document.getElementById("signup-contact").value;
+  const address1 = document.getElementById("signup-address1").value;
+  const address2 = document.getElementById("signup-address2").value;
+  const city = document.getElementById("signup-city").value;
+  const postcode = document.getElementById("signup-postcode").value;
+
+  if(password !== confirmPassword){
+    return alert("Passwords do not match!");
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    await updateProfile(user, { displayName: firstName + " " + lastName });
+
+    // Save additional user info in Firestore
+    await addDoc(collection(db, "users"), {
+      uid: user.uid,
+      firstName,
+      lastName,
+      email,
+      contact,
+      address1,
+      address2,
+      city,
+      postcode,
+      createdAt: new Date()
+    });
+
+    alert("Account created successfully!");
+    signupForm.reset();
+    window.location.href = "index.html"; // redirect after signup
+  } catch (err) {
+    alert("Signup failed: " + err.message);
+  }
+});
+</script>
 
 </body>
 </html>
