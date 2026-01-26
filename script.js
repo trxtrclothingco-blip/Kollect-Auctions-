@@ -1,173 +1,127 @@
-// script.js
+import { db } from "./firebase.js";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// ---------- Firebase / Auth Imports ----------
-import { auth, db, storage } from "./firebase.js";
-import { 
-  onAuthStateChanged, signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, signOut 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { 
-  doc, setDoc 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+// ---------- Cloudinary Config ----------
+const CLOUD_NAME = "def0sfrxq"; // your Cloudinary cloud name
+const UPLOAD_PRESET = "Profile_pictures"; // your unsigned upload preset
 
-// ---------- DOM Elements ----------
-const userStatus = document.getElementById("user-status");
-const logoutButton = document.getElementById("logout-button");
-const loginForm = document.getElementById("login-form");
-const signupForm = document.getElementById("signup-form");
-const body = document.body;
-const contactForm = document.getElementById("contact-form");
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", UPLOAD_PRESET);
 
-// ---------- Light/Dark Mode ----------
-if (localStorage.getItem("lightMode") === "true") body.classList.add("light-mode");
-window.toggleMode = () => {
-  const isLight = body.classList.toggle("light-mode");
-  localStorage.setItem("lightMode", isLight);
-};
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: "POST",
+    body: formData
+  });
 
-// ---------- Burger Menu ----------
-window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+  const data = await res.json();
+  return data.secure_url; // this is the uploaded image URL
+}
 
-// ---------- Logout ----------
-window.logoutUser = async () => {
-  try {
-    await signOut(auth);
-    window.location.href = "create_account.html";
-  } catch (err) {
-    console.error("Logout error:", err);
-  }
-};
+// ---------- Password Protection ----------
+const PASSWORD = "@PJL2025";
+const passwordScreen = document.getElementById("password-screen");
+const passwordForm = document.getElementById("password-form");
+const adminPanel = document.getElementById("admin-panel");
 
-// ---------- Auth State ----------
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    userStatus.textContent = `Logged in as ${user.email}`;
-    logoutButton.style.display = "inline-block";
+passwordForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const val = document.getElementById("admin-password").value;
+  if(val === PASSWORD){
+    passwordScreen.style.display = "none";
+    adminPanel.style.display = "block";
+    loadItems();
+    loadBids();
   } else {
-    userStatus.textContent = "Not logged in";
-    logoutButton.style.display = "none";
+    alert("Incorrect password");
   }
 });
 
-// ---------- Login ----------
-if (loginForm) {
-  const loginMessage = document.createElement("div");
-  loginMessage.className = "form-message";
-  loginForm.prepend(loginMessage);
+// ---------- Add Item ----------
+const itemForm = document.getElementById("item-form");
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    loginMessage.textContent = "";
+itemForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const email = loginForm["login-email"].value.trim();
-    const password = loginForm["login-password"].value.trim();
+  const formData = new FormData(itemForm);
+  const file = formData.get("item_image");
 
-    if (!email || !password) {
-      loginMessage.textContent = "Please enter both email and password.";
-      return;
-    }
+  // Upload to Cloudinary
+  const imageUrl = await uploadToCloudinary(file);
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      loginForm.reset();
-      loginMessage.style.color = "green";
-      loginMessage.textContent = "Login successful! Redirecting…";
-      setTimeout(() => window.location.href = "dashboard.html", 1000);
-    } catch (err) {
-      loginMessage.style.color = "red";
-      loginMessage.textContent = err.message;
-    }
+  // Add item to Firestore collection based on sale type
+  const saleType = formData.get("sale_type");
+  const priceType = formData.get("price_type");
+
+  await addDoc(collection(db, saleType), {
+    name: formData.get("item_name"),
+    description: formData.get("item_description"),
+    price: parseFloat(formData.get("item_price")),
+    priceType,
+    image: imageUrl,
+    createdAt: new Date()
   });
-}
 
-// ---------- Signup ----------
-if (signupForm) {
-  const signupMessage = document.createElement("div");
-  signupMessage.className = "form-message";
-  signupForm.prepend(signupMessage);
+  alert("Item added successfully!");
+  itemForm.reset();
+});
 
-  signupForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    signupMessage.textContent = "";
+// ---------- Load Items for Management ----------
+const itemsList = document.getElementById("items-list");
 
-    const email = signupForm["signup-email"].value.trim();
-    const password = signupForm["signup-password"].value.trim();
-    const confirmPassword = signupForm["signup-confirm-password"].value.trim();
+function loadItems(){
+  const collections = ["private_sales","live_auctions","kollect_100"];
+  itemsList.innerHTML = "";
+  collections.forEach(col => {
+    const q = query(collection(db, col), orderBy("createdAt","desc"));
+    onSnapshot(q, (snapshot) => {
+      const header = document.createElement("h4");
+      header.textContent = col.replace("_"," ");
+      itemsList.appendChild(header);
 
-    if (!email || !password || !confirmPassword) {
-      signupMessage.style.color = "red";
-      signupMessage.textContent = "Please fill in all required fields.";
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      signupMessage.style.color = "red";
-      signupMessage.textContent = "Passwords do not match.";
-      return;
-    }
-
-    if (password.length < 6) {
-      signupMessage.style.color = "red";
-      signupMessage.textContent = "Password must be at least 6 characters.";
-      return;
-    }
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        firstName: signupForm["signup-firstname"].value.trim(),
-        lastName: signupForm["signup-lastname"].value.trim(),
-        contact: signupForm["signup-contact"].value.trim(),
-        address1: signupForm["signup-address1"].value.trim(),
-        address2: signupForm["signup-address2"].value.trim(),
-        city: signupForm["signup-city"].value.trim(),
-        postcode: signupForm["signup-postcode"].value.trim(),
-        email: email,
-        profilepicurl: "https://via.placeholder.com/150",
-        createdAt: new Date()
+      snapshot.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        const itemDiv = document.createElement("div");
+        itemDiv.classList.add("item-card");
+        itemDiv.innerHTML = `
+          <img src="${data.image}" style="width:100px;height:100px;">
+          <p><strong>${data.name}</strong></p>
+          <p>${data.description}</p>
+          <p>Price: £${data.price} (${data.priceType})</p>
+          <button data-id="${docSnap.id}" data-collection="${col}" class="delete-item">Delete</button>
+        `;
+        itemsList.appendChild(itemDiv);
       });
 
-      signupForm.reset();
-      signupMessage.style.color = "green";
-      signupMessage.textContent = "Account created! Redirecting…";
-      setTimeout(() => window.location.href = "dashboard.html", 1500);
-    } catch (err) {
-      signupMessage.style.color = "red";
-      signupMessage.textContent = err.message;
-    }
+      // Delete functionality
+      document.querySelectorAll(".delete-item").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const collectionName = btn.dataset.collection;
+          await deleteDoc(doc(db, collectionName, id));
+          alert("Item deleted");
+        };
+      });
+    });
   });
 }
 
-// ---------- Contact Form Submission ----------
-if (contactForm) {
-  contactForm.addEventListener("submit", (e) => {
-    e.preventDefault();
+// ---------- Load Bids ----------
+const bidsList = document.getElementById("bids-list");
 
-    // Set timestamp
-    document.getElementById("time").value = new Date().toLocaleString();
-
-    // Optional social media URL handling
-    const urlInput = contactForm.querySelector('input[name="item_social_url"]');
-    if (!urlInput.value.trim()) {
-      urlInput.value = ""; // send empty string if not provided
-    }
-
-    // Send form via EmailJS
-    emailjs.sendForm(
-      "service_899s2nl", // replace with your EmailJS service ID
-      "template_2sqqyrk", // replace with your EmailJS template ID
-      contactForm
-    ).then(
-      () => {
-        alert("Submission sent successfully!");
-        contactForm.reset();
-      },
-      (error) => {
-        console.error("EmailJS error:", error);
-        alert("Failed to send submission.");
-      }
-    );
+function loadBids(){
+  const bidCollections = ["private_sales_bids","live_auctions_bids","kollect_100_bids"];
+  bidsList.innerHTML = "";
+  bidCollections.forEach(col => {
+    const q = query(collection(db, col), orderBy("bidAmount","desc"));
+    onSnapshot(q, snapshot => {
+      snapshot.docs.forEach(docSnap => {
+        const bid = docSnap.data();
+        const div = document.createElement("div");
+        div.innerHTML = `<p>Item: ${bid.itemName} | Bidder: ${bid.bidder} | Amount: £${bid.bidAmount}</p>`;
+        bidsList.appendChild(div);
+      });
+    });
   });
 }
