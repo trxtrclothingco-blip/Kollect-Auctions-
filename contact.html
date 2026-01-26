@@ -9,7 +9,8 @@
 <!-- EmailJS SDK -->
 <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
 
-<!-- Custom Script -->
+<!-- Firebase & Custom Script -->
+<script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
 </head>
 <body>
@@ -42,8 +43,7 @@
   <p>Submit your collectible or get in touch with our team.</p>
 
   <div class="card">
-    <form id="contact-form">
-      
+    <form id="contact-form" enctype="multipart/form-data">
       <!-- User Info -->
       <input type="text" name="name" placeholder="Full Name" required>
       <input type="email" name="email" placeholder="Email Address" required>
@@ -61,55 +61,26 @@
         <option value="private">Private Sale</option>
       </select>
 
-      <!-- Social Media URL (optional now) -->
+     <!-- Social Media URL (optional now) -->
       <input
         type="url"
         name="item_social_url"
         placeholder="Link to social media post (Instagram, X, Facebook, etc.) (optional)"
       >
 
-      <!-- Hidden field for EmailJS -->
+      <!-- Hidden fields for EmailJS -->
       <input type="hidden" name="time" id="time">
+      <input type="hidden" name="file_urls" id="file_urls">
 
       <button class="button" type="submit">Submit</button>
     </form>
   </div>
 </div>
 
-<!-- Initialize EmailJS and add form submit -->
+<!-- Initialize EmailJS (must remain) -->
 <script>
   (function(){
     emailjs.init("Fx2CfwymZU9f86Gfl");
-    document.getElementById("time").value = new Date().toLocaleString();
-
-    const contactForm = document.getElementById("contact-form");
-
-    contactForm.addEventListener("submit", function(e){
-      e.preventDefault();
-
-      const formData = new FormData(contactForm);
-
-      const templateParams = {
-        from_name: formData.get("name"),
-        from_email: formData.get("email"),
-        phone: formData.get("phone"),
-        item_name: formData.get("item_name"),
-        estimated_value: formData.get("estimated_value"),
-        item_description: formData.get("item_description"),
-        sale_type: formData.get("sale_type"),
-        item_social_url: formData.get("item_social_url"),
-        time: formData.get("time")
-      };
-
-      emailjs.send("service_899s2nl", "template_2sqqyrk", templateParams)
-        .then(function(){
-          alert("Message sent successfully!");
-          contactForm.reset();
-        }, function(error){
-          console.error("EmailJS error:", error);
-          alert("Failed to send message, please try again.");
-        });
-    });
   })();
 </script>
 
