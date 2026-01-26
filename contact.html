@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contact – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+
+<!-- EmailJS SDK -->
+<script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
 </head>
@@ -38,23 +41,59 @@
   <p>Submit your collectible or get in touch with our team.</p>
 
   <div class="card">
-    <form id="contact-form">
-      <input type="text" placeholder="Full Name" required>
-      <input type="email" placeholder="Email Address" required>
-      <input type="tel" placeholder="Phone Number" required>
-      <input type="text" placeholder="Item Name" required>
-      <input type="text" placeholder="Estimated Value (£)" required>
-      <textarea rows="4" placeholder="Item Description"></textarea>
-      <select required>
+    <form id="contact-form" enctype="multipart/form-data">
+      <input type="text" name="name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Email Address" required>
+      <input type="tel" name="phone" placeholder="Phone Number" required>
+      <input type="text" name="item_name" placeholder="Item Name" required>
+      <input type="text" name="estimated_value" placeholder="Estimated Value (£)" required>
+      <textarea name="item_description" rows="4" placeholder="Item Description"></textarea>
+      <select name="sale_type" required>
         <option value="">Select Sale Type</option>
         <option value="auction">Auction</option>
         <option value="private">Private Sale</option>
       </select>
-      <input type="file" multiple>
+      <label for="item_image">Upload Image(s)</label>
+      <input type="file" name="item_image" id="item_image" multiple>
+      
+      <!-- Hidden timestamp for EmailJS -->
+      <input type="hidden" name="time" id="time">
+
       <button class="button" type="submit">Submit</button>
     </form>
   </div>
 </div>
+
+<!-- Initialize EmailJS -->
+<script type="text/javascript">
+  (function(){
+    emailjs.init("hrP_C_wn5uis_OTwj"); // Replace with your EmailJS public key
+  })();
+</script>
+
+<!-- EmailJS Form Submission Script -->
+<script>
+document.getElementById("contact-form").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  // Set current timestamp
+  document.getElementById("time").value = new Date().toLocaleString();
+
+  emailjs.sendForm(
+    "service_sv9g319",    // Replace with your EmailJS Service ID
+    "template_ykrsykb",   // Replace with your EmailJS Template ID
+    this
+  ).then(
+    function() {
+      alert("Submission sent successfully!");
+      document.getElementById("contact-form").reset();
+    },
+    function(error) {
+      alert("FAILED... " + error.text);
+    }
+  );
+});
+</script>
 
 </body>
 </html>
