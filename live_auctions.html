@@ -6,9 +6,9 @@
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="products.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-<body data-page="live_auctions">
+<body>
 
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
@@ -31,34 +31,10 @@
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-<div class="container">
+<div class="container coming-soon">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <h1>Live Auctions</h1>
-
-  <!-- Products Container -->
-  <div id="products-container" class="products-grid">
-    <!-- Example Product Cards -->
-    <div class="product-card">
-      <img src="example1.jpg" alt="Product 1">
-      <h3>Rare Vinyl Record</h3>
-      <p>Signed limited edition from 1975.</p>
-      <p>Price: £200 (Auction Start)</p>
-    </div>
-
-    <div class="product-card">
-      <img src="example2.jpg" alt="Product 2">
-      <h3>Antique Watch</h3>
-      <p>Fully functional vintage timepiece.</p>
-      <p>Price: £450 (Auction Start)</p>
-    </div>
-
-    <div class="product-card">
-      <img src="example3.jpg" alt="Product 3">
-      <h3>Original Artwork</h3>
-      <p>Signed by the contemporary artist.</p>
-      <p>Price: £600 (Auction Start)</p>
-    </div>
-  </div>
+  <h1>Live Auctions Coming Soon!</h1>
+  <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
 
 </body>
