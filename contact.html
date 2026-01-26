@@ -81,8 +81,11 @@
   })();
 </script>
 
-<!-- EmailJS Form Submission with Firebase Upload -->
-<script>
+<!-- EmailJS Form Submission with Firebase v9 Storage -->
+<script type="module">
+import { storage } from "./firebase.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
 document.getElementById("contact-form").addEventListener("submit", async function(e) {
   e.preventDefault();
   const form = this;
@@ -99,17 +102,15 @@ document.getElementById("contact-form").addEventListener("submit", async functio
   try {
     const urls = [];
 
-    // Upload files to Firebase Storage
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(`contact_uploads/${Date.now()}_${file.name}`);
-      await fileRef.put(file);
-      const downloadURL = await fileRef.getDownloadURL();
+      const storageRef = ref(storage, `contact_uploads/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
       urls.push(downloadURL);
     }
 
-    // Add URLs to hidden field
+    // Add URLs to hidden input for EmailJS
     document.getElementById("file_urls").value = urls.join(", ");
 
     // Send form via EmailJS
@@ -118,17 +119,17 @@ document.getElementById("contact-form").addEventListener("submit", async functio
       "template_2sqqyrk",   // Your Template ID
       form
     ).then(
-      function() {
+      () => {
         alert("Submission sent successfully!");
         form.reset();
       },
-      function(error) {
+      (error) => {
         alert("FAILED... " + error.text);
       }
     );
 
   } catch (err) {
-    console.error(err);
+    console.error("Error uploading files:", err);
     alert("Error uploading files: " + err.message);
   }
 });
