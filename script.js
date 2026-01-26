@@ -151,3 +151,34 @@ if(productsContainer){
     });
   }
 }
+
+// ---------- EmailJS Contact Form ----------
+const contactForm = document.getElementById("contact-form");
+
+contactForm?.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(contactForm);
+
+  const templateParams = {
+    from_name: formData.get("name"),
+    from_email: formData.get("email"),
+    phone: formData.get("phone"),
+    item_name: formData.get("item_name"),
+    estimated_value: formData.get("estimated_value"),
+    item_description: formData.get("item_description"),
+    sale_type: formData.get("sale_type"),
+    item_social_url: formData.get("item_social_url"),
+    time: formData.get("time")
+  };
+
+  emailjs.send("service_899s2nl", "template_2sqqyrk", templateParams)
+    .then(() => {
+      alert("Message sent successfully!");
+      contactForm.reset();
+    })
+    .catch((err) => {
+      console.error("EmailJS error:", err);
+      alert("Failed to send message, please try again.");
+    });
+});
