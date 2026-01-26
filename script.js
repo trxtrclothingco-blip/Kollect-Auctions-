@@ -1,5 +1,5 @@
 // script.js
-import { auth, db } from "./firebase.js"; // no need for Firebase storage now
+import { auth, db } from "./firebase.js"; // no Firebase Storage needed
 import { 
   onAuthStateChanged, signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, signOut 
@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // ---------- Cloudinary Config ----------
-const CLOUD_NAME = "kollectauctions"; // your Cloudinary cloud name
+const CLOUD_NAME = "def0sfrxq"; // your Cloudinary cloud name
 const UPLOAD_PRESET = "Profile_pictures"; // your unsigned upload preset
 
 async function uploadToCloudinary(file) {
@@ -140,7 +140,7 @@ if (signupForm) {
         city: signupForm["signup-city"].value.trim(),
         postcode: signupForm["signup-postcode"].value.trim(),
         email: email,
-        profilepicurl: "https://via.placeholder.com/150", // default placeholder
+        profilepicurl: "https://via.placeholder.com/150",
         createdAt: new Date()
       });
 
@@ -215,7 +215,7 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
 
       if (profileUpload.files.length > 0) {
         const file = profileUpload.files[0];
-        // Upload to Cloudinary instead of Firebase Storage
+        // Upload to Cloudinary
         profilepicurl = await uploadToCloudinary(file);
         profilePicEl.src = profilepicurl;
       }
