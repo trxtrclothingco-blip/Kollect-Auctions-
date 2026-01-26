@@ -73,10 +73,10 @@
   </div>
 </div>
 
-<!-- Initialize EmailJS -->
+<!-- Initialize EmailJS with your correct Public Key -->
 <script type="text/javascript">
   (function(){
-    emailjs.init("hrP_C_wn5uis_OTwj"); // Your EmailJS public key
+    emailjs.init("Fx2CfwymZU9f86Gfl"); // <-- UPDATED public key
   })();
 </script>
 
@@ -90,8 +90,8 @@ document.getElementById("contact-form").addEventListener("submit", function(e) {
 
   // Send form via EmailJS
   emailjs.sendForm(
-    "service_899s2nl",    // Your updated Service ID
-    "template_2sqqyrk",   // Your updated Template ID
+    "service_899s2nl",    // Your Service ID
+    "template_2sqqyrk",   // Your Template ID
     this
   ).then(
     function() {
