@@ -9,9 +9,9 @@ import {
 const page = document.body.dataset.page;
 
 let collectionName = null;
-if (page === "private_sales") collectionName = "private_sales";
-else if (page === "live_auctions") collectionName = "live_auctions";
-else if (page === "kollect_100") collectionName = "kollect_100";
+if (page === "private_sales") collectionName = "privatesales"; // Firestore collection
+else if (page === "live_auctions") collectionName = "listings"; // live auctions go to listings
+else if (page === "kollect_100") collectionName = "listings";   // kollect_100 items go to listings
 
 if (!collectionName) return;
 
