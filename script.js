@@ -1,183 +1,158 @@
-import { db, auth } from "./firebase.js";
-import { 
-  collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, limit 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { 
-  onAuthStateChanged, signOut 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+// ---------- script.js (Shared) ----------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase.js";
 
-// ---------- Cloudinary Config ----------
-const CLOUD_NAME = "def0sfrxq"; // your Cloudinary cloud name
-const UPLOAD_PRESET = "Profile_pictures"; // your unsigned upload preset
+// ---------- Firebase Init ----------
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+export const db = getFirestore(app);
 
-async function uploadToCloudinary(file) {
-  if(!file) return null;
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", UPLOAD_PRESET);
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
-  const data = await res.json();
-  return data.secure_url; // uploaded image URL
-}
-
-// ---------- Auth & User Status ----------
+// ---------- DOM ----------
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
+const body = document.body;
+const productsContainer = document.getElementById("products-container");
+const searchInput = document.getElementById("searchInput");
+const categorySelect = document.getElementById("categorySelect");
+const typeSelect = document.getElementById("typeSelect");
 
-onAuthStateChanged(auth, (user) => {
+// ---------- Burger Menu ----------
+window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+
+// ---------- Light/Dark Mode ----------
+if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
+window.toggleMode = () => {
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight);
+};
+
+// ---------- Logout ----------
+window.logoutUser = async () => {
+  try { 
+    await signOut(auth); 
+    window.location.href = "create_account.html";
+  } catch(e) { console.error("Logout failed:", e); }
+};
+
+// ---------- Auth & User Status ----------
+onAuthStateChanged(auth, user => {
   if(user){
-    userStatus.textContent = `Logged in as ${user.email}`;
+    if(userStatus) userStatus.textContent = `Logged in as ${user.email}`;
     if(logoutButton) logoutButton.style.display = "inline-block";
   } else {
-    userStatus.textContent = `Not logged in`;
-    if(logoutButton) logoutButton.style.display = "none";
+    if(window.location.pathname.includes("dashboard") || window.location.pathname.includes("admin")) {
+      window.location.href = "create_account.html";
+    }
   }
 });
 
-window.logoutUser = async () => {
-  try {
-    await signOut(auth);
-    window.location.href = "create_account.html";
-  } catch(e) {
-    console.error("Logout failed:", e);
-  }
-};
-
-// ---------- Admin Password Protection ----------
-const PASSWORD = "@PJL2025";
-const passwordScreen = document.getElementById("password-screen");
-const passwordForm = document.getElementById("password-form");
-const adminPanel = document.getElementById("admin-panel");
-
-if(passwordForm){
-  passwordForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const val = document.getElementById("admin-password").value;
-    if(val === PASSWORD){
-      if(passwordScreen) passwordScreen.style.display = "none";
-      if(adminPanel) adminPanel.style.display = "block";
-      loadItems();
-      loadBids();
-    } else {
-      alert("Incorrect password");
-    }
-  });
-}
-
-// ---------- Add Item ----------
-const itemForm = document.getElementById("item-form");
-if(itemForm){
-  itemForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = new FormData(itemForm);
-    const file = formData.get("item_image");
-    const imageUrl = await uploadToCloudinary(file);
-    const saleType = formData.get("sale_type");
-    const priceType = formData.get("price_type");
-
-    await addDoc(collection(db, saleType), {
-      name: formData.get("item_name"),
-      description: formData.get("item_description"),
-      price: parseFloat(formData.get("item_price")),
-      priceType,
-      image: imageUrl,
-      createdAt: new Date()
-    });
-
-    alert("Item added successfully!");
-    itemForm.reset();
-  });
-}
-
-// ---------- Load Items for Admin ----------
-const itemsList = document.getElementById("items-list");
-function loadItems(){
-  if(!itemsList) return;
-  const collections = ["private_sales","live_auctions","kollect_100"];
-  itemsList.innerHTML = "";
-  collections.forEach(col => {
-    const q = query(collection(db, col), orderBy("createdAt","desc"));
-    onSnapshot(q, (snapshot) => {
-      const header = document.createElement("h4");
-      header.textContent = col.replace("_"," ");
-      itemsList.appendChild(header);
-
-      snapshot.docs.forEach(docSnap => {
-        const data = docSnap.data();
-        const itemDiv = document.createElement("div");
-        itemDiv.classList.add("item-card");
-        itemDiv.innerHTML = `
-          <img src="${data.image}" style="width:100px;height:100px;">
-          <p><strong>${data.name}</strong></p>
-          <p>${data.description}</p>
-          <p>Price: £${data.price} (${data.priceType})</p>
-          <button data-id="${docSnap.id}" data-collection="${col}" class="delete-item">Delete</button>
-        `;
-        itemsList.appendChild(itemDiv);
-      });
-
-      // Delete buttons
-      document.querySelectorAll(".delete-item").forEach(btn => {
-        btn.onclick = async () => {
-          const id = btn.dataset.id;
-          const collectionName = btn.dataset.collection;
-          await deleteDoc(doc(db, collectionName, id));
-          alert("Item deleted");
-        };
-      });
-    });
-  });
-}
-
-// ---------- Load Bids ----------
-const bidsList = document.getElementById("bids-list");
-function loadBids(){
-  if(!bidsList) return;
-  const bidCollections = ["private_sales_bids","live_auctions_bids","kollect_100_bids"];
-  bidsList.innerHTML = "";
-  bidCollections.forEach(col => {
-    const q = query(collection(db, col), orderBy("bidAmount","desc"));
-    onSnapshot(q, snapshot => {
-      snapshot.docs.forEach(docSnap => {
-        const bid = docSnap.data();
-        const div = document.createElement("div");
-        div.innerHTML = `<p>Item: ${bid.itemName} | Bidder: ${bid.bidder} | Amount: £${bid.bidAmount}</p>`;
-        bidsList.appendChild(div);
-      });
-    });
-  });
-}
-
-// ---------- Dynamic Product Pages ----------
-const productsContainer = document.getElementById("products-container");
+// ---------- Dynamic Products ----------
 if(productsContainer){
+  const page = body.dataset.page; // <body data-page="kollect_100">
   let collectionName;
-  const page = document.body.dataset.page; // <body data-page="kollect_100">
-  if(page === "private_sales") collectionName = "private_sales";
-  else if(page === "live_auctions") collectionName = "live_auctions";
-  else if(page === "kollect_100") collectionName = "kollect_100";
+  if(page==="private_sales") collectionName="private_sales";
+  else if(page==="live_auctions") collectionName="live_auctions";
+  else if(page==="kollect_100") collectionName="kollect_100";
+  else collectionName=null;
 
   if(collectionName){
     const q = query(collection(db, collectionName), orderBy("createdAt","desc"));
     onSnapshot(q, snapshot => {
-      productsContainer.innerHTML = "";
+      productsContainer.innerHTML="";
       if(snapshot.empty){
-        productsContainer.innerHTML = "<p>No items available yet.</p>";
+        productsContainer.innerHTML="<p>No items available yet.</p>";
         return;
       }
-      snapshot.docs.forEach(docSnap => {
+
+      snapshot.docs.forEach(docSnap=>{
         const data = docSnap.data();
         const card = document.createElement("div");
-        card.classList.add("product-card");
-        let priceText = data.priceType === "auction" ? `Current Bid: £${data.price}` : `Price: £${data.price}`;
-        card.innerHTML = `
-          <img src="${data.image}" alt="${data.name}" />
+        card.classList.add("card");
+        let priceLabel = data.priceType==="auction"?`Current Bid: £${data.price}`:`Price: £${data.price}`;
+        card.innerHTML=`
+          <img src="${data.image}" alt="${data.name}">
           <h3>${data.name}</h3>
           <p>${data.description}</p>
-          <p>${priceText}</p>
+          <p>${priceLabel}</p>
+          ${data.priceType==="auction"?`<button class="button">Bid</button>`:`<button class="button">Buy Now</button>`}
         `;
         productsContainer.appendChild(card);
       });
     });
+  }
+}
+
+// ---------- Search Filtering ----------
+const searchBtn = document.getElementById("searchBtn");
+if(searchBtn){
+  searchBtn.addEventListener("click", ()=>{
+    const filterName = searchInput.value.toLowerCase();
+    const category = categorySelect.value;
+    const type = typeSelect.value;
+
+    const cards = document.querySelectorAll(".card");
+    cards.forEach(card=>{
+      const name = card.querySelector("h3")?.textContent.toLowerCase() || "";
+      const priceLabel = card.querySelector("p:nth-of-type(2)")?.textContent.toLowerCase() || "";
+      let show = true;
+
+      if(filterName && !name.includes(filterName)) show=false;
+      if(type && !priceLabel.includes(type)) show=false;
+      if(category && !priceLabel.includes(category)) show=false;
+
+      card.style.display=show?"block":"none";
+    });
+  });
+}
+
+// ---------- Auction Results (Pagination) ----------
+const resultsContainer = document.getElementById("results-container");
+if(resultsContainer){
+  const perPage = 50;
+  let currentPage = 1;
+  const allResults = [];
+
+  const q = query(collection(db,"ended_auctions"), orderBy("endedAt","desc"));
+  onSnapshot(q, snapshot=>{
+    allResults.length=0;
+    snapshot.docs.forEach(docSnap=>{
+      allResults.push(docSnap.data());
+    });
+    renderPage(currentPage);
+  });
+
+  function renderPage(pageNum){
+    resultsContainer.innerHTML="";
+    const start = (pageNum-1)*perPage;
+    const end = start+perPage;
+    const pageResults = allResults.slice(start,end);
+    pageResults.forEach(res=>{
+      const div = document.createElement("div");
+      div.classList.add("card");
+      div.innerHTML=`
+        <h3>${res.itemName}</h3>
+        <p>Winner: ${res.winner}</p>
+        <p>Final Bid: £${res.finalBid}</p>
+      `;
+      resultsContainer.appendChild(div);
+    });
+    renderPagination();
+  }
+
+  function renderPagination(){
+    const pagination = document.getElementById("pagination");
+    if(!pagination) return;
+    pagination.innerHTML="";
+    const totalPages = Math.ceil(allResults.length/perPage);
+    for(let i=1;i<=totalPages;i++){
+      const btn = document.createElement("button");
+      btn.textContent=i;
+      btn.classList.add("button");
+      if(i===currentPage) btn.disabled=true;
+      btn.onclick=()=>{ currentPage=i; renderPage(currentPage); };
+      pagination.appendChild(btn);
+    }
   }
 }
