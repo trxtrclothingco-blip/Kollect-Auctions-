@@ -16,7 +16,6 @@ const logoutButton = document.getElementById("logout-button");
 const productsContainer = document.getElementById("products-container");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
-const contactForm = document.getElementById("contact-form"); // Make sure your contact form has id="contact-form"
 
 // ---------- Burger Menu ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
@@ -152,37 +151,3 @@ if(productsContainer){
     });
   }
 }
-
-// ---------- EmailJS Contact Form ----------
-import emailjs from "https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js";
-
-// Initialize EmailJS with your Public Key
-emailjs.init("Fx2CfwymZU9f86Gfl"); 
-
-contactForm?.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const formData = new FormData(contactForm);
-
-  const templateParams = {
-    from_name: formData.get("name"),
-    from_email: formData.get("email"),
-    phone: formData.get("phone"),
-    item_name: formData.get("item_name"),
-    estimated_value: formData.get("estimated_value"),
-    item_description: formData.get("item_description"),
-    sale_type: formData.get("sale_type"),
-    item_social_url: formData.get("item_social_url"),
-    time: formData.get("time")
-  };
-
-  emailjs.send("service_899s2nl", "template_2sqqyrk", templateParams)
-    .then(() => {
-      alert("Message sent successfully!");
-      contactForm.reset();
-    })
-    .catch((err) => {
-      console.error("EmailJS error:", err);
-      alert("Failed to send message, please try again.");
-    });
-});
