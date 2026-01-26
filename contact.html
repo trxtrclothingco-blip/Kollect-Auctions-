@@ -65,43 +65,72 @@
       <label for="item_image">Upload Image(s)</label>
       <input type="file" name="item_image" id="item_image" multiple>
 
-      <!-- Hidden timestamp for EmailJS -->
+      <!-- Hidden fields for EmailJS -->
       <input type="hidden" name="time" id="time">
+      <input type="hidden" name="file_urls" id="file_urls">
 
       <button class="button" type="submit">Submit</button>
     </form>
   </div>
 </div>
 
-<!-- Initialize EmailJS with your correct Public Key -->
+<!-- Initialize EmailJS with Public Key -->
 <script type="text/javascript">
   (function(){
-    emailjs.init("Fx2CfwymZU9f86Gfl"); // <-- UPDATED public key
+    emailjs.init("Fx2CfwymZU9f86Gfl"); // <-- updated public key
   })();
 </script>
 
-<!-- EmailJS Form Submission Script -->
+<!-- EmailJS Form Submission with Firebase Upload -->
 <script>
-document.getElementById("contact-form").addEventListener("submit", function(e) {
+document.getElementById("contact-form").addEventListener("submit", async function(e) {
   e.preventDefault();
+  const form = this;
 
-  // Set current timestamp
+  // Set timestamp
   document.getElementById("time").value = new Date().toLocaleString();
 
-  // Send form via EmailJS
-  emailjs.sendForm(
-    "service_899s2nl",    // Your Service ID
-    "template_2sqqyrk",   // Your Template ID
-    this
-  ).then(
-    function() {
-      alert("Submission sent successfully!");
-      document.getElementById("contact-form").reset();
-    },
-    function(error) {
-      alert("FAILED... " + error.text);
+  const files = document.getElementById("item_image").files;
+  if (!files.length) {
+    alert("Please upload at least one image.");
+    return;
+  }
+
+  try {
+    const urls = [];
+
+    // Upload files to Firebase Storage
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const storageRef = firebase.storage().ref();
+      const fileRef = storageRef.child(`contact_uploads/${Date.now()}_${file.name}`);
+      await fileRef.put(file);
+      const downloadURL = await fileRef.getDownloadURL();
+      urls.push(downloadURL);
     }
-  );
+
+    // Add URLs to hidden field
+    document.getElementById("file_urls").value = urls.join(", ");
+
+    // Send form via EmailJS
+    emailjs.sendForm(
+      "service_899s2nl",    // Your Service ID
+      "template_2sqqyrk",   // Your Template ID
+      form
+    ).then(
+      function() {
+        alert("Submission sent successfully!");
+        form.reset();
+      },
+      function(error) {
+        alert("FAILED... " + error.text);
+      }
+    );
+
+  } catch (err) {
+    console.error(err);
+    alert("Error uploading files: " + err.message);
+  }
 });
 </script>
 
