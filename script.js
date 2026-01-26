@@ -1,5 +1,5 @@
 // script.js
-import { auth, db, storage } from "./firebase.js";
+import { auth, db } from "./firebase.js"; // no need for Firebase storage now
 import { 
   onAuthStateChanged, signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, signOut 
@@ -7,9 +7,24 @@ import {
 import { 
   doc, setDoc, updateDoc, onSnapshot, collection, query, where, orderBy 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { 
-  ref as storageRef, uploadBytes, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+
+// ---------- Cloudinary Config ----------
+const CLOUD_NAME = "kollectauctions"; // your Cloudinary cloud name
+const UPLOAD_PRESET = "Profile_pictures"; // your unsigned upload preset
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", UPLOAD_PRESET);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+  return data.secure_url; // this is the uploaded image URL
+}
 
 // ---------- DOM Elements ----------
 const userStatus = document.getElementById("user-status");
@@ -125,7 +140,7 @@ if (signupForm) {
         city: signupForm["signup-city"].value.trim(),
         postcode: signupForm["signup-postcode"].value.trim(),
         email: email,
-        profilepicurl: "https://via.placeholder.com/150",
+        profilepicurl: "https://via.placeholder.com/150", // default placeholder
         createdAt: new Date()
       });
 
@@ -200,9 +215,8 @@ if (profilePicEl && editBtn && saveBtn && welcomeNameEl) {
 
       if (profileUpload.files.length > 0) {
         const file = profileUpload.files[0];
-        const storageReference = storageRef(storage, `profilePics/${user.uid}`);
-        await uploadBytes(storageReference, file);
-        profilepicurl = await getDownloadURL(storageReference);
+        // Upload to Cloudinary instead of Firebase Storage
+        profilepicurl = await uploadToCloudinary(file);
         profilePicEl.src = profilepicurl;
       }
 
