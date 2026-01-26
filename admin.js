@@ -1,4 +1,4 @@
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import {
   collection,
   addDoc,
@@ -8,21 +8,47 @@ import {
   doc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-/* ---------- Admin Password ---------- */
+/* ---------- Firebase Auth Admin Login ---------- */
 const passwordForm = document.getElementById("password-form");
 const passwordScreen = document.getElementById("password-screen");
 const adminPanel = document.getElementById("admin-panel");
 
-passwordForm.addEventListener("submit", (e) => {
+const ADMIN_EMAIL = "peterjames-barrett@outlook.com";
+
+passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (document.getElementById("admin-password").value === "@PJL2025") {
+  const emailInput = ADMIN_EMAIL; // fixed admin email
+  const passwordInput = document.getElementById("admin-password").value;
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
+    // Ensure only the correct UID can access
+    if (userCredential.user.uid !== "gBrbEobcS5RCG47acE5ySqxO8yB2") {
+      alert("You are not authorized to access this panel.");
+      await auth.signOut();
+      return;
+    }
+
     passwordScreen.style.display = "none";
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
-  } else {
-    alert("Incorrect password");
+
+  } catch (err) {
+    console.error(err);
+    alert("Login failed: " + err.message);
+  }
+});
+
+/* ---------- Persist login ---------- */
+onAuthStateChanged(auth, (user) => {
+  if (user && user.uid === "gBrbEobcS5RCG47acE5ySqxO8yB2") {
+    passwordScreen.style.display = "none";
+    adminPanel.style.display = "block";
+    loadItems();
+    loadBids();
   }
 });
 
