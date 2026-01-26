@@ -1,6 +1,6 @@
 // firebase.js
 // --------------------
-// Modular Firebase Setup
+// Modular Firebase Setup with Storage
 // --------------------
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -22,7 +22,7 @@ export const firebaseConfig = {
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// Firebase Services
+// Export Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
