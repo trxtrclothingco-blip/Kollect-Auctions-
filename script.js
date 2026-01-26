@@ -16,7 +16,6 @@ const logoutButton = document.getElementById("logout-button");
 const productsContainer = document.getElementById("products-container");
 const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
-const contactForm = document.getElementById("contact-form");
 
 // ---------- Burger Menu ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
@@ -153,27 +152,28 @@ if(productsContainer){
   }
 }
 
-// ---------- Contact Form EmailJS ----------
-if(contactForm){
-  contactForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+// ---------- Contact Form Handler ----------
+const contactForm = document.getElementById("contact-form");
+if (contactForm) {
+  contactForm.addEventListener("submit", function(event) {
+    event.preventDefault();
 
-    const formData = new FormData(contactForm);
-    const dataObj = {};
-    formData.forEach((value, key) => dataObj[key] = value);
+    // Set hidden time field
+    document.getElementById("time").value = new Date().toISOString();
 
-    try {
-      await emailjs.send(
-        "service_899s2nl",
-        "template_2sqqyrk",
-        dataObj,
-        "Fx2CfwymZU9f86Gfl"
-      );
-      alert("Message sent successfully!");
-      contactForm.reset();
-    } catch(err){
-      console.error(err);
-      alert("Failed to send message, please try again.");
-    }
+    // Set file_urls if needed (empty for now, as no file input)
+    document.getElementById("file_urls").value = "";
+
+    const serviceID = "service_899s2nl";
+    const templateID = "template_2sqqyrk";
+
+    emailjs.sendForm(serviceID, templateID, this)
+      .then(() => {
+        alert("Message sent successfully!");
+        contactForm.reset();
+      }, (error) => {
+        console.log("FAILED...", error);
+        alert("Failed to send message, please try again");
+      });
   });
 }
