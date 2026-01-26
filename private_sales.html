@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
+<script type="module" src="products.js"></script>
 </head>
-
 <body data-page="private_sales">
 
 <div class="burger" onclick="toggleMenu()">
@@ -37,45 +37,9 @@
   <h1>Private Sales</h1>
   <p>Make an Offer or Buy It Now</p>
 
-  <!-- 🔥 Firestore products will render here -->
-  <div id="products-container"></div>
-
-  <!-- Existing static cards (unchanged) -->
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 1">
-    <h3>Private Collectible 1</h3>
-    <p>Price: £500</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 2">
-    <h3>Private Collectible 2</h3>
-    <p>Price: £700</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 3">
-    <h3>Private Collectible 3</h3>
-    <p>Price: £350</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
-
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Item 4">
-    <h3>Private Collectible 4</h3>
-    <p>Price: £1200</p>
-    <button class="button">Buy Now</button>
-    <button class="button">Make an Offer</button>
-  </div>
+  <!-- Container for dynamic items -->
+  <div id="products-container" data-page="private_sales"></div>
 </div>
-
-<!-- 🔥 Products loader -->
-<script type="module" src="products.js"></script>
 
 </body>
 </html>
