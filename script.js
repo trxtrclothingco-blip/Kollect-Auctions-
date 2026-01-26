@@ -1,44 +1,14 @@
 // script.js
-import { auth, db, storage } from "./firebase.js"; // added storage import
+
+// ---------- Firebase / Auth Imports ----------
+import { auth, db, storage } from "./firebase.js";
 import { 
   onAuthStateChanged, signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, signOut 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { 
-  doc, setDoc, updateDoc, onSnapshot, collection, query, where, orderBy 
+  doc, setDoc 
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-
-// ---------- Cloudinary Config ----------
-const CLOUD_NAME = "def0sfrxq"; // your Cloudinary cloud name
-const UPLOAD_PRESET = "Profile_pictures"; // your unsigned upload preset
-
-async function uploadToCloudinary(file) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", UPLOAD_PRESET);
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-    method: "POST",
-    body: formData
-  });
-
-  const data = await res.json();
-  return data.secure_url; // this is the uploaded image URL
-}
-
-// ---------- Firebase Storage Upload ----------
-export async function uploadFileToFirebase(file) {
-  try {
-    const storageRef = ref(storage, 'contact_uploads/' + Date.now() + '_' + file.name);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    return null;
-  }
-}
 
 // ---------- DOM Elements ----------
 const userStatus = document.getElementById("user-status");
@@ -172,28 +142,22 @@ if (signupForm) {
 
 // ---------- Contact Form Submission ----------
 if (contactForm) {
-  contactForm.addEventListener("submit", async (e) => {
+  contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const fileInput = document.getElementById("item_image");
-    const files = fileInput.files;
-    const uploadedUrls = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const url = await uploadFileToFirebase(files[i]);
-      if (url) uploadedUrls.push(url);
-    }
-
-    // Add URLs to hidden input
-    document.getElementById("file_urls").value = uploadedUrls.join(", ");
-
-    // Add timestamp
+    // Set timestamp
     document.getElementById("time").value = new Date().toLocaleString();
+
+    // Optional social media URL handling
+    const urlInput = contactForm.querySelector('input[name="item_social_url"]');
+    if (!urlInput.value.trim()) {
+      urlInput.value = ""; // send empty string if not provided
+    }
 
     // Send form via EmailJS
     emailjs.sendForm(
-      "service_899s2nl",
-      "template_2sqqyrk",
+      "service_899s2nl", // replace with your EmailJS service ID
+      "template_2sqqyrk", // replace with your EmailJS template ID
       contactForm
     ).then(
       () => {
@@ -201,7 +165,8 @@ if (contactForm) {
         contactForm.reset();
       },
       (error) => {
-        alert("FAILED... " + error.text);
+        console.error("EmailJS error:", error);
+        alert("Failed to send submission.");
       }
     );
   });
