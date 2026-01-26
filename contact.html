@@ -74,65 +74,11 @@
   </div>
 </div>
 
-<!-- Initialize EmailJS with Public Key -->
-<script type="text/javascript">
+<!-- Initialize EmailJS -->
+<script>
   (function(){
-    emailjs.init("Fx2CfwymZU9f86Gfl"); // <-- updated public key
+    emailjs.init("Fx2CfwymZU9f86Gfl");
   })();
-</script>
-
-<!-- EmailJS Form Submission with Firebase v9 Storage -->
-<script type="module">
-import { storage } from "./firebase.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
-
-document.getElementById("contact-form").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  const form = this;
-
-  // Set timestamp
-  document.getElementById("time").value = new Date().toLocaleString();
-
-  const files = document.getElementById("item_image").files;
-  if (!files.length) {
-    alert("Please upload at least one image.");
-    return;
-  }
-
-  try {
-    const urls = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const storageRef = ref(storage, `contact_uploads/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      urls.push(downloadURL);
-    }
-
-    // Add URLs to hidden input for EmailJS
-    document.getElementById("file_urls").value = urls.join(", ");
-
-    // Send form via EmailJS
-    emailjs.sendForm(
-      "service_899s2nl",    // Your Service ID
-      "template_2sqqyrk",   // Your Template ID
-      form
-    ).then(
-      () => {
-        alert("Submission sent successfully!");
-        form.reset();
-      },
-      (error) => {
-        alert("FAILED... " + error.text);
-      }
-    );
-
-  } catch (err) {
-    console.error("Error uploading files:", err);
-    alert("Error uploading files: " + err.message);
-  }
-});
 </script>
 
 </body>
