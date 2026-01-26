@@ -6,14 +6,16 @@
 <title>Auction Results – Kollect</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
+<script type="module" src="results.js"></script>
 </head>
 <body>
 
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
 
+<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
   <a href="dashboard.html">Dashboard</a>
@@ -28,14 +30,37 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
+<!-- User Status & Logout -->
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-<div class="container coming-soon">
+<!-- Main Container -->
+<div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
   <h1>Past Auction Results</h1>
-  <p>Coming Soon</p>
-  <button class="button" onclick="window.location='index.html'">Back to Home</button>
+
+  <!-- Results Table -->
+  <div id="results-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Sale Type</th>
+          <th>Final Price (£)</th>
+          <th>Highest Bidder</th>
+          <th>Date Ended</th>
+        </tr>
+      </thead>
+      <tbody id="results-body">
+        <!-- Dynamic rows will be inserted here -->
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div id="pagination" class="pagination">
+      <!-- Page buttons dynamically inserted -->
+    </div>
+  </div>
 </div>
 
 </body>
