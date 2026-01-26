@@ -1,6 +1,23 @@
-import { db, storage } from "./firebase.js";
-import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+import { db } from "./firebase.js";
+import { collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// ---------- Cloudinary Config ----------
+const CLOUD_NAME = "def0sfrxq";
+const UPLOAD_PRESET = "Profile_pictures"; // you can create a separate preset for items if needed
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", UPLOAD_PRESET);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+  return data.secure_url;
+}
 
 // ---------- Password Protection ----------
 const PASSWORD = "@PJL2025";
@@ -26,16 +43,13 @@ const itemForm = document.getElementById("item-form");
 
 itemForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   const formData = new FormData(itemForm);
   const file = formData.get("item_image");
 
-  // Upload image to Firebase Storage
-  const storageRef = ref(storage, `items/${Date.now()}_${file.name}`);
-  const snapshot = await uploadBytes(storageRef, file);
-  const imageUrl = await getDownloadURL(snapshot.ref);
+  if(!file) return alert("Please select an image!");
 
-  // Add item to Firestore collection based on sale type
+  const imageUrl = await uploadToCloudinary(file);
+
   const saleType = formData.get("sale_type");
   const priceType = formData.get("price_type");
 
@@ -52,15 +66,22 @@ itemForm.addEventListener("submit", async (e) => {
   itemForm.reset();
 });
 
-// ---------- Load Items for Management ----------
+// ---------- Load Items ----------
 const itemsList = document.getElementById("items-list");
 
 function loadItems(){
   const collections = ["private_sales","live_auctions","kollect_100"];
+  itemsList.innerHTML = ""; // clear first
   collections.forEach(col => {
     const q = query(collection(db, col), orderBy("createdAt","desc"));
     onSnapshot(q, (snapshot) => {
-      itemsList.innerHTML = `<h4>${col.replace("_"," ")}</h4>`;
+      // Only append header once
+      if(snapshot.docs.length){
+        const header = document.createElement("h4");
+        header.textContent = col.replace("_"," ");
+        itemsList.appendChild(header);
+      }
+
       snapshot.docs.forEach(docSnap => {
         const data = docSnap.data();
         const itemDiv = document.createElement("div");
