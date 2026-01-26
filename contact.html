@@ -1,184 +1,88 @@
-// ---------- script.js ----------
-import { auth, db } from "./firebase.js";
-import {
-  onAuthStateChanged,
-  signOut,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { collection, query, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact – Kollect Auctions</title>
+<link rel="stylesheet" href="style.css">
 
-// ---------- DOM Elements ----------
-const body = document.body;
-const userStatus = document.getElementById("user-status");
-const logoutButton = document.getElementById("logout-button");
-const productsContainer = document.getElementById("products-container");
-const loginForm = document.getElementById("login-form");
-const signupForm = document.getElementById("signup-form");
+<!-- EmailJS SDK -->
+<script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
 
-// ---------- Burger Menu ----------
-window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+<!-- Firebase & Custom Script -->
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+</head>
+<body>
 
-// ---------- Light/Dark Mode ----------
-if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
-window.toggleMode = () => {
-  const isLight = body.classList.toggle("light-mode");
-  localStorage.setItem("lightMode", isLight);
-};
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
 
-// ---------- Logout ----------
-window.logoutUser = async () => {
-  try {
-    await signOut(auth);
-    window.location.href = "create_account.html";
-  } catch(e) {
-    console.error("Logout failed:", e);
-  }
-};
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
 
-// ---------- Auth State Listener ----------
-onAuthStateChanged(auth, user => {
-  if(user){
-    if(userStatus) userStatus.textContent = `Logged in as ${user.email}`;
-    if(logoutButton) logoutButton.style.display = "inline-block";
-  } else {
-    if(userStatus) userStatus.textContent = "Not logged in";
-    if(logoutButton) logoutButton.style.display = "none";
-    // Redirect if on admin/dashboard page
-    if(window.location.pathname.includes("dashboard") || window.location.pathname.includes("admin")) {
-      window.location.href = "create_account.html";
-    }
-  }
-});
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-// ---------- Login Form ----------
-loginForm?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("login-email").value;
-  const password = document.getElementById("login-password").value;
+<div class="container">
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("Login successful!");
-    loginForm.reset();
-    window.location.href = "index.html"; // Redirect after login
-  } catch(err) {
-    alert("Login failed: " + err.message);
-  }
-});
+  <h1>Contact Us</h1>
+  <p>Submit your collectible or get in touch with our team.</p>
 
-// ---------- Signup Form ----------
-signupForm?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const firstName = document.getElementById("signup-firstname").value;
-  const lastName = document.getElementById("signup-lastname").value;
-  const email = document.getElementById("signup-email").value;
-  const password = document.getElementById("signup-password").value;
-  const confirmPassword = document.getElementById("signup-confirm-password").value;
-  const contact = document.getElementById("signup-contact").value;
-  const address1 = document.getElementById("signup-address1").value;
-  const address2 = document.getElementById("signup-address2").value;
-  const city = document.getElementById("signup-city").value;
-  const postcode = document.getElementById("signup-postcode").value;
+  <div class="card">
+    <form id="contact-form" enctype="multipart/form-data">
+      <!-- User Info -->
+      <input type="text" name="name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Email Address" required>
+      <input type="tel" name="phone" placeholder="Phone Number" required>
 
-  if(password !== confirmPassword){
-    return alert("Passwords do not match!");
-  }
+      <!-- Item Info -->
+      <input type="text" name="item_name" placeholder="Item Name" required>
+      <input type="text" name="estimated_value" placeholder="Estimated Value (£)" required>
+      <textarea name="item_description" rows="4" placeholder="Item Description"></textarea>
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    await updateProfile(user, { displayName: `${firstName} ${lastName}` });
+      <!-- Sale Type -->
+      <select name="sale_type" required>
+        <option value="">Select Sale Type</option>
+        <option value="auction">Auction</option>
+        <option value="private">Private Sale</option>
+      </select>
 
-    // Save extra user info in Firestore
-    await addDoc(collection(db, "users"), {
-      uid: user.uid,
-      firstName,
-      lastName,
-      email,
-      contact,
-      address1,
-      address2,
-      city,
-      postcode,
-      createdAt: new Date()
-    });
+     <!-- Social Media URL (optional now) -->
+      <input
+        type="url"
+        name="item_social_url"
+        placeholder="Link to social media post (Instagram, X, Facebook, etc.) (optional)"
+      >
 
-    alert("Account created successfully!");
-    signupForm.reset();
-    window.location.href = "index.html"; // Redirect after signup
-  } catch(err) {
-    alert("Signup failed: " + err.message);
-  }
-});
+      <!-- Hidden fields for EmailJS -->
+      <input type="hidden" name="time" id="time">
+      <input type="hidden" name="file_urls" id="file_urls">
 
-// ---------- Dynamic Products ----------
-if(productsContainer){
-  const page = body.dataset.page;
-  let collectionName;
-  if(page==="private_sales") collectionName="private_sales";
-  else if(page==="live_auctions") collectionName="live_auctions";
-  else if(page==="kollect_100") collectionName="kollect_100";
+      <button class="button" type="submit">Submit</button>
+    </form>
+  </div>
+</div>
 
-  if(collectionName){
-    const q = query(collection(db, collectionName), orderBy("createdAt","desc"));
-    onSnapshot(q, snapshot => {
-      productsContainer.innerHTML = "";
-      if(snapshot.empty){
-        productsContainer.innerHTML = "<p>No items available yet.</p>";
-        return;
-      }
+<!-- Initialize EmailJS (must remain) -->
+<script>
+  (function(){
+    emailjs.init("Fx2CfwymZU9f86Gfl");
+  })();
+</script>
 
-      snapshot.docs.forEach(docSnap => {
-        const data = docSnap.data();
-        const card = document.createElement("div");
-        card.classList.add("card");
-        const priceLabel = data.priceType === "auction"
-          ? `Current Bid: £${data.price}`
-          : `Price: £${data.price}`;
-        card.innerHTML = `
-          <img src="${data.image}" alt="${data.name}">
-          <h3>${data.name}</h3>
-          <p>${data.description}</p>
-          <p>${priceLabel}</p>
-          ${data.priceType === "auction" 
-            ? `<button class="button">Bid</button>` 
-            : `<button class="button">Buy Now</button>`}
-        `;
-        productsContainer.appendChild(card);
-      });
-    });
-  }
-}
-
-// ---------- EmailJS Contact Form ----------
-const contactForm = document.getElementById("contact-form");
-
-contactForm?.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const formData = new FormData(contactForm);
-
-  const templateParams = {
-    from_name: formData.get("name"),
-    from_email: formData.get("email"),
-    phone: formData.get("phone"),
-    item_name: formData.get("item_name"),
-    estimated_value: formData.get("estimated_value"),
-    item_description: formData.get("item_description"),
-    sale_type: formData.get("sale_type"),
-    item_social_url: formData.get("item_social_url"),
-    time: formData.get("time")
-  };
-
-  emailjs.send("service_899s2nl", "template_2sqqyrk", templateParams)
-    .then(() => {
-      alert("Message sent successfully!");
-      contactForm.reset();
-    })
-    .catch((err) => {
-      console.error("EmailJS error:", err);
-      alert("Failed to send message, please try again.");
-    });
-});
+</body>
+</html>
