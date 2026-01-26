@@ -7,9 +7,9 @@
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="products.js"></script>
+<script type="module" src="script.js"></script>
 </head>
-<body data-page="home">
+<body>
 
 <!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
@@ -62,9 +62,18 @@
     <button class="button" id="searchBtn">Search</button>
   </div>
 
-  <!-- Products Container (Dynamic) -->
-  <div id="products-container" class="products-grid">
-    <!-- Cards will be populated by products.js -->
+  <div class="card">
+    <img src="IMG_1558.jpeg" alt="Product 1">
+    <h3>Rare Collectible 1</h3>
+    <p>Price: £200</p>
+    <button class="button">Buy Now</button>
+  </div>
+
+  <div class="card">
+    <img src="IMG_1558.jpeg" alt="Product 2">
+    <h3>Rare Collectible 2</h3>
+    <p>Price: £350</p>
+    <button class="button">Buy Now</button>
   </div>
 </div>
 
