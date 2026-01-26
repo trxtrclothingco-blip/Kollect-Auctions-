@@ -1,18 +1,11 @@
-// ---------- script.js (Shared) ----------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase.js";
-
-// ---------- Firebase Init ----------
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-export const db = getFirestore(app);
+import { db, auth } from "./firebase.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // ---------- DOM ----------
+const body = document.body;
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
-const body = document.body;
 const productsContainer = document.getElementById("products-container");
 const searchInput = document.getElementById("searchInput");
 const categorySelect = document.getElementById("categorySelect");
@@ -23,49 +16,41 @@ window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("
 
 // ---------- Light/Dark Mode ----------
 if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
-window.toggleMode = () => {
+window.toggleMode = ()=>{
   const isLight = body.classList.toggle("light-mode");
   localStorage.setItem("lightMode", isLight);
 };
 
 // ---------- Logout ----------
-window.logoutUser = async () => {
-  try { 
-    await signOut(auth); 
-    window.location.href = "create_account.html";
-  } catch(e) { console.error("Logout failed:", e); }
+window.logoutUser = async ()=>{
+  try{ await signOut(auth); window.location.href="create_account.html"; }
+  catch(e){ console.error("Logout failed:", e); }
 };
 
 // ---------- Auth & User Status ----------
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth,user=>{
   if(user){
     if(userStatus) userStatus.textContent = `Logged in as ${user.email}`;
-    if(logoutButton) logoutButton.style.display = "inline-block";
+    if(logoutButton) logoutButton.style.display="inline-block";
   } else {
-    if(window.location.pathname.includes("dashboard") || window.location.pathname.includes("admin")) {
-      window.location.href = "create_account.html";
+    if(window.location.pathname.includes("dashboard")||window.location.pathname.includes("admin")){
+      window.location.href="create_account.html";
     }
   }
 });
 
 // ---------- Dynamic Products ----------
 if(productsContainer){
-  const page = body.dataset.page; // <body data-page="kollect_100">
+  const page = body.dataset.page;
   let collectionName;
   if(page==="private_sales") collectionName="private_sales";
   else if(page==="live_auctions") collectionName="live_auctions";
   else if(page==="kollect_100") collectionName="kollect_100";
-  else collectionName=null;
-
   if(collectionName){
-    const q = query(collection(db, collectionName), orderBy("createdAt","desc"));
-    onSnapshot(q, snapshot => {
+    const q = query(collection(db,collectionName),orderBy("createdAt","desc"));
+    onSnapshot(q,snapshot=>{
       productsContainer.innerHTML="";
-      if(snapshot.empty){
-        productsContainer.innerHTML="<p>No items available yet.</p>";
-        return;
-      }
-
+      if(snapshot.empty){ productsContainer.innerHTML="<p>No items available yet.</p>"; return; }
       snapshot.docs.forEach(docSnap=>{
         const data = docSnap.data();
         const card = document.createElement("div");
@@ -87,46 +72,39 @@ if(productsContainer){
 // ---------- Search Filtering ----------
 const searchBtn = document.getElementById("searchBtn");
 if(searchBtn){
-  searchBtn.addEventListener("click", ()=>{
+  searchBtn.addEventListener("click",()=>{
     const filterName = searchInput.value.toLowerCase();
     const category = categorySelect.value;
     const type = typeSelect.value;
-
     const cards = document.querySelectorAll(".card");
     cards.forEach(card=>{
       const name = card.querySelector("h3")?.textContent.toLowerCase() || "";
       const priceLabel = card.querySelector("p:nth-of-type(2)")?.textContent.toLowerCase() || "";
-      let show = true;
-
+      let show=true;
       if(filterName && !name.includes(filterName)) show=false;
       if(type && !priceLabel.includes(type)) show=false;
       if(category && !priceLabel.includes(category)) show=false;
-
       card.style.display=show?"block":"none";
     });
   });
 }
 
-// ---------- Auction Results (Pagination) ----------
+// ---------- Auction Results Pagination ----------
 const resultsContainer = document.getElementById("results-container");
 if(resultsContainer){
   const perPage = 50;
-  let currentPage = 1;
-  const allResults = [];
-
+  let currentPage=1;
+  const allResults=[];
   const q = query(collection(db,"ended_auctions"), orderBy("endedAt","desc"));
-  onSnapshot(q, snapshot=>{
+  onSnapshot(q,snapshot=>{
     allResults.length=0;
-    snapshot.docs.forEach(docSnap=>{
-      allResults.push(docSnap.data());
-    });
+    snapshot.docs.forEach(docSnap=>{ allResults.push(docSnap.data()); });
     renderPage(currentPage);
   });
-
   function renderPage(pageNum){
     resultsContainer.innerHTML="";
-    const start = (pageNum-1)*perPage;
-    const end = start+perPage;
+    const start=(pageNum-1)*perPage;
+    const end=start+perPage;
     const pageResults = allResults.slice(start,end);
     pageResults.forEach(res=>{
       const div = document.createElement("div");
@@ -140,14 +118,13 @@ if(resultsContainer){
     });
     renderPagination();
   }
-
   function renderPagination(){
     const pagination = document.getElementById("pagination");
     if(!pagination) return;
     pagination.innerHTML="";
     const totalPages = Math.ceil(allResults.length/perPage);
     for(let i=1;i<=totalPages;i++){
-      const btn = document.createElement("button");
+      const btn=document.createElement("button");
       btn.textContent=i;
       btn.classList.add("button");
       if(i===currentPage) btn.disabled=true;
