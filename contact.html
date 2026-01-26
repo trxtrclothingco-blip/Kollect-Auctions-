@@ -9,8 +9,7 @@
 <!-- EmailJS SDK -->
 <script type="text/javascript" src="https://cdn.emailjs.com/dist/email.min.js"></script>
 
-<!-- Firebase & Custom Script -->
-<script type="module" src="firebase.js"></script>
+<!-- Custom Script -->
 <script type="module" src="script.js"></script>
 </head>
 <body>
@@ -43,7 +42,8 @@
   <p>Submit your collectible or get in touch with our team.</p>
 
   <div class="card">
-    <form id="contact-form" enctype="multipart/form-data">
+    <form id="contact-form">
+      
       <!-- User Info -->
       <input type="text" name="name" placeholder="Full Name" required>
       <input type="email" name="email" placeholder="Email Address" required>
@@ -61,23 +61,27 @@
         <option value="private">Private Sale</option>
       </select>
 
-      <!-- File Upload -->
-      <label for="item_image">Upload Image(s)</label>
-      <input type="file" name="item_image" id="item_image" multiple>
+      <!-- Social Media URL -->
+      <input
+        type="url"
+        name="item_social_url"
+        placeholder="Link to social media post (Instagram, X, Facebook, etc.)"
+        required
+      >
 
-      <!-- Hidden fields for EmailJS -->
+      <!-- Hidden field for EmailJS -->
       <input type="hidden" name="time" id="time">
-      <input type="hidden" name="file_urls" id="file_urls">
 
       <button class="button" type="submit">Submit</button>
     </form>
   </div>
 </div>
 
-<!-- Initialize EmailJS (must remain) -->
+<!-- Initialize EmailJS -->
 <script>
   (function(){
     emailjs.init("Fx2CfwymZU9f86Gfl");
+    document.getElementById("time").value = new Date().toLocaleString();
   })();
 </script>
 
