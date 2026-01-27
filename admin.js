@@ -6,9 +6,13 @@ import {
   deleteDoc,
   onSnapshot,
   doc,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 /* ---------- Firebase Auth Admin Login ---------- */
 const passwordForm = document.getElementById("password-form");
@@ -20,13 +24,12 @@ const ADMIN_UID = "gBrbEobcS5RCG47acE5ySqxO8yB2";
 
 passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const emailInput = ADMIN_EMAIL; // fixed admin email
   const passwordInput = document.getElementById("admin-password").value;
 
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, emailInput, passwordInput);
-    if (userCredential.user.uid !== ADMIN_UID) {
-      alert("You are not authorized to access this panel.");
+    const cred = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, passwordInput);
+    if (cred.user.uid !== ADMIN_UID) {
+      alert("Not authorised");
       await auth.signOut();
       return;
     }
@@ -35,14 +38,11 @@ passwordForm.addEventListener("submit", async (e) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
-
   } catch (err) {
-    console.error(err);
-    alert("Login failed: " + err.message);
+    alert(err.message);
   }
 });
 
-/* ---------- Persist login ---------- */
 onAuthStateChanged(auth, (user) => {
   if (user && user.uid === ADMIN_UID) {
     passwordScreen.style.display = "none";
@@ -60,18 +60,20 @@ itemForm.addEventListener("submit", async (e) => {
 
   try {
     const formData = new FormData(itemForm);
-    const saleType = formData.get("sale_type"); // "private_sales", "kollect_100", "live_auctions"
-    if (!saleType) return alert("Select sale type");
+    const saleType = formData.get("sale_type");
+
+    let collectionName =
+      saleType === "private_sales" ? "privatesales" : "listings";
 
     const data = {
       name: formData.get("item_name"),
       description: formData.get("item_description"),
       price: Number(formData.get("item_price")),
       priceType: formData.get("price_type"),
-      createdAt: new Date()
+      saleType,
+      createdAt: serverTimestamp()
     };
 
-    // Upload image to Cloudinary
     const file = formData.get("item_image");
     if (file && file.name) {
       const uploadForm = new FormData();
@@ -79,11 +81,11 @@ itemForm.addEventListener("submit", async (e) => {
       uploadForm.append("upload_preset", "Profile_pictures");
       uploadForm.append("folder", "itemPics");
 
-      const cloudName = "def0sfrxq";
       const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        "https://api.cloudinary.com/v1_1/def0sfrxq/image/upload",
         { method: "POST", body: uploadForm }
       );
+
       const img = await res.json();
       if (!img.secure_url) throw new Error("Image upload failed");
       data.image = img.secure_url;
@@ -91,13 +93,10 @@ itemForm.addEventListener("submit", async (e) => {
 
     const itemId = document.getElementById("item_id").value;
 
-    // Decide collection based on saleType
-    let col = (saleType === "private_sales") ? "privatesales" : "listings";
-
     if (itemId) {
-      await updateDoc(doc(db, col, itemId), data);
+      await updateDoc(doc(db, collectionName, itemId), data);
     } else {
-      await addDoc(collection(db, col), data);
+      await addDoc(collection(db, collectionName), data);
     }
 
     itemForm.reset();
@@ -105,8 +104,7 @@ itemForm.addEventListener("submit", async (e) => {
     alert("Item saved ✅");
 
   } catch (err) {
-    console.error(err);
-    alert("Error: " + err.message);
+    alert(err.message);
   }
 });
 
@@ -114,25 +112,28 @@ itemForm.addEventListener("submit", async (e) => {
 const itemsList = document.getElementById("items-list");
 
 function loadItems() {
-  const collections = ["private_sales", "live_auctions", "kollect_100"];
   itemsList.innerHTML = "";
 
-  collections.forEach(col => {
+  const sections = [
+    { title: "PRIVATE SALES", col: "privatesales" },
+    { title: "LISTINGS (AUCTIONS / KOLLECT)", col: "listings" }
+  ];
+
+  sections.forEach(({ title, col }) => {
     const section = document.createElement("div");
-    section.innerHTML = `<h4>${col.replace("_"," ").toUpperCase()}</h4>`;
+    section.innerHTML = `<h4>${title}</h4>`;
     itemsList.appendChild(section);
 
     onSnapshot(collection(db, col), snapshot => {
-      section.innerHTML = `<h4>${col.replace("_"," ").toUpperCase()}</h4>`;
+      section.innerHTML = `<h4>${title}</h4>`;
+
       snapshot.forEach(d => {
         const item = d.data();
-        const div = document.createElement("div");
-        div.innerHTML = `
+        section.innerHTML += `
           <p>${item.name} – £${item.price}</p>
           <button onclick="editItem('${d.id}','${col}')">Edit</button>
           <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
         `;
-        section.appendChild(div);
       });
     });
   });
@@ -148,7 +149,7 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_description"]').value = d.description || "";
   document.querySelector('[name="item_price"]').value = d.price || "";
   document.querySelector('[name="price_type"]').value = d.priceType || "fixed";
-  document.querySelector('[name="sale_type"]').value = col;
+  document.querySelector('[name="sale_type"]').value = d.saleType || "";
   document.getElementById("item_id").value = id;
 };
 
