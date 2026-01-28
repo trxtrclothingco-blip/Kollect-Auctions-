@@ -59,11 +59,11 @@
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // Use the correct field name 'images' from Firestore
-        const { name, description, price, images } = data;
+        // Use the correct field name 'image' from Firestore
+        const { name, description, price, image } = data;
 
-        // Handle single image URL or array of images
-        const imgUrl = Array.isArray(images) ? images[0] : images;
+        // Handle single image URL directly
+        const imgUrl = image;
 
         const card = document.createElement('div');
         card.classList.add('product-card');
