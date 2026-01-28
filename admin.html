@@ -34,6 +34,7 @@
     <!-- Bids -->
     <div class="card">
       <h3>View All Bids</h3>
+      <!-- JS can now inject listing name + live price here -->
       <div id="bids-list"></div>
     </div>
 
@@ -42,8 +43,10 @@
       <h3>Add / Edit Item</h3>
       <form id="item-form">
         <input type="hidden" id="item_id" name="item_id">
+
         <input type="text" name="item_name" placeholder="Item Name" required>
         <textarea name="item_description" placeholder="Item Description"></textarea>
+
         <input type="number" name="item_price" placeholder="Price / Auction Start Price" required>
 
         <label>Price Type</label>
@@ -53,12 +56,21 @@
         </select>
 
         <label>Sale Type</label>
-        <select name="sale_type" required>
+        <select name="sale_type" id="sale_type" required>
           <option value="">Select Type</option>
           <option value="private_sales">Private Sale</option>
           <option value="live_auctions">Live Auction</option>
           <option value="kollect_100">Kollect 100</option>
         </select>
+
+        <!-- AUCTION ONLY FIELDS -->
+        <div id="auction-fields" style="display:none;">
+          <label>Auction Start</label>
+          <input type="datetime-local" name="auctionstart">
+
+          <label>Auction End</label>
+          <input type="datetime-local" name="auctionend">
+        </div>
 
         <label>Upload Image</label>
         <input type="file" name="item_image" id="item_image" accept="image/*">
