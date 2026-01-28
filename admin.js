@@ -9,7 +9,6 @@ import {
   getDoc,
   serverTimestamp,
   query,
-  where,
   orderBy
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
@@ -99,7 +98,7 @@ itemForm.addEventListener("submit", async (e) => {
       data.status = "live";
       data.winnerid = null;
       data.winningbid = null;
-      data.endedat = auctionEnd ? new Date(auctionEnd) : null; // lowercase endedat
+      data.endedat = auctionEnd ? new Date(auctionEnd) : null;
     }
 
     const file = formData.get("item_image");
@@ -198,39 +197,96 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Ended Auctions (based on endedat timestamp) ---------- */
-function loadEndedAuctions() {
+/* ---------- Load Live Auctions with Timer (Formerly Ended Auctions Section) ---------- */
+let auctionsAll = [];
+let auctionsPage = 1;
+const auctionsPerPage = 10;
+
+function renderAuctionsPage(page) {
   const container = document.getElementById("ended-auctions-list");
-  if (!container) return;
+  container.innerHTML = "";
 
-  const now = new Date();
-  const q = query(
-    collection(db, "listings"),
-    where("endedat", "<=", now),
-    orderBy("endedat", "desc")
-  );
+  const start = (page - 1) * auctionsPerPage;
+  const end = start + auctionsPerPage;
+  const pageAuctions = auctionsAll.slice(start, end);
 
-  onSnapshot(q, snapshot => {
-    container.innerHTML = "";
+  pageAuctions.forEach(a => {
+    const remainingTime = Math.max(0, a.auctionend - new Date());
+    const timerText = remainingTime > 0
+      ? formatCountdown(remainingTime)
+      : "Auction Ended";
+
+    container.innerHTML += `
+      <div class="ended-auction bid-item">
+        <p><strong>${a.name}</strong></p>
+        ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
+        <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
+        <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
+        <p>Status: ${timerText}</p>
+        <p>Ends At: ${a.auctionend.toLocaleString()}</p>
+        <hr>
+      </div>
+    `;
+  });
+
+  renderAuctionPagination();
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}h ${m}m ${s}s`;
+}
+
+function renderAuctionPagination() {
+  let controls = document.getElementById("auction-pagination-controls");
+  if (!controls) {
+    controls = document.createElement("div");
+    controls.id = "auction-pagination-controls";
+    document.getElementById("ended-auctions-list").after(controls);
+  }
+  controls.innerHTML = "";
+
+  const totalPages = Math.ceil(auctionsAll.length / auctionsPerPage);
+
+  if (auctionsPage > 1) {
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Previous";
+    prevBtn.onclick = () => { auctionsPage--; renderAuctionsPage(auctionsPage); };
+    controls.appendChild(prevBtn);
+  }
+
+  if (auctionsPage < totalPages) {
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.onclick = () => { auctionsPage++; renderAuctionsPage(auctionsPage); };
+    controls.appendChild(nextBtn);
+  }
+}
+
+function loadEndedAuctions() {
+  onSnapshot(query(collection(db, "listings"), orderBy("auctionend", "asc")), snapshot => {
+    auctionsAll = [];
+    const now = new Date();
 
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
-
-      container.innerHTML += `
-        <div class="ended-auction">
-          <p><strong>${d.name}</strong></p>
-          ${d.image ? `<img src="${d.image}" style="width:100%;max-width:200px;">` : ""}
-          <p>Winning Bid: £${(d.winningbid || 0).toLocaleString()}</p>
-          <p>Winner: ${d.winneremail || "No bids"}</p>
-          <p>Ended: ${d.endedat ? d.endedat.toDate().toLocaleString() : "—"}</p>
-          <hr>
-        </div>
-      `;
+      if (d.pricetype !== "auction") return;
+      auctionsAll.push({
+        ...d,
+        auctionend: d.auctionend?.toDate(),
+        winningbid: d.winningbid || d.price,
+        winneremail: d.winneremail || "No bids"
+      });
     });
 
-    if (snapshot.empty) {
-      container.innerHTML = "<p>No ended auctions yet.</p>";
-    }
+    // Sort ascending by time remaining
+    auctionsAll.sort((a, b) => a.auctionend - b.auctionend);
+
+    auctionsPage = 1;
+    renderAuctionsPage(auctionsPage);
   });
 }
 
