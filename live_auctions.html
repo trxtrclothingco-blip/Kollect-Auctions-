@@ -56,35 +56,22 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/fi
 let currentUser = null;
 
 // Track logged-in user
-onAuthStateChanged(auth, (user) => {
-  currentUser = user;
-});
+onAuthStateChanged(auth, (user) => { currentUser = user; });
 
 async function placeBid(listingId, bidInput, currentPrice) {
-  if (!currentUser) {
-    alert('You must be signed in to place a bid.');
-    return;
-  }
-
+  if (!currentUser) { alert('You must be signed in to place a bid.'); return; }
   const bidAmount = parseFloat(bidInput.value);
-  if (isNaN(bidAmount) || bidAmount <= currentPrice) {
-    alert('Invalid bid. Must be higher than current price.');
-    return;
-  }
+  if (isNaN(bidAmount) || bidAmount <= currentPrice) { alert('Invalid bid. Must be higher than current price.'); return; }
 
   try {
-    // Add bid to Firestore
     await addDoc(collection(db, 'bids'), {
       listingid: listingId,
       bidamount: bidAmount,
       timestamp: serverTimestamp(),
       userid: currentUser.uid
     });
-
-    // Update listing price
     const listingRef = doc(db, 'listings', listingId);
     await updateDoc(listingRef, { price: bidAmount });
-
     bidInput.value = '';
 
     // Show centered success message
@@ -98,68 +85,71 @@ async function placeBid(listingId, bidInput, currentPrice) {
   }
 }
 
-// Helper to format auction length
-function formatAuctionLength(startTimestamp, endTimestamp) {
-  const start = startTimestamp.toDate ? startTimestamp.toDate() : new Date(startTimestamp);
+// Format auction countdown
+function getCountdownText(endTimestamp) {
   const end = endTimestamp.toDate ? endTimestamp.toDate() : new Date(endTimestamp);
-  const diffMs = end - start;
+  const now = new Date();
+  let diffMs = end - now;
   if (diffMs <= 0) return "Auction ended";
 
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  return `${diffDays}d ${diffHours}h ${diffMinutes}m`;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
 function loadLiveAuctions() {
   const liveAuctionsList = document.getElementById('live-auctions-list');
   liveAuctionsList.innerHTML = '';
 
-  try {
-    const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+  const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
 
-    onSnapshot(listingsQuery, (querySnapshot) => {
-      liveAuctionsList.innerHTML = ''; 
+  onSnapshot(listingsQuery, (querySnapshot) => {
+    liveAuctionsList.innerHTML = ''; 
 
-      if (querySnapshot.empty) {
-        liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
-        return;
+    if (querySnapshot.empty) {
+      liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
+      return;
+    }
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const { name, description, price, image, auctionend } = data;
+
+      const card = document.createElement('div');
+      card.classList.add('card', 'auction-card');
+
+      card.innerHTML = `
+        <img src="${image}" alt="${name}">
+        <h3>${name}</h3>
+        <p>${description || ''}</p>
+        <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
+        ${auctionend ? `<p class="auction-length"></p>` : ''}
+        <div class="bid-container">
+          <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
+          <button class="button bid-button">Place Bid</button>
+        </div>
+      `;
+
+      const bidInput = card.querySelector('.bid-input');
+      const bidButton = card.querySelector('.bid-button');
+      bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
+
+      // Live countdown
+      if (auctionend) {
+        const countdownEl = card.querySelector('.auction-length');
+        const updateCountdown = () => {
+          countdownEl.textContent = "Auction ends in: " + getCountdownText(auctionend);
+          if (new Date() >= (auctionend.toDate ? auctionend.toDate() : new Date(auctionend))) clearInterval(intervalId);
+        };
+        updateCountdown();
+        const intervalId = setInterval(updateCountdown, 1000);
       }
 
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const { name, description, price, image, auctionstart, auctionend } = data;
-
-        const auctionLength = auctionstart && auctionend ? formatAuctionLength(auctionstart, auctionend) : null;
-
-        const card = document.createElement('div');
-        card.classList.add('card', 'auction-card');
-
-        card.innerHTML = `
-          <img src="${image}" alt="${name}">
-          <h3>${name}</h3>
-          <p>${description || ''}</p>
-          <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
-          ${auctionLength ? `<p class="auction-length">Auction Length: ${auctionLength}</p>` : ''}
-          <div class="bid-container">
-            <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
-            <button class="button bid-button">Place Bid</button>
-          </div>
-        `;
-
-        const bidInput = card.querySelector('.bid-input');
-        const bidButton = card.querySelector('.bid-button');
-        bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
-
-        liveAuctionsList.appendChild(card);
-      });
+      liveAuctionsList.appendChild(card);
     });
-
-  } catch (error) {
-    console.error('Error loading live auctions:', error);
-    liveAuctionsList.innerHTML = '<p>Error loading items. Please try again later.</p>';
-  }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
