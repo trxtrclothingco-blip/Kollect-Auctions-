@@ -52,6 +52,17 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+/* ---------- AUCTION FIELD TOGGLE ---------- */
+const saleTypeSelect = document.getElementById("sale_type");
+const auctionFields = document.getElementById("auction-fields");
+
+if (saleTypeSelect && auctionFields) {
+  saleTypeSelect.addEventListener("change", () => {
+    auctionFields.style.display =
+      saleTypeSelect.value === "live_auctions" ? "block" : "none";
+  });
+}
+
 /* ---------- Add / Update Item ---------- */
 const itemForm = document.getElementById("item-form");
 
@@ -69,10 +80,22 @@ itemForm.addEventListener("submit", async (e) => {
       name: formData.get("item_name"),
       description: formData.get("item_description"),
       price: Number(formData.get("item_price")),
-      priceType: formData.get("price_type"),
-      saleType,
-      createdAt: serverTimestamp()
+      pricetype: formData.get("price_type"),
+      saletype: saleType,
+      createdat: serverTimestamp()
     };
+
+    /* ---------- AUCTION DATA ---------- */
+    if (saleType === "live_auctions") {
+      const auctionStart = formData.get("auctionstart");
+      const auctionEnd = formData.get("auctionend");
+
+      data.auctionstart = auctionStart ? new Date(auctionStart) : null;
+      data.auctionend = auctionEnd ? new Date(auctionEnd) : null;
+      data.status = "live";
+      data.winnerid = null;
+      data.winningbid = null;
+    }
 
     const file = formData.get("item_image");
     if (file && file.name) {
@@ -101,6 +124,7 @@ itemForm.addEventListener("submit", async (e) => {
 
     itemForm.reset();
     document.getElementById("item_id").value = "";
+    auctionFields.style.display = "none";
     alert("Item saved ✅");
 
   } catch (err) {
@@ -148,9 +172,19 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_name"]').value = d.name || "";
   document.querySelector('[name="item_description"]').value = d.description || "";
   document.querySelector('[name="item_price"]').value = d.price || "";
-  document.querySelector('[name="price_type"]').value = d.priceType || "fixed";
-  document.querySelector('[name="sale_type"]').value = d.saleType || "";
+  document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
+  document.querySelector('[name="sale_type"]').value = d.saletype || "";
   document.getElementById("item_id").value = id;
+
+  if (d.saletype === "live_auctions") {
+    auctionFields.style.display = "block";
+    if (d.auctionstart)
+      document.querySelector('[name="auctionstart"]').value =
+        d.auctionstart.toDate().toISOString().slice(0, 16);
+    if (d.auctionend)
+      document.querySelector('[name="auctionend"]').value =
+        d.auctionend.toDate().toISOString().slice(0, 16);
+  }
 };
 
 window.deleteItem = async (id, col) => {
@@ -159,18 +193,32 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids ---------- */
+/* ---------- Load Bids (WITH LIVE PRICE) ---------- */
 function loadBids() {
   const bidsList = document.getElementById("bids-list");
   bidsList.innerHTML = "";
 
-  onSnapshot(collection(db, "bids"), snapshot => {
+  onSnapshot(collection(db, "bids"), async snapshot => {
     bidsList.innerHTML = "";
-    snapshot.forEach(d => {
+
+    for (const d of snapshot.docs) {
       const b = d.data();
+
+      if (!b.listingid) continue;
+
+      const listingSnap = await getDoc(doc(db, "listings", b.listingid));
+      if (!listingSnap.exists()) continue;
+
+      const listing = listingSnap.data();
+
       bidsList.innerHTML += `
-        <p>${b.itemName} – £${b.bidAmount} (${b.userEmail || "Unknown"})</p>
+        <p>
+          <strong>${listing.name}</strong><br>
+          Live Price: £${listing.price}<br>
+          Bid: £${b.bidamount}<br>
+          User: ${b.useremail || "Unknown"}
+        </p>
       `;
-    });
+    }
   });
 }
