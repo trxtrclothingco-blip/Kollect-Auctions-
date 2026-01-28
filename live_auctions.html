@@ -5,8 +5,217 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
-<script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { firebaseConfig } from "./firebase.js";
+
+// ---------- Firebase Init ----------
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ---------- DOM Elements ----------
+const userStatus = document.getElementById("user-status");
+const logoutButton = document.getElementById("logout-button");
+const body = document.body;
+const liveContainer = document.createElement("div");
+liveContainer.className = "live-auctions-container";
+document.body.appendChild(liveContainer);
+
+// ---------- Burger Menu & Mode ----------
+window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
+window.toggleMode = () => {
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight);
+};
+
+// ---------- Logout ----------
+window.logoutUser = async () => {
+  try { 
+    await signOut(auth); 
+    window.location.href = "create_account.html";
+  } catch(e) { console.error("Logout failed:", e); }
+};
+
+// ---------- Auth Status ----------
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    userStatus.textContent = `Logged in as ${user.email}`;
+    logoutButton.style.display = "inline-block";
+  } else {
+    userStatus.textContent = `Not signed in`;
+    logoutButton.style.display = "none";
+  }
+});
+
+// ---------- Load Listings ----------
+const listingsRef = collection(db, "listings");
+const listingsQuery = query(listingsRef, orderBy("createdAt", "desc"));
+
+onSnapshot(listingsQuery, (snapshot) => {
+  liveContainer.innerHTML = "";
+  if(snapshot.empty){
+    liveContainer.innerHTML = "<p>No live auctions available.</p>";
+    return;
+  }
+
+  snapshot.forEach(doc => {
+    const item = doc.data();
+    const card = document.createElement("div");
+    card.className = "auction-card";
+
+    const img = document.createElement("img");
+    img.src = item["image:"] || "default-image.png";
+    img.alt = item.item_name || "Auction Item";
+
+    const title = document.createElement("h3");
+    title.textContent = item.item_name || "Unnamed Item";
+
+    const desc = document.createElement("p");
+    desc.textContent = item.item_description || "";
+
+    const price = document.createElement("p");
+    price.className = "price";
+    price.textContent = item.starting_price ? `Starting at £${Number(item.starting_price).toLocaleString()}` : "Price N/A";
+
+    const button = document.createElement("button");
+    button.textContent = "View Auction";
+    button.onclick = () => window.location = `item.html?id=${doc.id}`;
+
+    card.appendChild(img);
+    card.appendChild(title);
+    card.appendChild(desc);
+    card.appendChild(price);
+    card.appendChild(button);
+
+    liveContainer.appendChild(card);
+  });
+});
+</script>
+
+<style>
+body {
+  background: #1e1e1e;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.burger div {
+  width: 25px;
+  height: 3px;
+  background: #FFD700;
+  margin: 5px 0;
+}
+
+.nav-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.nav-menu a, .nav-menu button {
+  color: #FFD700;
+  text-decoration: none;
+  padding: 8px 12px;
+  border: 2px solid #FFD700;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-menu a:hover, .nav-menu button:hover {
+  background: #FFD700;
+  color: #1e1e1e;
+}
+
+#logout-button {
+  background: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  border: 2px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#logout-button:hover {
+  background-color: #fff;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
+}
+
+/* Live Auctions Container */
+.live-auctions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auction-card {
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 10px;
+  max-width: 300px;
+  flex: 1 1 280px;
+  text-align: center;
+}
+
+.auction-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.auction-card h3 {
+  margin: 10px 0 5px;
+  color: #FFD700;
+}
+
+.auction-card p {
+  margin: 5px 0;
+}
+
+.auction-card .price {
+  font-weight: bold;
+}
+
+.auction-card button {
+  background: #FFD700;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.auction-card button:hover {
+  background: #fff;
+  color: #FFD700;
+}
+
+@media (max-width: 768px){
+  .live-auctions-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .auction-card {
+    max-width: 90%;
+  }
+}
+</style>
+
 </head>
 <body>
 
@@ -30,12 +239,6 @@
 
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
-
-<div class="container coming-soon">
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <h1>Live Auctions Coming Soon!</h1>
-  <button class="button" onclick="window.location='index.html'">Back to Home</button>
-</div>
 
 </body>
 </html>
