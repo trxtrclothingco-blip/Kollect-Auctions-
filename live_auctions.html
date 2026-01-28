@@ -44,8 +44,50 @@
 </div>
 
 <script type="module">
-import { db } from './firebase.js';
-import { collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { db, auth } from './firebase.js';
+import { collection, getDocs, query, orderBy, doc, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+let currentUser = null;
+
+// Track logged-in user
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+});
+
+async function placeBid(listingId, currentPrice) {
+  if (!currentUser) {
+    alert('You must be signed in to place a bid.');
+    return;
+  }
+
+  const bidAmountStr = prompt(`Enter your bid (current price £${Number(currentPrice).toLocaleString()}):`);
+  const bidAmount = parseFloat(bidAmountStr);
+
+  if (isNaN(bidAmount) || bidAmount <= currentPrice) {
+    alert('Invalid bid. Must be a number higher than current price.');
+    return;
+  }
+
+  try {
+    // Add bid to 'bids' collection
+    await addDoc(collection(db, 'bids'), {
+      listingid: listingId,
+      bidamount: bidAmount,
+      timestamp: serverTimestamp(),
+      userid: currentUser.uid
+    });
+
+    // Update listing price
+    const listingRef = doc(db, 'listings', listingId);
+    await updateDoc(listingRef, { price: bidAmount });
+
+    alert('Bid placed successfully!');
+  } catch (error) {
+    console.error('Error placing bid:', error);
+    alert('Failed to place bid. Please try again.');
+  }
+}
 
 async function loadLiveAuctions() {
   const liveAuctionsList = document.getElementById('live-auctions-list');
@@ -60,8 +102,8 @@ async function loadLiveAuctions() {
       return;
     }
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       const { name, description, price, image } = data;
 
       const card = document.createElement('div');
@@ -72,8 +114,11 @@ async function loadLiveAuctions() {
         <h3>${name}</h3>
         <p>${description || ''}</p>
         <p>Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
-        <button class="button" onclick="window.location.href='item.html?id=${doc.id}'">Bid Now</button>
+        <button class="button">Bid Now</button>
       `;
+
+      // Attach click handler for bidding
+      card.querySelector('.button').addEventListener('click', () => placeBid(docSnap.id, price || 0));
 
       liveAuctionsList.appendChild(card);
     });
