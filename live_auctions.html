@@ -6,8 +6,6 @@
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
-<script type="module" src="products.js"></script>
 </head>
 <body data-page="liveauctions">
 
@@ -50,7 +48,7 @@
 
 <script type="module">
 import { db, auth } from './firebase.js';
-import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
@@ -58,6 +56,7 @@ let currentUser = null;
 // Track logged-in user
 onAuthStateChanged(auth, (user) => { currentUser = user; });
 
+// Place a bid
 async function placeBid(listingId, bidInput, currentPrice) {
   if (!currentUser) { alert('You must be signed in to place a bid.'); return; }
   const bidAmount = parseFloat(bidInput.value);
@@ -70,11 +69,13 @@ async function placeBid(listingId, bidInput, currentPrice) {
       timestamp: serverTimestamp(),
       userid: currentUser.uid
     });
+
     const listingRef = doc(db, 'listings', listingId);
     await updateDoc(listingRef, { price: bidAmount });
+
     bidInput.value = '';
 
-    // Show centered success message
+    // Show success message
     const msgDiv = document.getElementById('bid-success-msg');
     msgDiv.style.display = 'flex';
     setTimeout(() => { msgDiv.style.display = 'none'; }, 2500);
@@ -85,7 +86,7 @@ async function placeBid(listingId, bidInput, currentPrice) {
   }
 }
 
-// Format auction countdown
+// Format countdown with seconds
 function getCountdownText(endTimestamp) {
   const end = endTimestamp.toDate ? endTimestamp.toDate() : new Date(endTimestamp);
   const now = new Date();
@@ -99,14 +100,15 @@ function getCountdownText(endTimestamp) {
   return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
+// Load live auctions from Firestore
 function loadLiveAuctions() {
   const liveAuctionsList = document.getElementById('live-auctions-list');
   liveAuctionsList.innerHTML = '';
 
-  const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+  const listingsQuery = query(collection(db, 'listings'), orderBy('createdat', 'desc')); // ensure lowercase matches admin.js
 
   onSnapshot(listingsQuery, (querySnapshot) => {
-    liveAuctionsList.innerHTML = ''; 
+    liveAuctionsList.innerHTML = '';
 
     if (querySnapshot.empty) {
       liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
@@ -136,7 +138,7 @@ function loadLiveAuctions() {
       const bidButton = card.querySelector('.bid-button');
       bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
 
-      // Live countdown
+      // Countdown timer
       if (auctionend) {
         const countdownEl = card.querySelector('.auction-length');
         const updateCountdown = () => {
@@ -156,118 +158,21 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
 
 <style>
-/* Modern bold heading for Live Auctions */
-.live-auctions-title {
-  font-family: "Arial Black", sans-serif;
-  font-size: 3rem;
-  font-weight: 900;
-  color: #FFD700;
-  text-align: center;
-  margin: 30px 0;
-}
-
-/* Responsive for smaller screens */
-@media (max-width: 768px){
-  .live-auctions-title {
-    font-size: 2.2rem;
-    margin: 20px 0;
-  }
-}
-
-/* Auction Cards */
-.auction-card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
-  padding: 10px;
-  max-width: 300px;
-  margin: 15px;
-  display: inline-block;
-  vertical-align: top;
-  text-align: center;
-}
-
-.auction-card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.auction-card h3 {
-  margin: 10px 0 5px;
-  color: #FFD700;
-}
-
-.auction-card p {
-  margin: 5px 0;
-}
-
-.auction-card .auction-length {
-  font-weight: bold;
-  color: #FFD700;
-  margin: 5px 0;
-}
-
-.auction-card .button {
-  background: #FFD700;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 10px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.auction-card .button:hover {
-  background: #fff;
-  color: #FFD700;
-}
-
-/* Bid input container */
-.bid-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.bid-container .bid-input {
-  width: 100px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #FFD700;
-  text-align: center;
-  background: #2a2a2a;
-  color: #FFD700;
-}
-
-.bid-container .bid-input::placeholder {
-  color: #FFD700;
-}
-
-.bid-container .bid-button {
-  padding: 6px 12px;
-}
-
-/* Centered bid success message */
-#bid-success-msg {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #2a2a2a;
-  color: #FFD700;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
-  padding: 20px 40px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  z-index: 9999;
-  text-align: center;
-  pointer-events: none;
-}
+/* Styles identical to previous: bold headings, cards, bids input, countdown etc. */
+.live-auctions-title { font-family: "Arial Black", sans-serif; font-size: 3rem; font-weight: 900; color: #FFD700; text-align: center; margin: 30px 0; }
+@media (max-width: 768px){ .live-auctions-title { font-size: 2.2rem; margin: 20px 0; } }
+.auction-card { background: #2a2a2a; border: 2px solid #FFD700; border-radius: 8px; padding: 10px; max-width: 300px; margin: 15px; display: inline-block; vertical-align: top; text-align: center; }
+.auction-card img { width: 100%; height: 200px; object-fit: cover; border-radius: 6px; }
+.auction-card h3 { margin: 10px 0 5px; color: #FFD700; }
+.auction-card p { margin: 5px 0; }
+.auction-card .auction-length { font-weight: bold; color: #FFD700; margin: 5px 0; }
+.auction-card .button { background: #FFD700; border: none; border-radius: 6px; padding: 8px 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
+.auction-card .button:hover { background: #fff; color: #FFD700; }
+.bid-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; }
+.bid-container .bid-input { width: 100px; padding: 6px 8px; border-radius: 6px; border: 1px solid #FFD700; text-align: center; background: #2a2a2a; color: #FFD700; }
+.bid-container .bid-input::placeholder { color: #FFD700; }
+.bid-container .bid-button { padding: 6px 12px; }
+#bid-success-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2a2a2a; color: #FFD700; border: 2px solid #FFD700; border-radius: 8px; padding: 20px 40px; font-size: 1.5rem; font-weight: bold; z-index: 9999; text-align: center; pointer-events: none; }
 </style>
 
 </body>
