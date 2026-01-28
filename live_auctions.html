@@ -74,19 +74,23 @@ onSnapshot(listingsQuery, (snapshot) => {
     // Image
     const img = document.createElement("img");
     img.src = item["image:"] || "default-image.png";
-    img.alt = item.item_name || "Auction Item";
+    img.alt = item.name || "Auction Item";
 
     // Title
     const title = document.createElement("h3");
-    title.textContent = item.item_name || "Unnamed Item";
+    title.textContent = item.name || "Unnamed Item";
 
     // Description
     const desc = document.createElement("p");
-    desc.textContent = item.item_description || "";
+    desc.textContent = item.description || "";
 
     // Price
     const price = document.createElement("p");
-    price.textContent = item.starting_price ? `Starting at £${Number(item.starting_price).toLocaleString()}` : "Price N/A";
+    price.textContent = item.price ? `${item.priceType || "£"}${Number(item.price).toLocaleString()}` : "Price N/A";
+
+    // Sale Type
+    const sale = document.createElement("p");
+    sale.textContent = item.saleType ? `Sale Type: ${item.saleType}` : "";
 
     // Button
     const button = document.createElement("button");
@@ -99,6 +103,7 @@ onSnapshot(listingsQuery, (snapshot) => {
     card.appendChild(title);
     card.appendChild(desc);
     card.appendChild(price);
+    if(item.saleType) card.appendChild(sale);
     card.appendChild(button);
 
     container.appendChild(card);
@@ -122,6 +127,62 @@ onSnapshot(listingsQuery, (snapshot) => {
   .live-auctions-title {
     font-size: 2.2rem;
     margin: 20px 0;
+  }
+}
+
+/* Auction Cards */
+.auction-card {
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 10px;
+  max-width: 300px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+}
+
+.auction-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.auction-card h3 {
+  margin: 10px 0 5px;
+  color: #FFD700;
+}
+
+.auction-card p {
+  margin: 5px 0;
+}
+
+.auction-card .button {
+  background: #FFD700;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.auction-card .button:hover {
+  background: #fff;
+  color: #FFD700;
+}
+
+/* Responsive container */
+.container {
+  text-align: center;
+}
+
+@media (max-width: 768px){
+  .auction-card {
+    max-width: 90%;
+    margin: 10px auto;
   }
 }
 </style>
