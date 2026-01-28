@@ -34,8 +34,17 @@
     <!-- Bids -->
     <div class="card">
       <h3>View All Bids</h3>
-      <!-- JS can now inject listing name + live price here -->
-      <div id="bids-list"></div>
+      <p style="font-size:14px; opacity:0.8;">
+        Showing live price from listings
+      </p>
+      <div id="bids-list">
+        <!-- admin.js injects:
+             item name
+             LIVE listing price
+             bid amount
+             user id
+        -->
+      </div>
     </div>
 
     <!-- Add/Edit Item -->
