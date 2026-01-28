@@ -62,19 +62,15 @@
         // Use the correct field name 'image' from Firestore
         const { name, description, price, image } = data;
 
-        // Handle single image URL directly
-        const imgUrl = image;
-
+        // Use a card that matches the style of your second HTML
         const card = document.createElement('div');
-        card.classList.add('product-card');
+        card.classList.add('card');
 
         card.innerHTML = `
-          <img src="${imgUrl}" alt="${name}" class="product-image">
-          <h2>${name}</h2>
-          <p>${description}</p>
-          <p class="price">$${price.toFixed(2)}</p>
-          <button class="buy-now">Buy It Now</button>
-          <button class="make-offer">Make an Offer</button>
+          <img src="${image}" alt="${name}">
+          <h3>${name}</h3>
+          <p>Price: £${price.toFixed(2)}</p>
+          <button class="button">Buy Now</button>
         `;
 
         privateSalesList.appendChild(card);
