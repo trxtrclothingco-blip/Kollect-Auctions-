@@ -42,8 +42,11 @@
 </div>
 
 <script type="module">
-  // Assuming firebase.js exports db (Firestore instance) and auth if needed
-  import { db } from './firebase.js'; // Adjust if your export is different
+  // Import db from your firebase.js
+  import { db } from './firebase.js';
+  
+  // Import modular Firestore functions (match your SDK version)
+  import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
   // Function to fetch and display private sales items
   async function loadPrivateSales() {
@@ -51,7 +54,7 @@
     privateSalesList.innerHTML = ''; // Clear existing content
 
     try {
-      const querySnapshot = await db.collection('privatesales').get();
+      const querySnapshot = await getDocs(collection(db, 'privatesales'));
       
       if (querySnapshot.empty) {
         privateSalesList.innerHTML = '<p>No items available for private sale.</p>';
