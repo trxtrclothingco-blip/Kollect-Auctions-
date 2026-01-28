@@ -1,52 +1,41 @@
 import { db } from "./firebase.js";
 import {
   collection,
-  query,
-  orderBy,
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-const page = document.body.dataset.page;
+// Only run on private sales page
+if (document.body.dataset.page === "privatesales") {
 
-let collectionName = null;
-if (page === "private_sales") collectionName = "privatesales"; // Firestore collection
-else if (page === "live_auctions") collectionName = "listings"; // live auctions go to listings
-else if (page === "kollect_100") collectionName = "listings";   // kollect_100 items go to listings
+  const container = document.getElementById("private-sales-list");
 
-if (!collectionName) return;
-
-const container = document.getElementById("products-container");
-if (!container) return;
-
-const q = query(
-  collection(db, collectionName),
-  orderBy("createdAt", "desc")
-);
-
-onSnapshot(q, snapshot => {
-  container.innerHTML = "";
-
-  if (snapshot.empty) {
-    container.innerHTML = "<p>No items available yet.</p>";
+  if (!container) {
+    console.error("private-sales-list container not found");
     return;
   }
 
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
+  const privatesalesRef = collection(db, "privatesales");
 
-    const imageSrc = data.image || "placeholder.jpg";
-    const description = data.description || "";
+  onSnapshot(privatesalesRef, (snapshot) => {
+    container.innerHTML = "";
 
-    const card = document.createElement("div");
-    card.className = "product-card";
+    if (snapshot.empty) {
+      container.innerHTML = "<p>No private sale items available.</p>";
+      return;
+    }
 
-    card.innerHTML = `
-      <img src="${imageSrc}" alt="${data.name}" />
-      <h3>${data.name}</h3>
-      <p>${description}</p>
-      <p>Price: £${data.price} (${data.priceType})</p>
-    `;
+    snapshot.forEach((doc) => {
+      const item = doc.data();
 
-    container.appendChild(card);
+      container.innerHTML += `
+        <div class="card">
+          <img src="${item.imageUrl || ''}" alt="${item.item_name || 'Item'}">
+          <h3>${item.item_name}</h3>
+          <p>${item.item_description || ""}</p>
+          <p><strong>£${item.item_price}</strong></p>
+          <button class="button">Make Offer</button>
+        </div>
+      `;
+    });
   });
-});
+}
