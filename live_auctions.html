@@ -5,112 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+<script type="module" src="products.js"></script>
+</head>
+<body data-page="liveauctions">
+
+<!-- Burger Menu -->
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+</nav>
+
+<!-- User Status & Logout -->
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
+<!-- Main Container -->
+<div class="container">
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <h1 class="live-auctions-title">Live Auctions</h1>
+
+  <!-- Container for dynamic items -->
+  <div id="live-auctions-list"></div>
+</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { firebaseConfig } from "./firebase.js";
+import { db } from './firebase.js';
+import { collection, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-// ---------- Firebase Init ----------
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+async function loadLiveAuctions() {
+  const liveAuctionsList = document.getElementById('live-auctions-list');
+  liveAuctionsList.innerHTML = ''; // Clear existing content
 
-// ---------- DOM Elements ----------
-const userStatus = document.getElementById("user-status");
-const logoutButton = document.getElementById("logout-button");
-const body = document.body;
-const container = document.querySelector(".container");
+  try {
+    const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(listingsQuery);
 
-// ---------- Burger Menu & Mode ----------
-window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
-if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
-window.toggleMode = () => {
-  const isLight = body.classList.toggle("light-mode");
-  localStorage.setItem("lightMode", isLight);
-};
+    if (querySnapshot.empty) {
+      liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
+      return;
+    }
 
-// ---------- Logout ----------
-window.logoutUser = async () => {
-  try { 
-    await signOut(auth); 
-    window.location.href = "create_account.html";
-  } catch(e) { console.error("Logout failed:", e); }
-};
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const { name, description, price, priceType, saleType, image } = data;
 
-// ---------- Auth Status ----------
-onAuthStateChanged(auth, (user) => {
-  if(user){
-    userStatus.textContent = `Logged in as ${user.email}`;
-    logoutButton.style.display = "inline-block";
-  } else {
-    userStatus.textContent = `Not signed in`;
-    logoutButton.style.display = "none";
+      const card = document.createElement('div');
+      card.classList.add('card', 'auction-card');
+
+      card.innerHTML = `
+        <img src="${image}" alt="${name}">
+        <h3>${name}</h3>
+        <p>${description || ''}</p>
+        <p>Price: ${priceType || '£'}${price ? Number(price).toLocaleString() : 'N/A'}</p>
+        ${saleType ? `<p>Sale Type: ${saleType}</p>` : ''}
+        <button class="button" onclick="window.location.href='item.html?id=${doc.id}'">Bid Now</button>
+      `;
+
+      liveAuctionsList.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error('Error loading live auctions:', error);
+    liveAuctionsList.innerHTML = '<p>Error loading items. Please try again later.</p>';
   }
-});
+}
 
-// ---------- Load Live Listings ----------
-const listingsRef = collection(db, "listings");
-const listingsQuery = query(listingsRef, orderBy("createdAt","desc"));
-
-onSnapshot(listingsQuery, (snapshot) => {
-  // Remove previous cards
-  const oldCards = container.querySelectorAll(".auction-card");
-  oldCards.forEach(c => c.remove());
-
-  if(snapshot.empty){
-    container.innerHTML += `<p>No live auctions available.</p>`;
-    return;
-  }
-
-  snapshot.forEach(doc => {
-    const item = doc.data();
-
-    // Create card
-    const card = document.createElement("div");
-    card.className = "card auction-card";
-
-    // Image
-    console.log("Image URL:", item["image:"]); // Check in console
-    const imgUrl = item["image:"]?.trim() || "default-image.png";
-    const img = document.createElement("img");
-    img.src = imgUrl;
-    img.alt = item.name || "Auction Item";
-
-    // Title
-    const title = document.createElement("h3");
-    title.textContent = item.name || "Unnamed Item";
-
-    // Description
-    const desc = document.createElement("p");
-    desc.textContent = item.description || "";
-
-    // Price
-    const price = document.createElement("p");
-    price.textContent = item.price ? `${item.priceType || "£"}${Number(item.price).toLocaleString()}` : "Price N/A";
-
-    // Sale Type
-    const sale = document.createElement("p");
-    sale.textContent = item.saleType ? `Sale Type: ${item.saleType}` : "";
-
-    // Button
-    const button = document.createElement("button");
-    button.className = "button";
-    button.textContent = "Bid Now";
-    button.onclick = () => window.location = `item.html?id=${doc.id}`;
-
-    // Append
-    card.appendChild(img);
-    card.appendChild(title);
-    card.appendChild(desc);
-    card.appendChild(price);
-    if(item.saleType) card.appendChild(sale);
-    card.appendChild(button);
-
-    container.appendChild(card);
-  });
-});
+document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
 
 <style>
@@ -188,42 +163,6 @@ onSnapshot(listingsQuery, (snapshot) => {
   }
 }
 </style>
-
-</head>
-<body>
-
-<!-- Burger Menu -->
-<div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
-</div>
-
-<!-- Navigation -->
-<nav class="nav-menu" id="navMenu">
-  <a href="index.html">Home</a>
-  <a href="dashboard.html">Dashboard</a>
-  <a href="about.html">About Us</a>
-  <a href="live_auctions.html">Live Auctions</a>
-  <a href="kollect_100.html">Kollect 100</a>
-  <a href="private_sales.html">Private Sales</a>
-  <a href="contact.html">Contact Us</a>
-  <a href="admin.html">Admin</a>
-  <a href="results.html">Results</a>
-  <a href="create_account.html">Sign In</a>
-  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
-</nav>
-
-<!-- User Status & Logout -->
-<div id="user-status">Checking login status...</div>
-<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
-
-<!-- Main Container -->
-<div class="container">
-  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <a href="private_sales.html" class="button">Private Sales</a>
-
-  <!-- Bold Live Auctions Title -->
-  <div class="live-auctions-title">Live Auctions</div>
-</div>
 
 </body>
 </html>
