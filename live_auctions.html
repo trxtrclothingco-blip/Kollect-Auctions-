@@ -54,7 +54,8 @@ import {
   doc,
   updateDoc,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  getDocs
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
@@ -72,6 +73,7 @@ async function placeBid(listingId, bidInput, currentPrice) {
     listingid: listingId,
     bidamount: bidAmount,
     userid: currentUser.uid,
+    useremail: currentUser.email,
     timestamp: serverTimestamp()
   });
 
@@ -83,6 +85,29 @@ async function placeBid(listingId, bidInput, currentPrice) {
   const msg = document.getElementById('bid-success-msg');
   msg.style.display = 'flex';
   setTimeout(() => msg.style.display = 'none', 2500);
+}
+
+async function endAuction(listingId) {
+  const bidsSnap = await getDocs(
+    query(collection(db, 'bids'), orderBy('bidamount', 'desc'))
+  );
+
+  let winningBid = null;
+
+  bidsSnap.forEach((b) => {
+    const d = b.data();
+    if (d.listingid === listingId && !winningBid) {
+      winningBid = d;
+    }
+  });
+
+  await updateDoc(doc(db, 'listings', listingId), {
+    status: 'ended',
+    winningbid: winningBid ? winningBid.bidamount : 0,
+    winnerid: winningBid ? winningBid.userid : null,
+    winneremail: winningBid ? winningBid.useremail : null,
+    endedAt: serverTimestamp()
+  });
 }
 
 function getCountdownText(endTimestamp) {
@@ -99,7 +124,6 @@ function getCountdownText(endTimestamp) {
 
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
-
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
 
   onSnapshot(q, (snapshot) => {
@@ -110,29 +134,37 @@ function loadLiveAuctions() {
       if (data.status !== 'live') return;
 
       const price = Number(data.price ?? 0);
-
       const card = document.createElement('div');
       card.className = 'card';
 
       card.innerHTML = `
-        <img src="${data.image}" alt="${data.name}">
+        <img src="${data.image}">
         <h3>${data.name}</h3>
         <p>${data.description || ''}</p>
         <p><strong>Current Bid:</strong> £${price.toLocaleString()}</p>
         <p class="auction-length"></p>
-
         <input type="number" class="bid-input" min="${price + 1}" placeholder="Your bid">
         <button class="button bid-button">Place Bid</button>
       `;
 
+      const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
-      card.querySelector('.bid-button')
-        .onclick = () => placeBid(docSnap.id, bidInput, price);
+
+      bidBtn.onclick = () => placeBid(docSnap.id, bidInput, price);
 
       if (data.auctionend) {
         const el = card.querySelector('.auction-length');
-        const tick = () => el.textContent =
-          'Auction ends in: ' + getCountdownText(data.auctionend);
+        const tick = async () => {
+          const diff = data.auctionend.toDate() - new Date();
+          if (diff <= 0) {
+            el.textContent = 'Auction ended';
+            bidBtn.disabled = true;
+            bidInput.disabled = true;
+            await endAuction(docSnap.id);
+          } else {
+            el.textContent = 'Auction ends in: ' + getCountdownText(data.auctionend);
+          }
+        };
         tick();
         setInterval(tick, 1000);
       }
@@ -146,7 +178,6 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
 
 <style>
-/* Ensure cards match Private Sales exactly */
 .card {
   background: #2a2a2a;
   border: 2px solid #FFD700;
