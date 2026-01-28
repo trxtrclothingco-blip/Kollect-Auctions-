@@ -91,7 +91,7 @@ onSnapshot(listingsQuery, (snapshot) => {
     // Button
     const button = document.createElement("button");
     button.className = "button";
-    button.textContent = "View Auction";
+    button.textContent = "Bid Now";
     button.onclick = () => window.location = `item.html?id=${doc.id}`;
 
     // Append
@@ -105,6 +105,26 @@ onSnapshot(listingsQuery, (snapshot) => {
   });
 });
 </script>
+
+<style>
+/* Modern bold heading for Live Auctions */
+.live-auctions-title {
+  font-family: "Arial Black", sans-serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: #FFD700;
+  text-align: center;
+  margin: 30px 0;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px){
+  .live-auctions-title {
+    font-size: 2.2rem;
+    margin: 20px 0;
+  }
+}
+</style>
 
 </head>
 <body>
@@ -138,27 +158,8 @@ onSnapshot(listingsQuery, (snapshot) => {
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
   <a href="private_sales.html" class="button">Private Sales</a>
 
-  <div class="search-bar">
-    <input type="text" placeholder="Search items..." id="searchInput">
-    <select id="categorySelect">
-      <option value="">All Categories</option>
-      <option value="tgc-graded">TGC's Graded</option>
-      <option value="tgc-raw">TGC's Raw</option>
-      <option value="movies-books">Movies & Books</option>
-      <option value="figures">Figures</option>
-      <option value="lego">LEGO</option>
-      <option value="video-games">Video Games</option>
-      <option value="memorabilia">Memorabilia</option>
-      <option value="comics">Comics</option>
-      <option value="historical">Historical Items</option>
-    </select>
-    <select id="typeSelect">
-      <option value="">All Types</option>
-      <option value="auction">Auction</option>
-      <option value="private">Private Sale</option>
-    </select>
-    <button class="button" id="searchBtn">Search</button>
-  </div>
+  <!-- Bold Live Auctions Title -->
+  <div class="live-auctions-title">Live Auctions</div>
 </div>
 
 </body>
