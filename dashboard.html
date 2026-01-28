@@ -27,6 +27,7 @@ const profilePicEl = document.getElementById("profile-pic");
 const profileUpload = document.getElementById("profile-upload");
 const bidsContainer = document.getElementById("bids-container");
 const welcomeName = document.getElementById("welcome-name");
+const salesContainer = document.getElementById("sales-history-container");
 
 // Updated input IDs
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
@@ -150,6 +151,30 @@ onAuthStateChanged(auth, async (user) => {
       bidsContainer.appendChild(bidEl);
     });
   });
+
+  // ---------- Sales History (Won Bids) ----------
+  const salesQuery = query(
+    collection(db, "bids"),
+    where("userId", "==", user.uid),
+    where("outbid", "==", false),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(salesQuery, (snapshot) => {
+    if (!salesContainer) return;
+    salesContainer.innerHTML = "<h2>Won Bids / Successful Purchases</h2>";
+    if(snapshot.empty){
+      salesContainer.innerHTML += "<p>No won bids yet.</p>";
+      return;
+    }
+    snapshot.forEach(doc => {
+      const bid = doc.data();
+      const bidEl = document.createElement("div");
+      bidEl.className = "bid-card";
+      bidEl.textContent = `${bid.itemName} – £${bid.bidAmount} (${new Date(bid.createdAt?.seconds * 1000 || Date.now()).toLocaleDateString()})`;
+      salesContainer.appendChild(bidEl);
+    });
+  });
 });
 </script>
 
@@ -163,10 +188,17 @@ onAuthStateChanged(auth, async (user) => {
   border-radius: 4px;
   width: 100%;
   margin: 5px 0;
+  list-style: none; /* Removed bullet points */
+}
+
+/* Profile ul style */
+.container ul {
+  padding-left: 0;
+  list-style: none;
 }
 
 /* Bids section styling */
-#bids-container {
+#bids-container, #sales-history-container {
   margin-top:20px;
   padding:15px;
   background:#1e1e1e;
@@ -296,6 +328,12 @@ onAuthStateChanged(auth, async (user) => {
   <div id="bids-container">
     <h2>My Bids</h2>
     <p>Loading your active bids…</p>
+  </div>
+
+  <!-- Sales History Section -->
+  <div id="sales-history-container" class="card">
+    <h2>Won Bids / Successful Purchases</h2>
+    <p>Loading your sales history…</p>
   </div>
 </div>
 
