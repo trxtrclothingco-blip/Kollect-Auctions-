@@ -45,7 +45,7 @@
 
 <script type="module">
 import { db, auth } from './firebase.js';
-import { collection, getDocs, query, orderBy, doc, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
@@ -55,22 +55,20 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
 });
 
-async function placeBid(listingId, currentPrice) {
+async function placeBid(listingId, bidInput, currentPrice) {
   if (!currentUser) {
     alert('You must be signed in to place a bid.');
     return;
   }
 
-  const bidAmountStr = prompt(`Enter your bid (current price £${Number(currentPrice).toLocaleString()}):`);
-  const bidAmount = parseFloat(bidAmountStr);
-
+  const bidAmount = parseFloat(bidInput.value);
   if (isNaN(bidAmount) || bidAmount <= currentPrice) {
-    alert('Invalid bid. Must be a number higher than current price.');
+    alert('Invalid bid. Must be higher than current price.');
     return;
   }
 
   try {
-    // Add bid to 'bids' collection
+    // Add bid to Firestore
     await addDoc(collection(db, 'bids'), {
       listingid: listingId,
       bidamount: bidAmount,
@@ -82,6 +80,7 @@ async function placeBid(listingId, currentPrice) {
     const listingRef = doc(db, 'listings', listingId);
     await updateDoc(listingRef, { price: bidAmount });
 
+    bidInput.value = '';
     alert('Bid placed successfully!');
   } catch (error) {
     console.error('Error placing bid:', error);
@@ -89,38 +88,46 @@ async function placeBid(listingId, currentPrice) {
   }
 }
 
-async function loadLiveAuctions() {
+function loadLiveAuctions() {
   const liveAuctionsList = document.getElementById('live-auctions-list');
-  liveAuctionsList.innerHTML = ''; // Clear existing content
+  liveAuctionsList.innerHTML = '';
 
   try {
     const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(listingsQuery);
 
-    if (querySnapshot.empty) {
-      liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
-      return;
-    }
+    // Listen for real-time updates
+    onSnapshot(listingsQuery, (querySnapshot) => {
+      liveAuctionsList.innerHTML = ''; // Clear current cards
 
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const { name, description, price, image } = data;
+      if (querySnapshot.empty) {
+        liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
+        return;
+      }
 
-      const card = document.createElement('div');
-      card.classList.add('card', 'auction-card');
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const { name, description, price, image } = data;
 
-      card.innerHTML = `
-        <img src="${image}" alt="${name}">
-        <h3>${name}</h3>
-        <p>${description || ''}</p>
-        <p>Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
-        <button class="button">Bid Now</button>
-      `;
+        const card = document.createElement('div');
+        card.classList.add('card', 'auction-card');
 
-      // Attach click handler for bidding
-      card.querySelector('.button').addEventListener('click', () => placeBid(docSnap.id, price || 0));
+        card.innerHTML = `
+          <img src="${image}" alt="${name}">
+          <h3>${name}</h3>
+          <p>${description || ''}</p>
+          <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
+          <div class="bid-container">
+            <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
+            <button class="button bid-button">Place Bid</button>
+          </div>
+        `;
 
-      liveAuctionsList.appendChild(card);
+        const bidInput = card.querySelector('.bid-input');
+        const bidButton = card.querySelector('.bid-button');
+        bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
+
+        liveAuctionsList.appendChild(card);
+      });
     });
 
   } catch (error) {
@@ -195,16 +202,31 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
   color: #FFD700;
 }
 
-/* Responsive container */
-.container {
-  text-align: center;
+/* Bid input container */
+.bid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
 }
 
-@media (max-width: 768px){
-  .auction-card {
-    max-width: 90%;
-    margin: 10px auto;
-  }
+.bid-container .bid-input {
+  width: 100px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #FFD700;
+  text-align: center;
+  background: #2a2a2a;
+  color: #FFD700;
+}
+
+.bid-container .bid-input::placeholder {
+  color: #FFD700;
+}
+
+.bid-container .bid-button {
+  padding: 6px 12px;
 }
 </style>
 
