@@ -197,7 +197,7 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Live Auctions with Timer (Formerly Ended Auctions Section) ---------- */
+/* ---------- Load Live Auctions with Timer ---------- */
 let auctionsAll = [];
 let auctionsPage = 1;
 const auctionsPerPage = 10;
@@ -210,19 +210,14 @@ function renderAuctionsPage(page) {
   const end = start + auctionsPerPage;
   const pageAuctions = auctionsAll.slice(start, end);
 
-  pageAuctions.forEach(a => {
-    const remainingTime = Math.max(0, a.auctionend - new Date());
-    const timerText = remainingTime > 0
-      ? formatCountdown(remainingTime)
-      : "Auction Ended";
-
+  pageAuctions.forEach((a, index) => {
     container.innerHTML += `
-      <div class="ended-auction bid-item">
+      <div class="ended-auction bid-item" data-index="${start + index}">
         <p><strong>${a.name}</strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
         <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
-        <p>Status: ${timerText}</p>
+        <p class="auction-timer">Status: </p>
         <p>Ends At: ${a.auctionend.toLocaleString()}</p>
         <hr>
       </div>
@@ -231,6 +226,24 @@ function renderAuctionsPage(page) {
 
   renderAuctionPagination();
 }
+
+// Update timers every second
+setInterval(() => {
+  const timerElems = document.querySelectorAll(".ended-auction.bid-item");
+  timerElems.forEach(elem => {
+    const index = Number(elem.getAttribute("data-index"));
+    const a = auctionsAll[index];
+    if (!a) return;
+
+    const remainingTime = Math.max(0, a.auctionend - new Date());
+    const timerText = remainingTime > 0
+      ? formatCountdown(remainingTime)
+      : "Auction Ended";
+
+    const timerP = elem.querySelector(".auction-timer");
+    if (timerP) timerP.textContent = "Status: " + timerText;
+  });
+}, 1000);
 
 function formatCountdown(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -269,7 +282,6 @@ function renderAuctionPagination() {
 function loadEndedAuctions() {
   onSnapshot(query(collection(db, "listings"), orderBy("auctionend", "asc")), snapshot => {
     auctionsAll = [];
-    const now = new Date();
 
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
@@ -282,9 +294,7 @@ function loadEndedAuctions() {
       });
     });
 
-    // Sort ascending by time remaining
     auctionsAll.sort((a, b) => a.auctionend - b.auctionend);
-
     auctionsPage = 1;
     renderAuctionsPage(auctionsPage);
   });
