@@ -62,7 +62,7 @@ async function loadLiveAuctions() {
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      const { name, description, price, priceType, saleType, image } = data;
+      const { name, description, price, image } = data;
 
       const card = document.createElement('div');
       card.classList.add('card', 'auction-card');
@@ -71,8 +71,7 @@ async function loadLiveAuctions() {
         <img src="${image}" alt="${name}">
         <h3>${name}</h3>
         <p>${description || ''}</p>
-        <p>Price: ${priceType || '£'}${price ? Number(price).toLocaleString() : 'N/A'}</p>
-        ${saleType ? `<p>Sale Type: ${saleType}</p>` : ''}
+        <p>Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
         <button class="button" onclick="window.location.href='item.html?id=${doc.id}'">Bid Now</button>
       `;
 
