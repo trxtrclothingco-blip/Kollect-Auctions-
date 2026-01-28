@@ -8,7 +8,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { firebaseConfig } from "./firebase.js";
 
@@ -21,9 +21,7 @@ const auth = getAuth(app);
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
 const body = document.body;
-const liveContainer = document.createElement("div");
-liveContainer.className = "live-auctions-container";
-document.body.appendChild(liveContainer);
+const container = document.querySelector(".container");
 
 // ---------- Burger Menu & Mode ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
@@ -52,177 +50,71 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ---------- Load Listings ----------
+// ---------- Load Live Listings ----------
 const listingsRef = collection(db, "listings");
-const listingsQuery = query(listingsRef, orderBy("createdAt", "desc"));
+const listingsQuery = query(listingsRef, orderBy("createdAt","desc"));
 
 onSnapshot(listingsQuery, (snapshot) => {
-  liveContainer.innerHTML = "";
+  // Remove previous cards
+  const oldCards = container.querySelectorAll(".auction-card");
+  oldCards.forEach(c => c.remove());
+
   if(snapshot.empty){
-    liveContainer.innerHTML = "<p>No live auctions available.</p>";
+    container.innerHTML += `<p>No live auctions available.</p>`;
     return;
   }
 
   snapshot.forEach(doc => {
     const item = doc.data();
-    const card = document.createElement("div");
-    card.className = "auction-card";
 
+    // Create card
+    const card = document.createElement("div");
+    card.className = "card auction-card";
+
+    // Image
     const img = document.createElement("img");
     img.src = item["image:"] || "default-image.png";
     img.alt = item.item_name || "Auction Item";
 
+    // Title
     const title = document.createElement("h3");
     title.textContent = item.item_name || "Unnamed Item";
 
+    // Description
     const desc = document.createElement("p");
     desc.textContent = item.item_description || "";
 
+    // Price
     const price = document.createElement("p");
-    price.className = "price";
     price.textContent = item.starting_price ? `Starting at £${Number(item.starting_price).toLocaleString()}` : "Price N/A";
 
+    // Button
     const button = document.createElement("button");
+    button.className = "button";
     button.textContent = "View Auction";
     button.onclick = () => window.location = `item.html?id=${doc.id}`;
 
+    // Append
     card.appendChild(img);
     card.appendChild(title);
     card.appendChild(desc);
     card.appendChild(price);
     card.appendChild(button);
 
-    liveContainer.appendChild(card);
+    container.appendChild(card);
   });
 });
 </script>
 
-<style>
-body {
-  background: #1e1e1e;
-  color: #fff;
-  font-family: Arial, sans-serif;
-}
-
-.burger div {
-  width: 25px;
-  height: 3px;
-  background: #FFD700;
-  margin: 5px 0;
-}
-
-.nav-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.nav-menu a, .nav-menu button {
-  color: #FFD700;
-  text-decoration: none;
-  padding: 8px 12px;
-  border: 2px solid #FFD700;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-menu a:hover, .nav-menu button:hover {
-  background: #FFD700;
-  color: #1e1e1e;
-}
-
-#logout-button {
-  background: #FFD700;
-  color: #1e1e1e;
-  font-weight: bold;
-  border: 2px solid #1e1e1e;
-  border-radius: 8px;
-  padding: 8px 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-#logout-button:hover {
-  background-color: #fff;
-  color: #FFD700;
-  border: 2px solid #FFD700;
-  transform: scale(1.05);
-}
-
-/* Live Auctions Container */
-.live-auctions-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
-  padding: 20px;
-}
-
-.auction-card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
-  padding: 10px;
-  max-width: 300px;
-  flex: 1 1 280px;
-  text-align: center;
-}
-
-.auction-card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.auction-card h3 {
-  margin: 10px 0 5px;
-  color: #FFD700;
-}
-
-.auction-card p {
-  margin: 5px 0;
-}
-
-.auction-card .price {
-  font-weight: bold;
-}
-
-.auction-card button {
-  background: #FFD700;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 10px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.auction-card button:hover {
-  background: #fff;
-  color: #FFD700;
-}
-
-@media (max-width: 768px){
-  .live-auctions-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  .auction-card {
-    max-width: 90%;
-  }
-}
-</style>
-
 </head>
 <body>
 
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
 
+<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
   <a href="dashboard.html">Dashboard</a>
@@ -237,8 +129,37 @@ body {
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
+<!-- User Status & Logout -->
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
+<!-- Main Container -->
+<div class="container">
+  <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <a href="private_sales.html" class="button">Private Sales</a>
+
+  <div class="search-bar">
+    <input type="text" placeholder="Search items..." id="searchInput">
+    <select id="categorySelect">
+      <option value="">All Categories</option>
+      <option value="tgc-graded">TGC's Graded</option>
+      <option value="tgc-raw">TGC's Raw</option>
+      <option value="movies-books">Movies & Books</option>
+      <option value="figures">Figures</option>
+      <option value="lego">LEGO</option>
+      <option value="video-games">Video Games</option>
+      <option value="memorabilia">Memorabilia</option>
+      <option value="comics">Comics</option>
+      <option value="historical">Historical Items</option>
+    </select>
+    <select id="typeSelect">
+      <option value="">All Types</option>
+      <option value="auction">Auction</option>
+      <option value="private">Private Sale</option>
+    </select>
+    <button class="button" id="searchBtn">Search</button>
+  </div>
+</div>
 
 </body>
 </html>
