@@ -154,9 +154,14 @@ function loadLiveAuctions() {
 
       if (data.auctionend) {
         const el = card.querySelector('.auction-length');
+        let hasEnded = false;
+
         const tick = async () => {
+          if (hasEnded) return;
+
           const diff = data.auctionend.toDate() - new Date();
           if (diff <= 0) {
+            hasEnded = true;
             el.textContent = 'Auction ended';
             bidBtn.disabled = true;
             bidInput.disabled = true;
@@ -165,6 +170,7 @@ function loadLiveAuctions() {
             el.textContent = 'Auction ends in: ' + getCountdownText(data.auctionend);
           }
         };
+
         tick();
         setInterval(tick, 1000);
       }
