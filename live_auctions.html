@@ -6,6 +6,8 @@
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+<script type="module" src="products.js"></script>
 </head>
 <body data-page="liveauctions">
 
@@ -41,30 +43,32 @@
   <div id="live-auctions-list"></div>
 </div>
 
-<!-- Success Message -->
-<div id="bid-success-msg" style="display:none;">
-  <p>Bid placed successfully!</p>
-</div>
-
 <script type="module">
 import { db, auth } from './firebase.js';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
-const countdownIntervals = {}; // track intervals per card
 
 // Track logged-in user
-onAuthStateChanged(auth, (user) => { currentUser = user; });
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+});
 
-// Place a bid
 async function placeBid(listingId, bidInput, currentPrice) {
-  if (!currentUser) { alert('You must be signed in to place a bid.'); return; }
+  if (!currentUser) {
+    alert('You must be signed in to place a bid.');
+    return;
+  }
 
   const bidAmount = parseFloat(bidInput.value);
-  if (isNaN(bidAmount) || bidAmount <= currentPrice) { alert('Invalid bid. Must be higher than current price.'); return; }
+  if (isNaN(bidAmount) || bidAmount <= currentPrice) {
+    alert('Invalid bid. Must be higher than current price.');
+    return;
+  }
 
   try {
+    // Add bid to Firestore
     await addDoc(collection(db, 'bids'), {
       listingid: listingId,
       bidamount: bidAmount,
@@ -72,124 +76,158 @@ async function placeBid(listingId, bidInput, currentPrice) {
       userid: currentUser.uid
     });
 
+    // Update listing price
     const listingRef = doc(db, 'listings', listingId);
     await updateDoc(listingRef, { price: bidAmount });
 
     bidInput.value = '';
-
-    // Show success message
-    const msgDiv = document.getElementById('bid-success-msg');
-    msgDiv.style.display = 'flex';
-    setTimeout(() => { msgDiv.style.display = 'none'; }, 2500);
-
+    alert('Bid placed successfully!');
   } catch (error) {
     console.error('Error placing bid:', error);
     alert('Failed to place bid. Please try again.');
   }
 }
 
-// Countdown formatter
-function getCountdownText(start, end) {
-  const now = new Date();
-  const startTime = start.toDate ? start.toDate() : new Date(start);
-  const endTime = end.toDate ? end.toDate() : new Date(end);
-
-  if (now < startTime) {
-    let diffMs = startTime - now;
-    const days = Math.floor(diffMs / (1000*60*60*24));
-    const hours = Math.floor((diffMs % (1000*60*60*24))/(1000*60*60));
-    const minutes = Math.floor((diffMs % (1000*60*60))/(1000*60));
-    const seconds = Math.floor((diffMs % (1000*60))/1000);
-    return `Auction starts in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
-  } else if (now >= startTime && now <= endTime) {
-    let diffMs = endTime - now;
-    const days = Math.floor(diffMs / (1000*60*60*24));
-    const hours = Math.floor((diffMs % (1000*60*60*24))/(1000*60*60));
-    const minutes = Math.floor((diffMs % (1000*60*60))/(1000*60));
-    const seconds = Math.floor((diffMs % (1000*60))/1000);
-    return `Auction ends in: ${days}d ${hours}h ${minutes}m ${seconds}s`;
-  } else {
-    return "Auction ended";
-  }
-}
-
-// Load live auctions
 function loadLiveAuctions() {
   const liveAuctionsList = document.getElementById('live-auctions-list');
   liveAuctionsList.innerHTML = '';
 
-  const listingsQuery = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
+  try {
+    const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
 
-  onSnapshot(listingsQuery, (querySnapshot) => {
+    // Listen for real-time updates
+    onSnapshot(listingsQuery, (querySnapshot) => {
+      liveAuctionsList.innerHTML = ''; // Clear current cards
 
-    liveAuctionsList.innerHTML = ''; // rebuild all cards
-
-    if (querySnapshot.empty) {
-      liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
-      return;
-    }
-
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const { name, description, price, image, auctionstart, auctionend } = data;
-
-      const card = document.createElement('div');
-      card.classList.add('card', 'auction-card');
-      card.dataset.listingId = docSnap.id;
-
-      card.innerHTML = `
-        <img src="${image}" alt="${name}">
-        <h3>${name}</h3>
-        <p>${description || ''}</p>
-        <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
-        ${auctionstart && auctionend ? `<p class="auction-timer"></p>` : ''}
-        <div class="bid-container">
-          <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
-          <button class="button bid-button">Place Bid</button>
-        </div>
-      `;
-
-      // Place bid
-      const bidInput = card.querySelector('.bid-input');
-      const bidButton = card.querySelector('.bid-button');
-      bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
-
-      // Live countdown timer
-      if (auctionstart && auctionend) {
-        const timerEl = card.querySelector('.auction-timer');
-        if (countdownIntervals[docSnap.id]) clearInterval(countdownIntervals[docSnap.id]);
-        const updateTimer = () => {
-          timerEl.textContent = getCountdownText(auctionstart, auctionend);
-          const now = new Date();
-          const endTime = auctionend.toDate ? auctionend.toDate() : new Date(auctionend);
-          if (now > endTime) clearInterval(countdownIntervals[docSnap.id]);
-        };
-        updateTimer();
-        countdownIntervals[docSnap.id] = setInterval(updateTimer, 1000);
+      if (querySnapshot.empty) {
+        liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
+        return;
       }
 
-      liveAuctionsList.appendChild(card);
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const { name, description, price, image } = data;
+
+        const card = document.createElement('div');
+        card.classList.add('card', 'auction-card');
+
+        card.innerHTML = `
+          <img src="${image}" alt="${name}">
+          <h3>${name}</h3>
+          <p>${description || ''}</p>
+          <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
+          <div class="bid-container">
+            <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
+            <button class="button bid-button">Place Bid</button>
+          </div>
+        `;
+
+        const bidInput = card.querySelector('.bid-input');
+        const bidButton = card.querySelector('.bid-button');
+        bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
+
+        liveAuctionsList.appendChild(card);
+      });
     });
-  });
+
+  } catch (error) {
+    console.error('Error loading live auctions:', error);
+    liveAuctionsList.innerHTML = '<p>Error loading items. Please try again later.</p>';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
 
 <style>
-.live-auctions-title { font-family:"Arial Black",sans-serif;font-size:3rem;font-weight:900;color:#FFD700;text-align:center;margin:30px 0; }
-@media (max-width:768px){ .live-auctions-title { font-size:2.2rem;margin:20px 0; } }
-.auction-card { background:#2a2a2a;border:2px solid #FFD700;border-radius:8px;padding:10px;max-width:300px;margin:15px;display:inline-block;vertical-align:top;text-align:center; }
-.auction-card img { width:100%;height:200px;object-fit:cover;border-radius:6px; }
-.auction-card h3 { margin:10px 0 5px;color:#FFD700; }
-.auction-card p { margin:5px 0; }
-.auction-card .auction-timer { font-weight:bold;color:#FFD700;margin:5px 0; }
-.auction-card .button { background:#FFD700;border:none;border-radius:6px;padding:8px 12px;margin-top:10px;cursor:pointer;font-weight:bold; }
-.auction-card .button:hover { background:#fff;color:#FFD700; }
-.bid-container { display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px; }
-.bid-container .bid-input { width:100px;padding:6px 8px;border-radius:6px;border:1px solid #FFD700;text-align:center;background:#2a2a2a;color:#FFD700; }
-.bid-container .bid-input::placeholder { color:#FFD700; }
-.bid-container .bid-button { padding:6px 12px; }
+/* Modern bold heading for Live Auctions */
+.live-auctions-title {
+  font-family: "Arial Black", sans-serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: #FFD700;
+  text-align: center;
+  margin: 30px 0;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px){
+  .live-auctions-title {
+    font-size: 2.2rem;
+    margin: 20px 0;
+  }
+}
+
+/* Auction Cards */
+.auction-card {
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 10px;
+  max-width: 300px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+}
+
+.auction-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.auction-card h3 {
+  margin: 10px 0 5px;
+  color: #FFD700;
+}
+
+.auction-card p {
+  margin: 5px 0;
+}
+
+.auction-card .button {
+  background: #FFD700;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.auction-card .button:hover {
+  background: #fff;
+  color: #FFD700;
+}
+
+/* Bid input container */
+.bid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.bid-container .bid-input {
+  width: 100px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #FFD700;
+  text-align: center;
+  background: #2a2a2a;
+  color: #FFD700;
+}
+
+.bid-container .bid-input::placeholder {
+  color: #FFD700;
+}
+
+.bid-container .bid-button {
+  padding: 6px 12px;
+}
 </style>
 
 </body>
