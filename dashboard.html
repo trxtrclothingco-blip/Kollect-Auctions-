@@ -216,6 +216,26 @@ onAuthStateChanged(auth, async (user) => {
   border: 2px solid #FFD700;
   transform: scale(1.05);
 }
+
+/* Consign Button Styling */
+.consign-btn {
+  display: inline-block;
+  background-color: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid #1e1e1e;
+  transition: all 0.3s ease;
+}
+
+.consign-btn:hover {
+  background-color: #fff;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
+}
 </style>
 </head>
 <body>
@@ -244,6 +264,11 @@ onAuthStateChanged(auth, async (user) => {
 <!-- Dashboard Content -->
 <div class="container">
   <h1>Welcome, <span id="welcome-name">User</span></h1>
+
+  <!-- Consign an Item Button -->
+  <div style="margin: 15px 0;">
+    <a href="contact.html" class="consign-btn">Consign an Item</a>
+  </div>
 
   <div class="card">
     <h2>Your Profile</h2>
