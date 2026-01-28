@@ -99,6 +99,7 @@ itemForm.addEventListener("submit", async (e) => {
       data.status = "live";
       data.winnerid = null;
       data.winningbid = null;
+      data.endedat = auctionEnd ? new Date(auctionEnd) : null; // lowercase endedat
     }
 
     const file = formData.get("item_image");
@@ -197,15 +198,16 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Ended Auctions ---------- */
+/* ---------- Load Ended Auctions (based on endedat timestamp) ---------- */
 function loadEndedAuctions() {
   const container = document.getElementById("ended-auctions-list");
   if (!container) return;
 
+  const now = new Date();
   const q = query(
     collection(db, "listings"),
-    where("status", "==", "ended"),
-    orderBy("endedAt", "desc")
+    where("endedat", "<=", now),
+    orderBy("endedat", "desc")
   );
 
   onSnapshot(q, snapshot => {
@@ -220,7 +222,7 @@ function loadEndedAuctions() {
           ${d.image ? `<img src="${d.image}" style="width:100%;max-width:200px;">` : ""}
           <p>Winning Bid: £${(d.winningbid || 0).toLocaleString()}</p>
           <p>Winner: ${d.winneremail || "No bids"}</p>
-          <p>Ended: ${d.endedAt ? d.endedAt.toDate().toLocaleString() : "—"}</p>
+          <p>Ended: ${d.endedat ? d.endedat.toDate().toLocaleString() : "—"}</p>
           <hr>
         </div>
       `;
