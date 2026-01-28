@@ -7,7 +7,10 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -38,6 +41,7 @@ passwordForm.addEventListener("submit", async (e) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
+    loadEndedAuctions();
   } catch (err) {
     alert(err.message);
   }
@@ -49,6 +53,7 @@ onAuthStateChanged(auth, (user) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
+    loadEndedAuctions();
   }
 });
 
@@ -85,7 +90,6 @@ itemForm.addEventListener("submit", async (e) => {
       createdat: serverTimestamp()
     };
 
-    /* ---------- AUCTION DATA ---------- */
     if (saleType === "live_auctions") {
       const auctionStart = formData.get("auctionstart");
       const auctionEnd = formData.get("auctionend");
@@ -193,7 +197,42 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids with Pagination (10 per page) ---------- */
+/* ---------- Load Ended Auctions ---------- */
+function loadEndedAuctions() {
+  const container = document.getElementById("ended-auctions-list");
+  if (!container) return;
+
+  const q = query(
+    collection(db, "listings"),
+    where("status", "==", "ended"),
+    orderBy("endedAt", "desc")
+  );
+
+  onSnapshot(q, snapshot => {
+    container.innerHTML = "";
+
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+
+      container.innerHTML += `
+        <div class="ended-auction">
+          <p><strong>${d.name}</strong></p>
+          ${d.image ? `<img src="${d.image}" style="width:100%;max-width:200px;">` : ""}
+          <p>Winning Bid: £${(d.winningbid || 0).toLocaleString()}</p>
+          <p>Winner: ${d.winneremail || "No bids"}</p>
+          <p>Ended: ${d.endedAt ? d.endedAt.toDate().toLocaleString() : "—"}</p>
+          <hr>
+        </div>
+      `;
+    });
+
+    if (snapshot.empty) {
+      container.innerHTML = "<p>No ended auctions yet.</p>";
+    }
+  });
+}
+
+/* ---------- Load Bids with Pagination ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
@@ -225,7 +264,6 @@ function renderPaginationControls() {
   if (!controls) {
     controls = document.createElement("div");
     controls.id = "pagination-controls";
-    controls.style.marginTop = "10px";
     document.getElementById("bids-list").after(controls);
   }
   controls.innerHTML = "";
@@ -255,7 +293,6 @@ function loadBids() {
 
     for (const d of snapshot.docs) {
       const b = d.data();
-
       if (!b.listingid) continue;
 
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
