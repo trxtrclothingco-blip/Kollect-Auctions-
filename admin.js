@@ -193,13 +193,65 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (WITH LIVE PRICE) ---------- */
-function loadBids() {
+/* ---------- Load Bids with Pagination (10 per page) ---------- */
+let allBids = [];
+let currentPage = 1;
+const bidsPerPage = 10;
+
+function renderBidsPage(page) {
   const bidsList = document.getElementById("bids-list");
   bidsList.innerHTML = "";
 
+  const startIndex = (page - 1) * bidsPerPage;
+  const endIndex = startIndex + bidsPerPage;
+  const pageBids = allBids.slice(startIndex, endIndex);
+
+  pageBids.forEach(b => {
+    bidsList.innerHTML += `
+      <p>
+        <strong>${b.itemName}</strong><br>
+        Live Price: £${b.livePrice}<br>
+        Bid: £${b.bidAmount}<br>
+        User: ${b.userEmail || "Unknown"}
+      </p>
+    `;
+  });
+
+  renderPaginationControls();
+}
+
+function renderPaginationControls() {
+  let controls = document.getElementById("pagination-controls");
+  if (!controls) {
+    controls = document.createElement("div");
+    controls.id = "pagination-controls";
+    controls.style.marginTop = "10px";
+    document.getElementById("bids-list").after(controls);
+  }
+  controls.innerHTML = "";
+
+  const totalPages = Math.ceil(allBids.length / bidsPerPage);
+
+  if (currentPage > 1) {
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Previous";
+    prevBtn.onclick = () => { currentPage--; renderBidsPage(currentPage); };
+    controls.appendChild(prevBtn);
+  }
+
+  if (currentPage < totalPages) {
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.onclick = () => { currentPage++; renderBidsPage(currentPage); };
+    controls.appendChild(nextBtn);
+  }
+}
+
+function loadBids() {
+  allBids = [];
+
   onSnapshot(collection(db, "bids"), async snapshot => {
-    bidsList.innerHTML = "";
+    allBids = [];
 
     for (const d of snapshot.docs) {
       const b = d.data();
@@ -211,14 +263,15 @@ function loadBids() {
 
       const listing = listingSnap.data();
 
-      bidsList.innerHTML += `
-        <p>
-          <strong>${listing.name}</strong><br>
-          Live Price: £${listing.price}<br>
-          Bid: £${b.bidamount}<br>
-          User: ${b.useremail || "Unknown"}
-        </p>
-      `;
+      allBids.push({
+        itemName: listing.name,
+        livePrice: listing.price,
+        bidAmount: b.bidamount,
+        userEmail: b.useremail || "Unknown"
+      });
     }
+
+    currentPage = 1;
+    renderBidsPage(currentPage);
   });
 }
