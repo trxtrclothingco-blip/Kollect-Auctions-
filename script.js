@@ -39,9 +39,12 @@ window.logoutUser = async () => {
 
 // ---------- Auth State Listener ----------
 onAuthStateChanged(auth, user => {
+  // Only show logout button if we're on dashboard page
+  const isDashboard = body.dataset.page === "dashboard";
+  
   if(user){
     if(userStatus) userStatus.textContent = `Logged in as ${user.email}`;
-    if(logoutButton) logoutButton.style.display = "inline-block";
+    if(logoutButton) logoutButton.style.display = isDashboard ? "inline-block" : "none";
   } else {
     if(userStatus) userStatus.textContent = "Not logged in";
     if(logoutButton) logoutButton.style.display = "none";
@@ -62,7 +65,8 @@ loginForm?.addEventListener("submit", async (e) => {
     await signInWithEmailAndPassword(auth, email, password);
     alert("Login successful!");
     loginForm.reset();
-    window.location.href = "index.html"; // Redirect after login
+    // --- Automatic redirect after successful login ---
+    window.location.href = "index.html";
   } catch(err) {
     alert("Login failed: " + err.message);
   }
@@ -107,7 +111,8 @@ signupForm?.addEventListener("submit", async (e) => {
 
     alert("Account created successfully!");
     signupForm.reset();
-    window.location.href = "index.html"; // Redirect after signup
+    // --- Automatic redirect after successful signup ---
+    window.location.href = "index.html";
   } catch(err) {
     alert("Signup failed: " + err.message);
   }
