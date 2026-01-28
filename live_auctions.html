@@ -72,8 +72,10 @@ onSnapshot(listingsQuery, (snapshot) => {
     card.className = "card auction-card";
 
     // Image
+    console.log("Image URL:", item["image:"]); // Check in console
+    const imgUrl = item["image:"]?.trim() || "default-image.png";
     const img = document.createElement("img");
-    img.src = item["image:"] || "default-image.png";
+    img.src = imgUrl;
     img.alt = item.name || "Auction Item";
 
     // Title
