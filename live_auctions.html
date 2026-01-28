@@ -43,6 +43,11 @@
   <div id="live-auctions-list"></div>
 </div>
 
+<!-- Centered success message -->
+<div id="bid-success-msg" style="display:none;">
+  <p>Bid placed successfully!</p>
+</div>
+
 <script type="module">
 import { db, auth } from './firebase.js';
 import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
@@ -81,11 +86,30 @@ async function placeBid(listingId, bidInput, currentPrice) {
     await updateDoc(listingRef, { price: bidAmount });
 
     bidInput.value = '';
-    alert('Bid placed successfully!');
+
+    // Show centered success message
+    const msgDiv = document.getElementById('bid-success-msg');
+    msgDiv.style.display = 'flex';
+    setTimeout(() => { msgDiv.style.display = 'none'; }, 2500);
+
   } catch (error) {
     console.error('Error placing bid:', error);
     alert('Failed to place bid. Please try again.');
   }
+}
+
+// Helper to format auction length
+function formatAuctionLength(startTimestamp, endTimestamp) {
+  const start = startTimestamp.toDate ? startTimestamp.toDate() : new Date(startTimestamp);
+  const end = endTimestamp.toDate ? endTimestamp.toDate() : new Date(endTimestamp);
+  const diffMs = end - start;
+  if (diffMs <= 0) return "Auction ended";
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  return `${diffDays}d ${diffHours}h ${diffMinutes}m`;
 }
 
 function loadLiveAuctions() {
@@ -95,9 +119,8 @@ function loadLiveAuctions() {
   try {
     const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
 
-    // Listen for real-time updates
     onSnapshot(listingsQuery, (querySnapshot) => {
-      liveAuctionsList.innerHTML = ''; // Clear current cards
+      liveAuctionsList.innerHTML = ''; 
 
       if (querySnapshot.empty) {
         liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
@@ -106,7 +129,9 @@ function loadLiveAuctions() {
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const { name, description, price, image } = data;
+        const { name, description, price, image, auctionstart, auctionend } = data;
+
+        const auctionLength = auctionstart && auctionend ? formatAuctionLength(auctionstart, auctionend) : null;
 
         const card = document.createElement('div');
         card.classList.add('card', 'auction-card');
@@ -116,6 +141,7 @@ function loadLiveAuctions() {
           <h3>${name}</h3>
           <p>${description || ''}</p>
           <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
+          ${auctionLength ? `<p class="auction-length">Auction Length: ${auctionLength}</p>` : ''}
           <div class="bid-container">
             <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
             <button class="button bid-button">Place Bid</button>
@@ -187,6 +213,12 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
   margin: 5px 0;
 }
 
+.auction-card .auction-length {
+  font-weight: bold;
+  color: #FFD700;
+  margin: 5px 0;
+}
+
 .auction-card .button {
   background: #FFD700;
   border: none;
@@ -227,6 +259,24 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 
 .bid-container .bid-button {
   padding: 6px 12px;
+}
+
+/* Centered bid success message */
+#bid-success-msg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #2a2a2a;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 20px 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  z-index: 9999;
+  text-align: center;
+  pointer-events: none;
 }
 </style>
 
