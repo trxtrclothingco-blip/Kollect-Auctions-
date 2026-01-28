@@ -7,7 +7,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { collection, query, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { collection, query, orderBy, onSnapshot, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // ---------- DOM Elements ----------
 const body = document.body;
@@ -95,8 +95,8 @@ signupForm?.addEventListener("submit", async (e) => {
     const user = userCredential.user;
     await updateProfile(user, { displayName: `${firstName} ${lastName}` });
 
-    // Save extra user info in Firestore
-    await addDoc(collection(db, "users"), {
+    // Save extra user info in Firestore using setDoc with UID as document ID
+    await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       firstName,
       lastName,
