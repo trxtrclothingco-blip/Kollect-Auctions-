@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+<style>
+/* Bid List Pagination Styling */
+#bids-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.bid-item {
+  border-bottom: 1px solid #ccc;
+  padding: 8px 0;
+}
+
+#pagination-controls {
+  margin-top: 10px;
+  text-align: center;
+}
+
+#pagination-controls button {
+  margin: 0 5px;
+}
+</style>
 </head>
 <body>
 
@@ -35,14 +57,11 @@
     <div class="card">
       <h3>View All Bids</h3>
       <p style="font-size:14px; opacity:0.8;">
-        Showing live price from listings
+        Showing live price from listings (10 per page)
       </p>
       <div id="bids-list">
         <!-- admin.js injects:
-             item name
-             LIVE listing price
-             bid amount
-             user id
+             bid items (10 per page)
         -->
       </div>
     </div>
