@@ -42,20 +42,16 @@
 </div>
 
 <script type="module">
-  // Import db from your firebase.js
   import { db } from './firebase.js';
-  
-  // Import modular Firestore functions (match your SDK version)
   import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-  // Function to fetch and display private sales items
   async function loadPrivateSales() {
     const privateSalesList = document.getElementById('private-sales-list');
     privateSalesList.innerHTML = ''; // Clear existing content
 
     try {
       const querySnapshot = await getDocs(collection(db, 'privatesales'));
-      
+
       if (querySnapshot.empty) {
         privateSalesList.innerHTML = '<p>No items available for private sale.</p>';
         return;
@@ -63,27 +59,23 @@
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        
-        // Assuming your Firebase docs have fields like: name, description, price, imageUrl
-        // Adjust these field names based on what you actually store in admin.html uploads
-        const { name, description, price, imageUrl } = data;
+        // Use the correct field name 'images' from Firestore
+        const { name, description, price, images } = data;
 
-        // Create product card element
+        // Handle single image URL or array of images
+        const imgUrl = Array.isArray(images) ? images[0] : images;
+
         const card = document.createElement('div');
-        card.classList.add('product-card'); // Add your CSS class for styling
+        card.classList.add('product-card');
 
         card.innerHTML = `
-          <img src="${imageUrl}" alt="${name}" class="product-image">
+          <img src="${imgUrl}" alt="${name}" class="product-image">
           <h2>${name}</h2>
           <p>${description}</p>
           <p class="price">$${price.toFixed(2)}</p>
           <button class="buy-now">Buy It Now</button>
           <button class="make-offer">Make an Offer</button>
         `;
-
-        // Optionally, add event listeners for buttons (e.g., to handle buying or offering)
-        // card.querySelector('.buy-now').addEventListener('click', () => { /* Handle buy */ });
-        // card.querySelector('.make-offer').addEventListener('click', () => { /* Handle offer */ });
 
         privateSalesList.appendChild(card);
       });
@@ -93,7 +85,6 @@
     }
   }
 
-  // Load items when the page is ready
   document.addEventListener('DOMContentLoaded', loadPrivateSales);
 </script>
 
