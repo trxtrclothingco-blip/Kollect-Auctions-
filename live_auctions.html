@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Auctions</title>
 <link rel="stylesheet" href="style.css">
+
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
 <script type="module" src="products.js"></script>
 </head>
+
 <body data-page="liveauctions">
 
 <!-- Burger Menu -->
@@ -30,27 +32,34 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-<!-- User Status & Logout -->
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-<!-- Main Container -->
 <div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
   <h1 class="live-auctions-title">Live Auctions</h1>
 
-  <!-- Container for dynamic items -->
   <div id="live-auctions-list"></div>
 </div>
 
 <script type="module">
 import { db, auth } from './firebase.js';
-import { collection, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  doc,
+  updateDoc,
+  addDoc,
+  serverTimestamp,
+  onSnapshot
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
 
-// Track logged-in user
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
 });
@@ -61,174 +70,86 @@ async function placeBid(listingId, bidInput, currentPrice) {
     return;
   }
 
-  const bidAmount = parseFloat(bidInput.value);
-  if (isNaN(bidAmount) || bidAmount <= currentPrice) {
-    alert('Invalid bid. Must be higher than current price.');
+  const bidAmount = Number(bidInput.value);
+  if (!bidAmount || bidAmount <= currentPrice) {
+    alert('Bid must be higher than current price.');
     return;
   }
 
   try {
-    // Add bid to Firestore
     await addDoc(collection(db, 'bids'), {
       listingid: listingId,
       bidamount: bidAmount,
-      timestamp: serverTimestamp(),
-      userid: currentUser.uid
+      userid: currentUser.uid,
+      timestamp: serverTimestamp()
     });
 
-    // Update listing price
-    const listingRef = doc(db, 'listings', listingId);
-    await updateDoc(listingRef, { price: bidAmount });
+    await updateDoc(doc(db, 'listings', listingId), {
+      winningbid: bidAmount,
+      winnerid: currentUser.uid
+    });
 
     bidInput.value = '';
-    alert('Bid placed successfully!');
-  } catch (error) {
-    console.error('Error placing bid:', error);
-    alert('Failed to place bid. Please try again.');
+  } catch (err) {
+    console.error(err);
+    alert('Failed to place bid.');
   }
 }
 
 function loadLiveAuctions() {
-  const liveAuctionsList = document.getElementById('live-auctions-list');
-  liveAuctionsList.innerHTML = '';
+  const container = document.getElementById('live-auctions-list');
 
-  try {
-    const listingsQuery = query(collection(db, 'listings'), orderBy('createdAt', 'desc'));
+  const q = query(
+    collection(db, 'listings'),
+    where('status', '==', 'live'),
+    orderBy('createdat', 'desc')
+  );
 
-    // Listen for real-time updates
-    onSnapshot(listingsQuery, (querySnapshot) => {
-      liveAuctionsList.innerHTML = ''; // Clear current cards
+  onSnapshot(q, (snapshot) => {
+    container.innerHTML = '';
 
-      if (querySnapshot.empty) {
-        liveAuctionsList.innerHTML = '<p>No live auctions available.</p>';
-        return;
-      }
+    if (snapshot.empty) {
+      container.innerHTML = '<p>No live auctions available.</p>';
+      return;
+    }
 
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const { name, description, price, image } = data;
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
 
-        const card = document.createElement('div');
-        card.classList.add('card', 'auction-card');
+      const currentPrice =
+        typeof data.winningbid === 'number'
+          ? data.winningbid
+          : data.price;
 
-        card.innerHTML = `
-          <img src="${image}" alt="${name}">
-          <h3>${name}</h3>
-          <p>${description || ''}</p>
-          <p class="price-display">Price: £${price ? Number(price).toLocaleString() : 'N/A'}</p>
-          <div class="bid-container">
-            <input type="number" min="${price || 0}" placeholder="Enter bid amount" class="bid-input">
-            <button class="button bid-button">Place Bid</button>
-          </div>
-        `;
+      const card = document.createElement('div');
+      card.className = 'auction-card';
 
-        const bidInput = card.querySelector('.bid-input');
-        const bidButton = card.querySelector('.bid-button');
-        bidButton.addEventListener('click', () => placeBid(docSnap.id, bidInput, price || 0));
+      card.innerHTML = `
+        <img src="${data.image}" alt="${data.name}">
+        <h3>${data.name}</h3>
+        <p>${data.description || ''}</p>
+        <p class="price-display">Current Bid: £${currentPrice.toLocaleString()}</p>
 
-        liveAuctionsList.appendChild(card);
-      });
+        <div class="bid-container">
+          <input type="number" class="bid-input" min="${currentPrice + 1}" placeholder="Your bid">
+          <button class="button bid-button">Place Bid</button>
+        </div>
+      `;
+
+      const bidInput = card.querySelector('.bid-input');
+      const bidBtn = card.querySelector('.bid-button');
+
+      bidBtn.addEventListener('click', () =>
+        placeBid(docSnap.id, bidInput, currentPrice)
+      );
+
+      container.appendChild(card);
     });
-
-  } catch (error) {
-    console.error('Error loading live auctions:', error);
-    liveAuctionsList.innerHTML = '<p>Error loading items. Please try again later.</p>';
-  }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
-
-<style>
-/* Modern bold heading for Live Auctions */
-.live-auctions-title {
-  font-family: "Arial Black", sans-serif;
-  font-size: 3rem;
-  font-weight: 900;
-  color: #FFD700;
-  text-align: center;
-  margin: 30px 0;
-}
-
-/* Responsive for smaller screens */
-@media (max-width: 768px){
-  .live-auctions-title {
-    font-size: 2.2rem;
-    margin: 20px 0;
-  }
-}
-
-/* Auction Cards */
-.auction-card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
-  padding: 10px;
-  max-width: 300px;
-  margin: 15px;
-  display: inline-block;
-  vertical-align: top;
-  text-align: center;
-}
-
-.auction-card img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.auction-card h3 {
-  margin: 10px 0 5px;
-  color: #FFD700;
-}
-
-.auction-card p {
-  margin: 5px 0;
-}
-
-.auction-card .button {
-  background: #FFD700;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  margin-top: 10px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.auction-card .button:hover {
-  background: #fff;
-  color: #FFD700;
-}
-
-/* Bid input container */
-.bid-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.bid-container .bid-input {
-  width: 100px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #FFD700;
-  text-align: center;
-  background: #2a2a2a;
-  color: #FFD700;
-}
-
-.bid-container .bid-input::placeholder {
-  color: #FFD700;
-}
-
-.bid-container .bid-button {
-  padding: 6px 12px;
-}
-</style>
 
 </body>
 </html>
