@@ -7,9 +7,40 @@
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
+<style>
+/* Hero Buttons Flex Layout */
+#heroButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#heroButtons .button {
+  flex: 1 1 auto;
+  min-width: 120px;
+  text-align: center;
+  padding: 10px 20px;
+}
+
+/* Search Results Cards */
+#searchResults {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+#searchResults .card {
+  width: 100%;
+  max-width: 220px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+</style>
 </head>
-<body>
+<body class="light-mode">
 
 <!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
@@ -19,7 +50,7 @@
 <!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
-  <a href="dashboard.html">Dashboard</a>
+  <a href="dashboard.html" id="dashboardNav" style="display:none;">Dashboard</a>
   <a href="about.html">About Us</a>
   <a href="live_auctions.html">Live Auctions</a>
   <a href="kollect_100.html">Kollect 100</a>
@@ -31,57 +62,101 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-<!-- User Status & Logout -->
+<!-- User Status -->
 <div id="user-status">Checking login status...</div>
-<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
 <!-- Main Container -->
 <div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <a href="private_sales.html" class="button">Private Sales</a>
 
+  <!-- Hero Buttons -->
+  <div id="heroButtons">
+    <a href="private_sales.html" class="button">Private Sales</a>
+    <a href="live_auctions.html" class="button">Live Auctions</a>
+    <a href="dashboard.html" class="button" id="dashboardButton" style="display:none;">Dashboard</a>
+  </div>
+
+  <!-- Simplified Search Bar -->
   <div class="search-bar">
-    <input type="text" placeholder="Search items..." id="searchInput">
-    <select id="categorySelect">
-      <option value="">All Categories</option>
-      <option value="tgc-graded">TGC's Graded</option>
-      <option value="tgc-raw">TGC's Raw</option>
-      <option value="movies-books">Movies & Books</option>
-      <option value="figures">Figures</option>
-      <option value="lego">LEGO</option>
-      <option value="video-games">Video Games</option>
-      <option value="memorabilia">Memorabilia</option>
-      <option value="comics">Comics</option>
-      <option value="historical">Historical Items</option>
-    </select>
+    <input type="text" id="searchInput" placeholder="Search items...">
     <select id="typeSelect">
-      <option value="">All Types</option>
       <option value="auction">Auction</option>
       <option value="private">Private Sale</option>
     </select>
     <button class="button" id="searchBtn">Search</button>
   </div>
 
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Product 1">
-    <h3>Rare Collectible 1</h3>
-    <p>Price: £200</p>
-    <button class="button">Buy Now</button>
-  </div>
-
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Product 2">
-    <h3>Rare Collectible 2</h3>
-    <p>Price: £350</p>
-    <button class="button">Buy Now</button>
-  </div>
+  <!-- Search Results -->
+  <div id="searchResults"></div>
 </div>
 
-<script>
-  // Light/Dark mode toggle
-  function toggleMode() {
-    document.body.classList.toggle("light-mode");
+<script type="module">
+import { db } from './firebase.js';
+import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { auth } from './firebase.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+const userStatus = document.getElementById("user-status");
+const dashboardBtn = document.getElementById("dashboardButton");
+const dashboardNav = document.getElementById("dashboardNav");
+const searchBtn = document.getElementById("searchBtn");
+const searchInput = document.getElementById("searchInput");
+const typeSelect = document.getElementById("typeSelect");
+const searchResults = document.getElementById("searchResults");
+
+// ---------- Auth ----------
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    userStatus.textContent = `Logged in as ${user.email}`;
+    dashboardBtn.style.display = "inline-block";
+    dashboardNav.style.display = "inline-block";
+  } else {
+    userStatus.textContent = "";
+    dashboardBtn.style.display = "none";
+    dashboardNav.style.display = "none";
   }
+});
+
+// ---------- Burger & Mode ----------
+window.toggleMenu = () => { document.getElementById("navMenu").classList.toggle("open"); };
+window.toggleMode = () => { document.body.classList.toggle("light-mode"); };
+
+// ---------- Search Function ----------
+searchBtn.addEventListener("click", async () => {
+  const searchText = searchInput.value.trim().toLowerCase();
+  const type = typeSelect.value;
+  searchResults.innerHTML = "";
+
+  if (!searchText) return;
+
+  const collName = type === "private" ? "privatesales" : "listings";
+  const pageUrl = type === "private" ? "private_sales.html" : "live_auctions.html";
+  const q = query(collection(db, collName));
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(docSnap => {
+    const item = docSnap.data();
+    const docId = docSnap.id;
+    const name = item.name?.toLowerCase() || "";
+
+    // For auctions, only show pricetype=auction
+    if (type === "auction" && item.pricetype !== "auction") return;
+    if (!name.includes(searchText)) return;
+
+    const price = type === "auction" ? (item.winningbid || item.price) : item.price;
+    const imageTag = item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : "";
+
+    searchResults.innerHTML += `
+      <div class="card">
+        ${imageTag}
+        <h3>${item.name}</h3>
+        <p>Price: £${price}</p>
+        ${type === "auction" ? `<p>Highest Bidder: ${item.winneremail || "No bids"}</p>` : ""}
+        <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
+      </div>
+    `;
+  });
+});
 </script>
 
 </body>
