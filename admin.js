@@ -200,10 +200,16 @@ window.deleteItem = async (id, col) => {
 /* ---------- Load Live Auctions with Timer ---------- */
 let auctionsAll = [];
 let auctionsPage = 1;
-const auctionsPerPage = 10;
+const auctionsPerPage = 3; // Show 3 auctions per page
+const auctionsContainerHeight = 650; // px, container fixed height
 
 function renderAuctionsPage(page) {
   const container = document.getElementById("ended-auctions-list");
+
+  // Make container scrollable with fixed height
+  container.style.maxHeight = auctionsContainerHeight + "px";
+  container.style.overflowY = "auto";
+  container.style.paddingRight = "10px";
   container.innerHTML = "";
 
   const start = (page - 1) * auctionsPerPage;
@@ -212,7 +218,7 @@ function renderAuctionsPage(page) {
 
   pageAuctions.forEach((a, index) => {
     container.innerHTML += `
-      <div class="ended-auction bid-item" data-index="${start + index}">
+      <div class="ended-auction bid-item" data-index="${start + index}" style="margin-bottom:20px;">
         <p><strong>${a.name}</strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
@@ -261,6 +267,7 @@ function renderAuctionPagination() {
     document.getElementById("ended-auctions-list").after(controls);
   }
   controls.innerHTML = "";
+  controls.style.marginTop = "10px";
 
   const totalPages = Math.ceil(auctionsAll.length / auctionsPerPage);
 
