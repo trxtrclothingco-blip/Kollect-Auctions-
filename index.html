@@ -62,9 +62,8 @@
   <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
-<!-- User Status & Logout -->
+<!-- User Status -->
 <div id="user-status">Checking login status...</div>
-<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
 <!-- Main Container -->
 <div class="container">
@@ -95,10 +94,9 @@
 import { db } from './firebase.js';
 import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { auth } from './firebase.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 const userStatus = document.getElementById("user-status");
-const logoutBtn = document.getElementById("logout-button");
 const dashboardBtn = document.getElementById("dashboardButton");
 const dashboardNav = document.getElementById("dashboardNav");
 const searchBtn = document.getElementById("searchBtn");
@@ -110,18 +108,14 @@ const searchResults = document.getElementById("searchResults");
 onAuthStateChanged(auth, (user) => {
   if (user) {
     userStatus.textContent = `Logged in as ${user.email}`;
-    logoutBtn.style.display = "inline-block";
     dashboardBtn.style.display = "inline-block";
     dashboardNav.style.display = "inline-block";
   } else {
     userStatus.textContent = "";
-    logoutBtn.style.display = "none";
     dashboardBtn.style.display = "none";
     dashboardNav.style.display = "none";
   }
 });
-
-window.logoutUser = async () => { await signOut(auth); };
 
 // ---------- Burger & Mode ----------
 window.toggleMenu = () => { document.getElementById("navMenu").classList.toggle("open"); };
