@@ -29,7 +29,7 @@
 }
 </style>
 </head>
-<body>
+<body class="light-mode">
 
 <div class="burger" id="burgerMenu">
   <div></div><div></div><div></div>
@@ -50,7 +50,6 @@
 </nav>
 
 <div id="user-status"></div>
-<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
 <div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
@@ -73,6 +72,11 @@ const nav = document.getElementById("navMenu");
 burger.addEventListener("click", () => {
   nav.classList.toggle("open");
 });
+
+/* ---------- Light/Dark Mode Toggle ---------- */
+window.toggleMode = () => {
+  document.body.classList.toggle("light-mode");
+};
 </script>
 
 </body>
