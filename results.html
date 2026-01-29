@@ -8,6 +8,34 @@
 <script type="module" src="firebase.js"></script>
 <script type="module" src="results.js"></script>
 <style>
+/* Auction card styling to match Private Sales page */
+.ended-auction {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.ended-auction img {
+  width: 100%;
+  max-width: 220px;
+  margin-bottom: 10px;
+}
+
+.ended-auction h3 {
+  margin: 5px 0;
+}
+
+.ended-auction p {
+  margin: 5px 0;
+}
+
+.ended-auction .button {
+  margin-top: 10px;
+  padding: 8px 12px;
+}
+
 /* Styles for pagination buttons */
 #auction-pagination-controls {
   text-align: center;
@@ -18,14 +46,6 @@
   margin: 0 5px;
   padding: 8px 12px;
   cursor: pointer;
-}
-
-/* Auction card */
-.ended-auction {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 20px;
-  border-radius: 5px;
 }
 </style>
 </head>
@@ -56,13 +76,55 @@
   <h1>Past Auction Results</h1>
 
   <div id="ended-auctions-list">
-    <!-- Live auctions injected here -->
+    <!-- Auction cards injected here -->
   </div>
 
   <div id="auction-pagination-controls"></div>
 
   <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
+
+<script type="module">
+import { db } from './firebase.js';
+import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+async function loadEndedAuctions() {
+  const endedList = document.getElementById('ended-auctions-list');
+  endedList.innerHTML = '';
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'listings')); // Assuming 'listings' contains ended auctions
+
+    if (querySnapshot.empty) {
+      endedList.innerHTML = '<p>No ended auctions available.</p>';
+      return;
+    }
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.status !== 'ended') return; // Only show ended auctions
+      const { name, price, image } = data;
+
+      const card = document.createElement('div');
+      card.classList.add('ended-auction'); // Use ended-auction but styled like private sales
+
+      card.innerHTML = `
+        <img src="${image}" alt="${name}">
+        <h3>${name}</h3>
+        <p>Price: £${price?.toFixed(2) || '0.00'}</p>
+        <button class="button" onclick="window.location='live_auctions.html#${doc.id}'">View Item</button>
+      `;
+
+      endedList.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error loading auctions:', error);
+    endedList.innerHTML = '<p>Error loading auctions. Please try again later.</p>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadEndedAuctions);
+</script>
 
 <script>
 /* ---------- Burger Menu Toggle ---------- */
