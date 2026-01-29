@@ -19,7 +19,7 @@
 <!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
-  <a href="dashboard.html">Dashboard</a>
+  <a href="dashboard.html" id="dashboardNav" style="display:none;">Dashboard</a>
   <a href="about.html">About Us</a>
   <a href="live_auctions.html">Live Auctions</a>
   <a href="kollect_100.html">Kollect 100</a>
@@ -38,7 +38,13 @@
 <!-- Main Container -->
 <div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <a href="private_sales.html" class="button">Private Sales</a>
+
+  <!-- Action Buttons -->
+  <div style="margin-bottom: 20px;" id="heroButtons">
+    <a href="private_sales.html" class="button">Private Sales</a>
+    <a href="live_auctions.html" class="button">Live Auctions</a>
+    <a href="dashboard.html" class="button" id="dashboardButton" style="display:none;">Dashboard</a>
+  </div>
 
   <div class="search-bar">
     <input type="text" placeholder="Search items..." id="searchInput">
@@ -76,6 +82,46 @@
     <button class="button">Buy Now</button>
   </div>
 </div>
+
+<script type="module">
+  import { auth } from './firebase.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+  const userStatus = document.getElementById("user-status");
+  const logoutBtn = document.getElementById("logout-button");
+  const dashboardBtn = document.getElementById("dashboardButton");
+  const dashboardNav = document.getElementById("dashboardNav");
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // User is logged in
+      userStatus.textContent = `Logged in as ${user.email}`;
+      logoutBtn.style.display = "inline-block";
+      dashboardBtn.style.display = "inline-block";
+      dashboardNav.style.display = "inline-block";
+    } else {
+      // No user logged in
+      userStatus.textContent = "";
+      logoutBtn.style.display = "none";
+      dashboardBtn.style.display = "none";
+      dashboardNav.style.display = "none";
+    }
+  });
+
+  window.logoutUser = async () => {
+    await signOut(auth);
+  };
+
+  // Burger menu toggle
+  window.toggleMenu = () => {
+    const menu = document.getElementById("navMenu");
+    menu.classList.toggle("open");
+  };
+
+  window.toggleMode = () => {
+    document.body.classList.toggle("dark-mode");
+  };
+</script>
 
 </body>
 </html>
