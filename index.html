@@ -7,22 +7,36 @@
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
-
 <style>
 /* Hero Buttons Flex Layout */
 #heroButtons {
   display: flex;
-  flex-wrap: wrap;      /* allow buttons to wrap on small screens */
-  gap: 10px;            /* space between buttons */
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
 #heroButtons .button {
-  flex: 1 1 auto;       /* buttons grow equally, shrink if needed */
-  min-width: 120px;     /* prevent buttons from being too small */
+  flex: 1 1 auto;
+  min-width: 120px;
   text-align: center;
-  padding: 10px 20px;   /* nicer padding */
+  padding: 10px 20px;
+}
+
+/* Search Results Cards */
+#searchResults {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+#searchResults .card {
+  width: 100%;
+  max-width: 220px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
 }
 </style>
 </head>
@@ -56,88 +70,98 @@
 <div class="container">
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
-  <!-- Action Buttons -->
+  <!-- Hero Buttons -->
   <div id="heroButtons">
     <a href="private_sales.html" class="button">Private Sales</a>
     <a href="live_auctions.html" class="button">Live Auctions</a>
     <a href="dashboard.html" class="button" id="dashboardButton" style="display:none;">Dashboard</a>
   </div>
 
+  <!-- Simplified Search Bar -->
   <div class="search-bar">
-    <input type="text" placeholder="Search items..." id="searchInput">
-    <select id="categorySelect">
-      <option value="">All Categories</option>
-      <option value="tgc-graded">TGC's Graded</option>
-      <option value="tgc-raw">TGC's Raw</option>
-      <option value="movies-books">Movies & Books</option>
-      <option value="figures">Figures</option>
-      <option value="lego">LEGO</option>
-      <option value="video-games">Video Games</option>
-      <option value="memorabilia">Memorabilia</option>
-      <option value="comics">Comics</option>
-      <option value="historical">Historical Items</option>
-    </select>
+    <input type="text" id="searchInput" placeholder="Search items...">
     <select id="typeSelect">
-      <option value="">All Types</option>
       <option value="auction">Auction</option>
       <option value="private">Private Sale</option>
     </select>
     <button class="button" id="searchBtn">Search</button>
   </div>
 
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Product 1">
-    <h3>Rare Collectible 1</h3>
-    <p>Price: £200</p>
-    <button class="button">Buy Now</button>
-  </div>
-
-  <div class="card">
-    <img src="IMG_1558.jpeg" alt="Product 2">
-    <h3>Rare Collectible 2</h3>
-    <p>Price: £350</p>
-    <button class="button">Buy Now</button>
-  </div>
+  <!-- Search Results -->
+  <div id="searchResults"></div>
 </div>
 
 <script type="module">
-  import { auth } from './firebase.js';
-  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { db } from './firebase.js';
+import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { auth } from './firebase.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-  const userStatus = document.getElementById("user-status");
-  const logoutBtn = document.getElementById("logout-button");
-  const dashboardBtn = document.getElementById("dashboardButton");
-  const dashboardNav = document.getElementById("dashboardNav");
+const userStatus = document.getElementById("user-status");
+const logoutBtn = document.getElementById("logout-button");
+const dashboardBtn = document.getElementById("dashboardButton");
+const dashboardNav = document.getElementById("dashboardNav");
+const searchBtn = document.getElementById("searchBtn");
+const searchInput = document.getElementById("searchInput");
+const typeSelect = document.getElementById("typeSelect");
+const searchResults = document.getElementById("searchResults");
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // User is logged in
-      userStatus.textContent = `Logged in as ${user.email}`;
-      logoutBtn.style.display = "inline-block";
-      dashboardBtn.style.display = "inline-block";
-      dashboardNav.style.display = "inline-block";
-    } else {
-      // No user logged in
-      userStatus.textContent = "";
-      logoutBtn.style.display = "none";
-      dashboardBtn.style.display = "none";
-      dashboardNav.style.display = "none";
-    }
+// ---------- Auth ----------
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    userStatus.textContent = `Logged in as ${user.email}`;
+    logoutBtn.style.display = "inline-block";
+    dashboardBtn.style.display = "inline-block";
+    dashboardNav.style.display = "inline-block";
+  } else {
+    userStatus.textContent = "";
+    logoutBtn.style.display = "none";
+    dashboardBtn.style.display = "none";
+    dashboardNav.style.display = "none";
+  }
+});
+
+window.logoutUser = async () => { await signOut(auth); };
+
+// ---------- Burger & Mode ----------
+window.toggleMenu = () => { document.getElementById("navMenu").classList.toggle("open"); };
+window.toggleMode = () => { document.body.classList.toggle("dark-mode"); };
+
+// ---------- Search Function ----------
+searchBtn.addEventListener("click", async () => {
+  const searchText = searchInput.value.trim().toLowerCase();
+  const type = typeSelect.value;
+  searchResults.innerHTML = "";
+
+  if (!searchText) return;
+
+  let collName = type === "private" ? "privatesales" : "listings";
+  let q = query(collection(db, collName));
+
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(docSnap => {
+    const item = docSnap.data();
+    const name = item.name?.toLowerCase() || "";
+    
+    // For auctions, only show pricetype=auction
+    if (type === "auction" && item.pricetype !== "auction") return;
+    if (!name.includes(searchText)) return;
+
+    const price = type === "auction" ? (item.winningbid || item.price) : item.price;
+    const imageTag = item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : "";
+
+    searchResults.innerHTML += `
+      <div class="card">
+        ${imageTag}
+        <h3>${item.name}</h3>
+        <p>Price: £${price}</p>
+        ${type === "auction" ? `<p>Highest Bidder: ${item.winneremail || "No bids"}</p>` : ""}
+        <button class="button">View</button>
+      </div>
+    `;
   });
-
-  window.logoutUser = async () => {
-    await signOut(auth);
-  };
-
-  // Burger menu toggle
-  window.toggleMenu = () => {
-    const menu = document.getElementById("navMenu");
-    menu.classList.toggle("open");
-  };
-
-  window.toggleMode = () => {
-    document.body.classList.toggle("dark-mode");
-  };
+});
 </script>
 
 </body>
