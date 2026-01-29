@@ -8,6 +8,23 @@
 
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
+
+<style>
+/* Hero Buttons Flex Layout */
+#heroButtons {
+  display: flex;
+  flex-wrap: wrap;      /* allow buttons to wrap on small screens */
+  gap: 10px;            /* space between buttons */
+  margin-bottom: 20px;
+}
+
+#heroButtons .button {
+  flex: 1 1 auto;       /* buttons grow equally, shrink if needed */
+  min-width: 120px;     /* prevent buttons from being too small */
+  text-align: center;
+  padding: 10px 20px;   /* nicer padding */
+}
+</style>
 </head>
 <body>
 
@@ -40,7 +57,7 @@
   <img src="IMG_1604.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
   <!-- Action Buttons -->
-  <div style="margin-bottom: 20px;" id="heroButtons">
+  <div id="heroButtons">
     <a href="private_sales.html" class="button">Private Sales</a>
     <a href="live_auctions.html" class="button">Live Auctions</a>
     <a href="dashboard.html" class="button" id="dashboardButton" style="display:none;">Dashboard</a>
