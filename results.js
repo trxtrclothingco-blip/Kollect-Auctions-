@@ -1,10 +1,35 @@
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+// ---------- DOM Elements ----------
+const userStatus = document.getElementById("user-status");
+const logoutBtn = document.getElementById("logout-button");
+
+// ---------- Firebase Auth Check ----------
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Logged in
+    userStatus.textContent = `Logged in as ${user.email}`;
+    logoutBtn.style.display = "inline-block";
+  } else {
+    // Not logged in
+    userStatus.textContent = "";
+    logoutBtn.style.display = "none";
+  }
+});
+
+// Logout function
+window.logoutUser = async () => {
+  await signOut(auth);
+  userStatus.textContent = "";
+  logoutBtn.style.display = "none";
+};
 
 // ---------- Pagination Settings ----------
 let auctionsAll = [];
 let auctionsPage = 1;
-const auctionsPerPage = 10; // show 10 per page now
+const auctionsPerPage = 10; // 10 per page
 
 // ---------- Render Auctions ----------
 function renderAuctionsPage(page) {
@@ -17,14 +42,13 @@ function renderAuctionsPage(page) {
 
   pageAuctions.forEach((a, index) => {
     container.innerHTML += `
-      <div class="ended-auction bid-item" data-index="${start + index}" style="margin-bottom:20px;">
+      <div class="ended-auction" data-index="${start + index}">
         <p><strong>${a.name}</strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
         <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
         <p class="auction-timer">Time Left: </p>
         <p>Ends At: ${a.auctionend.toLocaleString()}</p>
-        <hr>
       </div>
     `;
   });
@@ -34,7 +58,7 @@ function renderAuctionsPage(page) {
 
 // ---------- Countdown Timer ----------
 setInterval(() => {
-  const timerElems = document.querySelectorAll(".ended-auction.bid-item");
+  const timerElems = document.querySelectorAll(".ended-auction");
   timerElems.forEach(elem => {
     const index = Number(elem.getAttribute("data-index"));
     const a = auctionsAll[index];
