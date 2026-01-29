@@ -8,32 +8,45 @@
 <script type="module" src="firebase.js"></script>
 <script type="module" src="results.js"></script>
 <style>
-/* Auction card styling to match Private Sales page */
+/* Auction card styling to match Live Auctions page */
 .ended-auction {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-bottom: 20px;
-  border-radius: 5px;
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 12px;
+  max-width: 300px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
   text-align: center;
 }
 
 .ended-auction img {
   width: 100%;
-  max-width: 220px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
   margin-bottom: 10px;
 }
 
 .ended-auction h3 {
   margin: 5px 0;
+  color: #FFD700;
 }
 
 .ended-auction p {
   margin: 5px 0;
+  color: #FFD700;
 }
 
 .ended-auction .button {
   margin-top: 10px;
   padding: 8px 12px;
+  background: #2a2a2a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 /* Styles for pagination buttons */
@@ -49,7 +62,7 @@
 }
 </style>
 </head>
-<body class="light-mode">
+<body class="dark-mode">
 
 <div class="burger" id="burgerMenu">
   <div></div><div></div><div></div>
@@ -103,15 +116,16 @@ async function loadEndedAuctions() {
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       if (data.status !== 'ended') return; // Only show ended auctions
-      const { name, price, image } = data;
+      const { name, price, image, description } = data;
 
       const card = document.createElement('div');
-      card.classList.add('ended-auction'); // Use ended-auction but styled like private sales
+      card.classList.add('ended-auction'); // Styled like Live Auctions page
 
       card.innerHTML = `
         <img src="${image}" alt="${name}">
         <h3>${name}</h3>
-        <p>Price: £${price?.toFixed(2) || '0.00'}</p>
+        <p>${description || ''}</p>
+        <p><strong>Final Price:</strong> £${price?.toLocaleString() || '0.00'}</p>
         <button class="button" onclick="window.location='live_auctions.html#${doc.id}'">View Item</button>
       `;
 
@@ -137,7 +151,7 @@ burger.addEventListener("click", () => {
 
 /* ---------- Light/Dark Mode Toggle ---------- */
 window.toggleMode = () => {
-  document.body.classList.toggle("light-mode");
+  document.body.classList.toggle("dark-mode");
 };
 </script>
 
