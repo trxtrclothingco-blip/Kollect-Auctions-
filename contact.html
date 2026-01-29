@@ -61,7 +61,7 @@
         <option value="private">Private Sale</option>
       </select>
 
-     <!-- Social Media URL (optional now) -->
+      <!-- Social Media URL (optional) -->
       <input
         type="url"
         name="item_social_url"
@@ -75,9 +75,21 @@
       <button class="button" type="submit">Submit</button>
     </form>
   </div>
+
+  <!-- Consignment Fees Section -->
+  <div class="card" style="margin-top:20px;">
+    <h2>Consignment Fees</h2>
+    <p>All consignments are subject to the following fees based on the final sale price:</p>
+    <ul>
+      <li>Items under £50,000: 20% of the final sale price</li>
+      <li>Items £50,000 and above: 10% of the final sale price</li>
+    </ul>
+    <p>Fees cover full service: marketing, photographing, listing, storage, and shipping.</p>
+  </div>
+
 </div>
 
-<!-- Initialize EmailJS (must remain) -->
+<!-- Initialize EmailJS -->
 <script>
   (function(){
     emailjs.init("Fx2CfwymZU9f86Gfl");
