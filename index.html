@@ -93,7 +93,7 @@
 
 <script type="module">
 import { db } from './firebase.js';
-import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { auth } from './firebase.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
@@ -135,15 +135,16 @@ searchBtn.addEventListener("click", async () => {
 
   if (!searchText) return;
 
-  let collName = type === "private" ? "privatesales" : "listings";
-  let q = query(collection(db, collName));
-
+  const collName = type === "private" ? "privatesales" : "listings";
+  const pageUrl = type === "private" ? "private_sales.html" : "live_auctions.html";
+  const q = query(collection(db, collName));
   const snapshot = await getDocs(q);
 
   snapshot.forEach(docSnap => {
     const item = docSnap.data();
+    const docId = docSnap.id;
     const name = item.name?.toLowerCase() || "";
-    
+
     // For auctions, only show pricetype=auction
     if (type === "auction" && item.pricetype !== "auction") return;
     if (!name.includes(searchText)) return;
@@ -157,7 +158,7 @@ searchBtn.addEventListener("click", async () => {
         <h3>${item.name}</h3>
         <p>Price: £${price}</p>
         ${type === "auction" ? `<p>Highest Bidder: ${item.winneremail || "No bids"}</p>` : ""}
-        <button class="button">View</button>
+        <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
       </div>
     `;
   });
