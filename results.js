@@ -4,8 +4,9 @@ import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/
 // ---------- Pagination Settings ----------
 let auctionsAll = [];
 let auctionsPage = 1;
-const auctionsPerPage = 3; // show 3 per page
+const auctionsPerPage = 10; // show 10 per page now
 
+// ---------- Render Auctions ----------
 function renderAuctionsPage(page) {
   const container = document.getElementById("ended-auctions-list");
   container.innerHTML = "";
@@ -19,9 +20,10 @@ function renderAuctionsPage(page) {
       <div class="ended-auction bid-item" data-index="${start + index}" style="margin-bottom:20px;">
         <p><strong>${a.name}</strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
-        <p>Final Price: £${(a.winningbid || a.price).toLocaleString()}</p>
-        <p>Winner: ${a.winneremail || "No bids"}</p>
-        <p>Ended At: ${a.auctionend.toLocaleString()}</p>
+        <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
+        <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
+        <p class="auction-timer">Time Left: </p>
+        <p>Ends At: ${a.auctionend.toLocaleString()}</p>
         <hr>
       </div>
     `;
@@ -30,6 +32,33 @@ function renderAuctionsPage(page) {
   renderAuctionPagination();
 }
 
+// ---------- Countdown Timer ----------
+setInterval(() => {
+  const timerElems = document.querySelectorAll(".ended-auction.bid-item");
+  timerElems.forEach(elem => {
+    const index = Number(elem.getAttribute("data-index"));
+    const a = auctionsAll[index];
+    if (!a) return;
+
+    const remainingTime = a.auctionend - new Date();
+    const timerText = remainingTime > 0
+      ? formatCountdown(remainingTime)
+      : "Auction Ended";
+
+    const timerP = elem.querySelector(".auction-timer");
+    if (timerP) timerP.textContent = "Status: " + timerText;
+  });
+}, 1000);
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}h ${m}m ${s}s`;
+}
+
+// ---------- Pagination ----------
 function renderAuctionPagination() {
   const controls = document.getElementById("auction-pagination-controls");
   controls.innerHTML = "";
@@ -51,8 +80,8 @@ function renderAuctionPagination() {
   }
 }
 
-// ---------- Load Ended Auctions ----------
-function loadEndedAuctions() {
+// ---------- Load Live Auctions ----------
+function loadLiveAuctions() {
   const q = query(collection(db, "listings"), orderBy("auctionend", "asc"));
   onSnapshot(q, snapshot => {
     auctionsAll = [];
@@ -60,7 +89,6 @@ function loadEndedAuctions() {
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
       if (d.pricetype !== "auction") return; // only auctions
-      if (!d.winningbid) return; // only ended auctions
 
       auctionsAll.push({
         ...d,
@@ -76,4 +104,4 @@ function loadEndedAuctions() {
   });
 }
 
-loadEndedAuctions();
+loadLiveAuctions();
