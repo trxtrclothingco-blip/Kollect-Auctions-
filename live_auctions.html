@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Auctions – Kollect</title>
 <link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+<script type="module" src="products.js"></script>
 
 <style>
 /* === Use same CSS structure as admin page === */
@@ -108,7 +111,7 @@ body {
 </style>
 </head>
 
-<body>
+<body data-page="liveauctions">
 
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
@@ -125,6 +128,7 @@ body {
   <a href="admin.html">Admin</a>
   <a href="results.html">Results</a>
   <a href="create_account.html">Sign In</a>
+  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
 </nav>
 
 <div id="user-status">Checking login status...</div>
