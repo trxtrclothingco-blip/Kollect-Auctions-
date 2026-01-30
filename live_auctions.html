@@ -3,12 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Auctions</title>
+<title>Live Auctions – Kollect</title>
 <link rel="stylesheet" href="style.css">
-
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
-<script type="module" src="products.js"></script>
+
+<!-- ✅ DASHBOARD STYLE THEME -->
+<script>
+(function () {
+  const isLight = localStorage.getItem("lightMode") === "true";
+  if (isLight) document.documentElement.classList.add("light-mode");
+})();
+</script>
+
+<style>
+.card {
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 12px;
+  max-width: 300px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+}
+
+.card img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.bid-input {
+  width: 80%;
+  margin: 10px auto;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #FFD700;
+  background: #2a2a2a;
+  color: #FFD700;
+  text-align: center;
+}
+
+.bid-button {
+  background: #2a2a2a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+.auction-length {
+  color: #FFD700;
+  font-weight: bold;
+  margin: 6px 0;
+}
+</style>
 </head>
 
 <body data-page="liveauctions">
@@ -28,7 +81,7 @@
   <a href="admin.html">Admin</a>
   <a href="results.html">Results</a>
   <a href="create_account.html">Sign In</a>
-  <button id="modeToggle" onclick="toggleMode()">Toggle Light/Dark Mode</button>
+  <button id="modeToggle">Toggle Light/Dark Mode</button>
 </nav>
 
 <div id="user-status">Checking login status...</div>
@@ -54,8 +107,7 @@ import {
   doc,
   updateDoc,
   addDoc,
-  serverTimestamp,
-  getDocs
+  serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
@@ -77,9 +129,7 @@ async function placeBid(listingId, bidInput, currentPrice) {
     timestamp: serverTimestamp()
   });
 
-  await updateDoc(doc(db, 'listings', listingId), {
-    price: bidAmount
-  });
+  await updateDoc(doc(db, 'listings', listingId), { price: bidAmount });
 
   bidInput.value = '';
   const msg = document.getElementById('bid-success-msg');
@@ -91,14 +141,10 @@ async function endAuction(listingId) {
   const bidsSnap = await getDocs(
     query(collection(db, 'bids'), orderBy('bidamount', 'desc'))
   );
-
   let winningBid = null;
-
   bidsSnap.forEach((b) => {
     const d = b.data();
-    if (d.listingid === listingId && !winningBid) {
-      winningBid = d;
-    }
+    if (d.listingid === listingId && !winningBid) winningBid = d;
   });
 
   await updateDoc(doc(db, 'listings', listingId), {
@@ -106,15 +152,13 @@ async function endAuction(listingId) {
     winningbid: winningBid ? winningBid.bidamount : 0,
     winnerid: winningBid ? winningBid.userid : null,
     winneremail: winningBid ? winningBid.useremail : null,
-    endedAt: serverTimestamp()
+    endedat: serverTimestamp()
   });
 }
 
 function getCountdownText(endTimestamp) {
-  const end = endTimestamp.toDate();
-  const diff = end - new Date();
+  const diff = endTimestamp - new Date();
   if (diff <= 0) return 'Auction ended';
-
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -149,20 +193,21 @@ function loadLiveAuctions() {
 
       const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
-
       bidBtn.onclick = () => placeBid(docSnap.id, bidInput, price);
 
-      if (data.auctionend) {
+      // Countdown
+      if (data.auctionend && data.auctionend.toDate) {
+        const endTimestamp = data.auctionend.toDate();
         const el = card.querySelector('.auction-length');
         const tick = async () => {
-          const diff = data.auctionend.toDate() - new Date();
+          const diff = endTimestamp - new Date();
           if (diff <= 0) {
             el.textContent = 'Auction ended';
             bidBtn.disabled = true;
             bidInput.disabled = true;
             await endAuction(docSnap.id);
           } else {
-            el.textContent = 'Auction ends in: ' + getCountdownText(data.auctionend);
+            el.textContent = 'Auction ends in: ' + getCountdownText(endTimestamp);
           }
         };
         tick();
@@ -177,43 +222,19 @@ function loadLiveAuctions() {
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 </script>
 
-<style>
-.card {
-  background: #2a2a2a;
-  border: 2px solid #FFD700;
-  border-radius: 8px;
-  padding: 12px;
-  max-width: 300px;
-  margin: 15px;
-  display: inline-block;
-  vertical-align: top;
-  text-align: center;
+<script>
+function toggleMenu() {
+  document.getElementById("navMenu").classList.toggle("open");
 }
 
-.card img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.bid-input {
-  width: 80%;
-  margin: 10px auto;
-  padding: 6px;
-  border-radius: 6px;
-  border: 1px solid #FFD700;
-  background: #2a2a2a;
-  color: #FFD700;
-  text-align: center;
-}
-
-.auction-length {
-  color: #FFD700;
-  font-weight: bold;
-  margin: 6px 0;
-}
-</style>
+/* ✅ DASHBOARD STYLE LIGHT/DARK TOGGLE */
+const toggleBtn = document.getElementById("modeToggle");
+toggleBtn.addEventListener("click", () => {
+  const root = document.documentElement;
+  root.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", root.classList.contains("light-mode"));
+});
+</script>
 
 </body>
 </html>
