@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 
 <style>
+/* === Use same CSS structure as admin page === */
 body {
   background: #1a1a1a;
   color: #FFD700;
@@ -26,10 +27,8 @@ body {
   border: 2px solid #FFD700;
   border-radius: 8px;
   padding: 12px;
-  max-width: 300px;
-  margin: 15px;
-  display: inline-block;
-  vertical-align: top;
+  margin: 15px 0;
+  display: block;
   text-align: center;
 }
 
@@ -72,8 +71,10 @@ body {
   margin: 6px 0;
 }
 
+/* Burger Menu Same as Admin */
 .burger {
   cursor: pointer;
+  display: inline-block;
   margin: 10px;
 }
 
@@ -85,13 +86,17 @@ body {
 }
 
 .nav-menu {
-  display: flex;
-  flex-wrap: wrap;
+  display: none;
+  flex-direction: column;
   gap: 10px;
   padding: 10px;
 }
 
-.nav-menu a, .nav-menu button {
+.nav-menu.open {
+  display: flex;
+}
+
+.nav-menu a {
   color: #FFD700;
   text-decoration: none;
   padding: 6px 12px;
@@ -280,9 +285,10 @@ function loadLiveAuctions() {
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 
-// Burger toggle
+// ✅ Burger toggle same as Admin page
 function toggleMenu() {
-  document.getElementById("navMenu").classList.toggle("open");
+  const nav = document.getElementById("navMenu");
+  nav.classList.toggle("open");
 }
 </script>
 </body>
