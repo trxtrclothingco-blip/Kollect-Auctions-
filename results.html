@@ -14,7 +14,7 @@
   const isLight = localStorage.getItem("lightMode") === "true";
 
   if (isLight) {
-    document.body.classList.add("light-mode");
+    document.documentElement.classList.add("light-mode");
   }
 })();
 </script>
@@ -158,9 +158,11 @@ const toggleBtn = document.getElementById("modeToggle");
 
 toggleBtn.addEventListener("click", () => {
 
-  document.body.classList.toggle("light-mode");
+  const root = document.documentElement;
 
-  const isLight = document.body.classList.contains("light-mode");
+  root.classList.toggle("light-mode");
+
+  const isLight = root.classList.contains("light-mode");
 
   localStorage.setItem("lightMode", isLight);
 
