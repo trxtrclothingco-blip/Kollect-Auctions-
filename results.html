@@ -6,7 +6,6 @@
 <title>Auction Results – Kollect</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="results.js"></script>
 
 <!-- ✅ DASHBOARD STYLE THEME -->
 <script>
@@ -102,14 +101,15 @@
 
 <script type="module">
 import { db } from './firebase.js';
-import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
 async function loadEndedAuctions() {
   const endedList = document.getElementById('ended-auctions-list');
   endedList.innerHTML = '';
 
   try {
-    const querySnapshot = await getDocs(collection(db, 'listings'));
+    const endedQuery = query(collection(db, 'listings'), where('status', '==', 'ended'));
+    const querySnapshot = await getDocs(endedQuery);
 
     if (querySnapshot.empty) {
       endedList.innerHTML = '<p>No ended auctions available.</p>';
@@ -118,8 +118,6 @@ async function loadEndedAuctions() {
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      if (data.status !== 'ended') return;
-
       const { name, price, image, description } = data;
 
       const card = document.createElement('div');
@@ -144,7 +142,6 @@ document.addEventListener('DOMContentLoaded', loadEndedAuctions);
 </script>
 
 <script>
-
 /* Burger Menu */
 document.getElementById("burgerMenu")
   .addEventListener("click", () =>
@@ -155,17 +152,11 @@ document.getElementById("burgerMenu")
 const toggleBtn = document.getElementById("modeToggle");
 
 toggleBtn.addEventListener("click", () => {
-
   const root = document.documentElement;
-
   root.classList.toggle("light-mode");
-
   const isLight = root.classList.contains("light-mode");
-
   localStorage.setItem("lightMode", isLight);
-
 });
-
 </script>
 
 </body>
