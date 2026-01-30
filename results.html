@@ -130,7 +130,6 @@ async function loadEndedAuctions() {
         <h3>${name}</h3>
         <p>${description || ''}</p>
         <p><strong>Final Price:</strong> £${price?.toLocaleString() || '0.00'}</p>
-        <button class="button" onclick="window.location='live_auctions.html#${doc.id}'">View Item</button>
       `;
 
       endedList.appendChild(card);
