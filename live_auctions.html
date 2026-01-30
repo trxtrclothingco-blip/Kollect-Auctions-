@@ -5,17 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Auctions – Kollect</title>
 <link rel="stylesheet" href="style.css">
-<script type="module" src="firebase.js"></script>
-
-<!-- ✅ DASHBOARD STYLE THEME -->
-<script>
-(function () {
-  const isLight = localStorage.getItem("lightMode") === "true";
-  if (isLight) document.documentElement.classList.add("light-mode");
-})();
-</script>
 
 <style>
+body {
+  background: #1a1a1a;
+  color: #FFD700;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
 .card {
   background: #2a2a2a;
   border: 2px solid #FFD700;
@@ -33,6 +38,11 @@
   height: 220px;
   object-fit: cover;
   border-radius: 6px;
+}
+
+.card h3, .card p {
+  margin: 5px 0;
+  color: #FFD700;
 }
 
 .bid-input {
@@ -61,10 +71,39 @@
   font-weight: bold;
   margin: 6px 0;
 }
+
+.burger {
+  cursor: pointer;
+  margin: 10px;
+}
+
+.burger div {
+  width: 25px;
+  height: 3px;
+  background: #FFD700;
+  margin: 4px 0;
+}
+
+.nav-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+}
+
+.nav-menu a, .nav-menu button {
+  color: #FFD700;
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid #FFD700;
+  border-radius: 6px;
+  background: #2a2a2a;
+  cursor: pointer;
+}
 </style>
 </head>
 
-<body data-page="liveauctions">
+<body>
 
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
@@ -81,7 +120,6 @@
   <a href="admin.html">Admin</a>
   <a href="results.html">Results</a>
   <a href="create_account.html">Sign In</a>
-  <button id="modeToggle">Toggle Light/Dark Mode</button>
 </nav>
 
 <div id="user-status">Checking login status...</div>
@@ -107,16 +145,35 @@ import {
   doc,
   updateDoc,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  getDocs
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
-onAuthStateChanged(auth, (user) => currentUser = user);
 
+// ✅ Check auth like admin panel
+onAuthStateChanged(auth, (user) => {
+  const status = document.getElementById('user-status');
+  const logoutBtn = document.getElementById('logout-button');
+  if (user) {
+    currentUser = user;
+    status.textContent = `Signed in as ${user.email}`;
+    logoutBtn.style.display = 'inline-block';
+  } else {
+    currentUser = null;
+    status.textContent = 'You are not signed in';
+    logoutBtn.style.display = 'none';
+  }
+});
+
+function logoutUser() {
+  signOut(auth);
+}
+
+// ✅ Place a bid
 async function placeBid(listingId, bidInput, currentPrice) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
-
   const bidAmount = Number(bidInput.value);
   if (!bidAmount || bidAmount <= currentPrice)
     return alert('Bid must be higher than current price.');
@@ -137,10 +194,9 @@ async function placeBid(listingId, bidInput, currentPrice) {
   setTimeout(() => msg.style.display = 'none', 2500);
 }
 
+// ✅ End auction
 async function endAuction(listingId) {
-  const bidsSnap = await getDocs(
-    query(collection(db, 'bids'), orderBy('bidamount', 'desc'))
-  );
+  const bidsSnap = await getDocs(query(collection(db, 'bids'), orderBy('bidamount', 'desc')));
   let winningBid = null;
   bidsSnap.forEach((b) => {
     const d = b.data();
@@ -156,6 +212,7 @@ async function endAuction(listingId) {
   });
 }
 
+// ✅ Countdown helper
 function getCountdownText(endTimestamp) {
   const diff = endTimestamp - new Date();
   if (diff <= 0) return 'Auction ended';
@@ -166,6 +223,7 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
+// ✅ Load live auctions like ended auction cards
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -177,37 +235,38 @@ function loadLiveAuctions() {
       const data = docSnap.data();
       if (data.status !== 'live') return;
 
-      const price = Number(data.price ?? 0);
+      const { name, price = 0, image, description, auctionend } = data;
+
       const card = document.createElement('div');
-      card.className = 'card';
+      card.classList.add('card');
 
       card.innerHTML = `
-        <img src="${data.image}">
-        <h3>${data.name}</h3>
-        <p>${data.description || ''}</p>
-        <p><strong>Current Bid:</strong> £${price.toLocaleString()}</p>
+        <img src="${image}" alt="${name}">
+        <h3>${name}</h3>
+        <p>${description || ''}</p>
+        <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
         <p class="auction-length"></p>
-        <input type="number" class="bid-input" min="${price + 1}" placeholder="Your bid">
-        <button class="button bid-button">Place Bid</button>
+        <input type="number" class="bid-input" min="${Number(price)+1}" placeholder="Your bid">
+        <button class="bid-button">Place Bid</button>
       `;
 
       const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
-      bidBtn.onclick = () => placeBid(docSnap.id, bidInput, price);
+      bidBtn.onclick = () => placeBid(docSnap.id, bidInput, Number(price));
 
-      // Countdown
-      if (data.auctionend && data.auctionend.toDate) {
-        const endTimestamp = data.auctionend.toDate();
+      // Countdown & auto end auction
+      if (auctionend && auctionend.toDate) {
+        const endTime = auctionend.toDate();
         const el = card.querySelector('.auction-length');
         const tick = async () => {
-          const diff = endTimestamp - new Date();
+          const diff = endTime - new Date();
           if (diff <= 0) {
             el.textContent = 'Auction ended';
             bidBtn.disabled = true;
             bidInput.disabled = true;
             await endAuction(docSnap.id);
           } else {
-            el.textContent = 'Auction ends in: ' + getCountdownText(endTimestamp);
+            el.textContent = 'Auction ends in: ' + getCountdownText(endTime);
           }
         };
         tick();
@@ -220,21 +279,11 @@ function loadLiveAuctions() {
 }
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
-</script>
 
-<script>
+// Burger toggle
 function toggleMenu() {
   document.getElementById("navMenu").classList.toggle("open");
 }
-
-/* ✅ DASHBOARD STYLE LIGHT/DARK TOGGLE */
-const toggleBtn = document.getElementById("modeToggle");
-toggleBtn.addEventListener("click", () => {
-  const root = document.documentElement;
-  root.classList.toggle("light-mode");
-  localStorage.setItem("lightMode", root.classList.contains("light-mode"));
-});
 </script>
-
 </body>
 </html>
