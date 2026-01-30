@@ -7,6 +7,21 @@
 <link rel="stylesheet" href="style.css">
 
 <script type="module" src="firebase.js"></script>
+
+<!-- ✅ Load saved mode BEFORE page renders (DEFAULT = DARK) -->
+<script>
+(function () {
+  const savedMode = localStorage.getItem("theme");
+
+  if (savedMode === "light") {
+    document.documentElement.classList.add("light-mode");
+  } else {
+    // Default to dark if nothing saved
+    document.documentElement.classList.add("dark-mode");
+  }
+})();
+</script>
+
 <style>
 /* Hero Buttons Flex Layout */
 #heroButtons {
@@ -40,7 +55,8 @@
 }
 </style>
 </head>
-<body class="light-mode">
+
+<body>
 
 <!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
@@ -117,9 +133,25 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ---------- Burger & Mode ----------
-window.toggleMenu = () => { document.getElementById("navMenu").classList.toggle("open"); };
-window.toggleMode = () => { document.body.classList.toggle("light-mode"); };
+// ---------- Burger ----------
+window.toggleMenu = () => {
+  document.getElementById("navMenu").classList.toggle("open");
+};
+
+// ---------- Dark / Light Mode ----------
+window.toggleMode = () => {
+  const root = document.documentElement;
+
+  if (root.classList.contains("dark-mode")) {
+    root.classList.remove("dark-mode");
+    root.classList.add("light-mode");
+    localStorage.setItem("theme", "light");
+  } else {
+    root.classList.remove("light-mode");
+    root.classList.add("dark-mode");
+    localStorage.setItem("theme", "dark");
+  }
+};
 
 // ---------- Search Function ----------
 searchBtn.addEventListener("click", async () => {
@@ -139,7 +171,6 @@ searchBtn.addEventListener("click", async () => {
     const docId = docSnap.id;
     const name = item.name?.toLowerCase() || "";
 
-    // For auctions, only show pricetype=auction
     if (type === "auction" && item.pricetype !== "auction") return;
     if (!name.includes(searchText)) return;
 
