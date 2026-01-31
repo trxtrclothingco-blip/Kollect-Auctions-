@@ -56,6 +56,29 @@ const formatPrice = (price) => {
   return "£" + Number(price).toLocaleString();
 };
 
+// ---------- Custom alert for profile updated ----------
+function showProfileUpdatedPopup(message) {
+  const popup = document.createElement("div");
+  popup.textContent = message;
+  popup.style.position = "fixed";
+  popup.style.top = "20px";
+  popup.style.right = "20px";
+  popup.style.padding = "10px 20px";
+  popup.style.backgroundColor = "#FFD700";
+  popup.style.color = "#1e1e1e";
+  popup.style.fontWeight = "bold";
+  popup.style.border = "2px solid #1e1e1e";
+  popup.style.borderRadius = "8px";
+  popup.style.zIndex = "9999";
+  popup.style.transition = "all 0.3s ease";
+  document.body.appendChild(popup);
+  setTimeout(() => {
+    popup.style.opacity = "0";
+    popup.style.transform = "scale(0.9)";
+    setTimeout(() => popup.remove(), 300);
+  }, 2000);
+}
+
 // ---------- Auth & Dashboard ----------
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "create_account.html";
@@ -127,7 +150,7 @@ onAuthStateChanged(auth, async (user) => {
     saveBtn.style.display = "none";
 
     welcomeName.textContent = document.getElementById("first-name-input").value.trim() || "User";
-    alert("Profile updated!");
+    showProfileUpdatedPopup("Profile updated!");
   });
 
   // ---------- Profile picture preview ----------
