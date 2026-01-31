@@ -28,6 +28,7 @@ const profileUpload = document.getElementById("profile-upload");
 const bidsContainer = document.getElementById("won-bids-container");
 const salesContainer = document.getElementById("purchase-history-container");
 const welcomeName = document.getElementById("welcome-name");
+const liveBidsContainer = document.getElementById("live-bids-container");
 
 // Updated input IDs
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
@@ -189,6 +190,55 @@ onAuthStateChanged(auth, async (user) => {
       salesContainer.appendChild(saleEl);
     });
   });
+
+  // ---------- Live Bids Section ----------
+  if (liveBidsContainer) {
+    let userLiveBidsMap = {};
+
+    const liveBidsQuery = query(
+      collection(db, "bids"),
+      where("userId", "==", user.uid),
+      orderBy("timestamp", "desc")
+    );
+
+    onSnapshot(liveBidsQuery, (snapshot) => {
+      if (!liveBidsContainer) return;
+      userLiveBidsMap = {}; // reset map
+
+      snapshot.forEach(docSnap => {
+        const bid = docSnap.data();
+        const listingId = bid.listingid;
+        const bidAmount = bid.bidamount;
+
+        // Keep only the highest bid per listing
+        if (!userLiveBidsMap[listingId] || bidAmount > userLiveBidsMap[listingId].bidamount) {
+          userLiveBidsMap[listingId] = { ...bid, id: docSnap.id };
+        }
+      });
+
+      // Render live bids
+      const bidsArray = Object.values(userLiveBidsMap);
+      if (!bidsArray.length) {
+        liveBidsContainer.innerHTML = "<h2>Your Live Bids</h2><p>No active bids yet.</p>";
+        return;
+      }
+
+      liveBidsContainer.innerHTML = "<h2>Your Live Bids</h2>";
+      bidsArray.forEach(bid => {
+        const bidEl = document.createElement("div");
+        bidEl.className = "bid-card";
+
+        const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : "Unknown date";
+        const link = document.createElement("a");
+        link.href = `item.html?id=${bid.listingid}`;
+        link.textContent = `${bid.listingid} – ${formatPrice(bid.bidamount)} placed on ${dateStr}`;
+
+        bidEl.appendChild(link);
+        liveBidsContainer.appendChild(bidEl);
+      });
+    });
+  }
+
 });
 </script>
 
@@ -221,7 +271,7 @@ onAuthStateChanged(auth, async (user) => {
   min-width: 280px;
 }
 
-#bids-container, #purchase-history-container {
+#bids-container, #purchase-history-container, #live-bids-container {
   padding:15px;
   background:#1e1e1e;
   border:2px solid #FFD700;
@@ -352,6 +402,12 @@ onAuthStateChanged(auth, async (user) => {
     <div id="purchase-history-container" class="card">
       <h2>Purchase History</h2>
       <p>Loading your purchase history…</p>
+    </div>
+
+    <!-- LIVE BIDS SECTION -->
+    <div id="live-bids-container" class="card">
+      <h2>Your Live Bids</h2>
+      <p>Loading your live bids…</p>
     </div>
   </div>
 </div>
