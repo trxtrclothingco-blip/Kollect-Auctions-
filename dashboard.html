@@ -9,7 +9,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
 // ---------- Firebase Initialization ----------
@@ -271,26 +271,45 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  const wonQuery = query(
-    collection(db, "listings"),
-    where("winnerid", "==", user.uid),
-    where("status", "==", "ended"),
-    orderBy("auctionend", "desc")
+  const userBidsQuery = query(
+    collection(db, "bids"),
+    where("userid", "==", user.uid),
+    orderBy("timestamp", "desc")
   );
 
-  onSnapshot(wonQuery, (snapshot) => {
+  onSnapshot(userBidsQuery, async (snapshot) => {
     allWonAuctions = [];
-    snapshot.forEach(docSnap => {
-      const d = docSnap.data();
-      if (d.pricetype !== "auction") return;
-      allWonAuctions.push({
-        ...d,
-        id: docSnap.id,
-        auctionend: d.auctionend?.toDate() || d.endedat?.toDate(),
-        winningbid: d.winningbid || d.price,
-        winneremail: d.winneremail || "You"
-      });
+    if (snapshot.empty) {
+      renderWonPage(wonPage);
+      return;
+    }
+    const listingIds = new Set();
+    snapshot.forEach((doc) => {
+      listingIds.add(doc.data().listingid);
     });
+    for (const listingid of listingIds) {
+      const listingDoc = await getDoc(doc(db, "listings", listingid));
+      if (!listingDoc.exists() || listingDoc.data().status !== "ended") continue;
+      const topBidQuery = query(
+        collection(db, "bids"),
+        where("listingid", "==", listingid),
+        orderBy("bidamount", "desc"),
+        limit(1)
+      );
+      const topSnap = await getDocs(topBidQuery);
+      if (topSnap.empty) continue;
+      const topBid = topSnap.docs[0].data();
+      if (topBid.userid !== user.uid) continue;
+      const listing = listingDoc.data();
+      allWonAuctions.push({
+        ...listing,
+        id: listingid,
+        auctionend: listing.auctionend?.toDate() || listing.endedat?.toDate(),
+        winningbid: topBid.bidamount,
+        winneremail: topBid.email || "You"
+      });
+    }
+    allWonAuctions.sort((a, b) => b.auctionend - a.auctionend);
     wonPage = 1;
     renderWonPage(wonPage);
   });
