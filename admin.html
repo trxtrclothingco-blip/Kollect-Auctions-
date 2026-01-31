@@ -5,71 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
-
-<style>
-/* Bid List Pagination Styling */
-#bids-list {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-top: 10px;
-}
-
-.bid-item {
-  border-bottom: 1px solid #ccc;
-  padding: 8px 0;
-}
-
-#pagination-controls {
-  margin-top: 10px;
-  text-align: center;
-}
-
-#pagination-controls button {
-  margin: 0 5px;
-}
-
-/* ADMIN PAGE ONLY — MOBILE MENU FIX */
-@media (max-width: 768px) {
-  body {
-    overflow-x: visible; /* allow menu to slide out fully */
-  }
-
-  .nav-menu {
-    position: fixed; /* independent of container */
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 80vw;
-    max-width: 300px;
-    z-index: 9999;
-    background: #fff; /* same as menu background */
-    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
-    transform: translateX(-100%); /* start hidden */
-    transition: transform 0.3s ease;
-  }
-
-  .nav-menu.active {
-    transform: translateX(0);
-  }
-
-  .nav-menu a {
-    display: block;
-    padding: 1em;
-    white-space: normal; /* wrap full text */
-  }
-}
-</style>
 </head>
 
 <body>
 
+<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
 
+<!-- Navigation -->
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
-  <a href="dashboard.html">Dashboard</a>
+  <a href="dashboard.html" id="dashboardNav" style="display:none;">Dashboard</a>
   <a href="about.html">About Us</a>
   <a href="live_auctions.html">Live Auctions</a>
   <a href="kollect_100.html">Kollect 100</a>
@@ -163,18 +111,6 @@
 
   </div>
 </div>
-
-<script>
-function toggleMenu() {
-  const menu = document.getElementById("navMenu");
-  menu.classList.toggle("active");
-
-  // Prevent scrolling when menu open on mobile
-  if (window.innerWidth <= 768) {
-    document.body.style.overflow = menu.classList.contains("active") ? "hidden" : "visible";
-  }
-}
-</script>
 
 <!-- SAME SCRIPT AS WORKING PAGES -->
 <script type="module" src="script.js"></script>
