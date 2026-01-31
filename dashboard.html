@@ -213,8 +213,10 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
+  // ---------- UPDATED: Keep only highest bid per item ----------
   onSnapshot(collection(db, "bids"), async snapshot => {
-    allLiveBids = [];
+    const tempBids = [];
+
     for (const d of snapshot.docs) {
       const b = d.data();
       if (b.userid !== user.uid) continue;
@@ -223,13 +225,24 @@ onAuthStateChanged(auth, async (user) => {
       if (!listingSnap.exists()) continue;
       const listing = listingSnap.data();
       if (listing.status !== "live") continue;
-      allLiveBids.push({
+
+      tempBids.push({
         itemName: listing.name,
         livePrice: listing.price,
         bidAmount: b.bidamount,
         listingid: b.listingid
       });
     }
+
+    // Keep only the highest bid per listing
+    const highestBidsMap = {};
+    tempBids.forEach(bid => {
+      if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
+        highestBidsMap[bid.listingid] = bid;
+      }
+    });
+
+    allLiveBids = Object.values(highestBidsMap);
     livePage = 1;
     renderLiveBidsPage(livePage);
   });
