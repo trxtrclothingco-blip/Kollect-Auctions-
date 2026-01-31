@@ -116,7 +116,30 @@
 <script type="module" src="script.js"></script>
 
 <!-- ADMIN LOGIC -->
-<script type="module" src="admin.js"></script>
+<script type="module">
+import { auth } from './firebase.js';
+
+const adminPanel = document.getElementById('admin-panel');
+const passwordScreen = document.getElementById('password-screen');
+
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    passwordScreen.style.display = 'block';
+    adminPanel.style.display = 'none';
+    return;
+  }
+
+  // Only allow this specific user ID to access admin
+  if (user.uid === 'gBrbEobcS5RCG47acE5ySqxO8yB2') {
+    passwordScreen.style.display = 'none';
+    adminPanel.style.display = 'block';
+  } else {
+    passwordScreen.style.display = 'block';
+    adminPanel.style.display = 'none';
+    alert('You do not have permission to access the admin panel.');
+  }
+});
+</script>
 
 </body>
 </html>
