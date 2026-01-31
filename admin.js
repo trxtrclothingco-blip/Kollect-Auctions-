@@ -1,151 +1,277 @@
-import { db, auth } from './firebase.js';
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  doc, 
-  updateDoc 
-} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { db, auth } from "./firebase.js";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  doc,
+  getDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-// DOM elements
-const bidsContainer = document.getElementById('bids-list'); // all bids
-const endedAuctionsContainer = document.getElementById('ended-auctions-list'); // live/ended auctions
-const adminPanel = document.getElementById('admin-panel');
-const itemForm = document.getElementById('item-form');
+/* ---------- Firebase Auth Admin Login ---------- */
+const passwordForm = document.getElementById("password-form");
+const passwordScreen = document.getElementById("password-screen");
+const adminPanel = document.getElementById("admin-panel");
 
-// Admin UID (exactly as in Firebase)
-const ADMIN_UID = 'gBrbEobcS5RCG47acE5ySqxO8yB2';
+const ADMIN_EMAIL = "peterjames-barrett@outlook.com";
+const ADMIN_UID = "gBrbEobcS5RCG47acE5ySqxO8yB2";
 
-function formatPrice(price) {
-  if (!price && price !== 0) return '£0';
-  return '£' + Number(price).toLocaleString();
-}
+passwordForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const passwordInput = document.getElementById("admin-password").value;
 
-// Edit function for listings and private sales
-async function editItem(collectionName, itemId, updatedData) {
   try {
-    const itemRef = doc(db, collectionName, itemId);
-    await updateDoc(itemRef, updatedData);
-    alert(`${collectionName} item ${itemId} updated successfully.`);
+    const cred = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, passwordInput);
+    if (cred.user.uid !== ADMIN_UID) {
+      alert("Not authorised");
+      await auth.signOut();
+      return;
+    }
+
+    passwordScreen.style.display = "none";
+    adminPanel.style.display = "block";
+    loadItems();
+    loadBids();
   } catch (err) {
-    console.error('Error updating item:', err);
-    alert('Failed to update item.');
+    alert(err.message);
   }
-}
-
-// Auto show admin panel if UID matches exactly
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    if (bidsContainer) bidsContainer.innerHTML = '<p>Please log in to see bids.</p>';
-    if (endedAuctionsContainer) endedAuctionsContainer.innerHTML = '<p>Please log in to see auctions.</p>';
-    if (adminPanel) adminPanel.style.display = 'none';
-    return;
-  }
-
-  const userId = user.uid; // keep exact casing
-  const isAdmin = userId === ADMIN_UID;
-
-  // Show admin panel only if admin
-  if (adminPanel) adminPanel.style.display = isAdmin ? 'block' : 'none';
-  if (itemForm) itemForm.style.display = isAdmin ? 'block' : 'none';
-
-  // ========================
-  // ALL BIDS (newest first)
-  // ========================
-  const allBidsQuery = query(
-    collection(db, 'bids'),
-    orderBy('timestamp', 'desc')
-  );
-
-  onSnapshot(allBidsQuery, snapshot => {
-    if (!bidsContainer) return;
-    bidsContainer.innerHTML = '';
-    if (snapshot.empty) {
-      bidsContainer.innerHTML = '<p>No bids yet.</p>';
-      return;
-    }
-
-    snapshot.docs.forEach(docSnap => {
-      const bid = docSnap.data();
-      const bidCard = document.createElement('div');
-      bidCard.className = 'bid-card';
-      const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
-      bidCard.innerHTML = `
-        <a href="item.html?id=${bid.listingid}">
-          Listing ID: ${bid.listingid} – ${formatPrice(bid.bidamount)} by ${bid.useremail} on ${dateStr}
-        </a>
-      `;
-      bidsContainer.appendChild(bidCard);
-    });
-  });
-
-  // ========================
-  // ENDED / LIVE AUCTIONS
-  // ========================
-  const endedAuctionsQuery = query(
-    collection(db, 'listings'),
-    orderBy('createdat', 'desc') // newest first
-  );
-
-  onSnapshot(endedAuctionsQuery, snapshot => {
-    if (!endedAuctionsContainer) return;
-    endedAuctionsContainer.innerHTML = '';
-    if (snapshot.empty) {
-      endedAuctionsContainer.innerHTML = '<p>No auctions found.</p>';
-      return;
-    }
-
-    snapshot.docs.forEach(docSnap => {
-      const auction = docSnap.data();
-      const auctionCard = document.createElement('div');
-      auctionCard.className = 'auction-card';
-      const endDate = auction.endedat?.seconds ? new Date(auction.endedat.seconds * 1000).toLocaleDateString() : 'Unknown';
-
-      // Only show edit button if admin
-      const editButton = isAdmin
-        ? `<button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Listing</button>`
-        : '';
-
-      auctionCard.innerHTML = `
-        <a href="item.html?id=${docSnap.id}">
-          ${auction.name} – ${formatPrice(auction.winningbid || auction.price)} – Ends: ${endDate}
-        </a>
-        ${editButton}
-      `;
-      endedAuctionsContainer.appendChild(auctionCard);
-    });
-  });
-
-  // ========================
-  // PRIVATE SALES (optional edits)
-  // ========================
-  const privateSalesQuery = query(
-    collection(db, 'privatesales'),
-    orderBy('createdat', 'desc')
-  );
-
-  onSnapshot(privateSalesQuery, snapshot => {
-    if (!endedAuctionsContainer) return; // reuse endedAuctionsContainer
-    snapshot.docs.forEach(docSnap => {
-      const sale = docSnap.data();
-      const saleCard = document.createElement('div');
-      saleCard.className = 'auction-card';
-
-      const editButton = isAdmin
-        ? `<button onclick="editItem('privatesales', '${docSnap.id}', { name: '${sale.name}', saletype: '${sale.saletype}' })">Edit Private Sale</button>`
-        : '';
-
-      saleCard.innerHTML = `
-        <a href="item.html?id=${docSnap.id}">
-          ${sale.name} – ${formatPrice(sale.price)} – Private Sale
-        </a>
-        ${editButton}
-      `;
-      endedAuctionsContainer.appendChild(saleCard);
-    });
-  });
 });
 
-// Call function on page load
-document.addEventListener('DOMContentLoaded', () => {});
+onAuthStateChanged(auth, (user) => {
+  if (user && user.uid === ADMIN_UID) {
+    passwordScreen.style.display = "none";
+    adminPanel.style.display = "block";
+    loadItems();
+    loadBids();
+  }
+});
+
+/* ---------- AUCTION FIELD TOGGLE ---------- */
+const saleTypeSelect = document.getElementById("sale_type");
+const auctionFields = document.getElementById("auction-fields");
+
+if (saleTypeSelect && auctionFields) {
+  saleTypeSelect.addEventListener("change", () => {
+    auctionFields.style.display =
+      saleTypeSelect.value === "live_auctions" ? "block" : "none";
+  });
+}
+
+/* ---------- Add / Update Item ---------- */
+const itemForm = document.getElementById("item-form");
+
+itemForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  try {
+    const formData = new FormData(itemForm);
+    const saleType = formData.get("sale_type");
+
+    let collectionName =
+      saleType === "private_sales" ? "privatesales" : "listings";
+
+    const data = {
+      name: formData.get("item_name"),
+      description: formData.get("item_description"),
+      price: Number(formData.get("item_price")),
+      pricetype: formData.get("price_type"),
+      saletype: saleType,
+      createdat: serverTimestamp()
+    };
+
+    /* ---------- AUCTION DATA ---------- */
+    if (saleType === "live_auctions") {
+      const auctionStart = formData.get("auctionstart");
+      const auctionEnd = formData.get("auctionend");
+
+      data.auctionstart = auctionStart ? new Date(auctionStart) : null;
+      data.auctionend = auctionEnd ? new Date(auctionEnd) : null;
+      data.status = "live";
+      data.winnerid = null;
+      data.winningbid = null;
+    }
+
+    const file = formData.get("item_image");
+    if (file && file.name) {
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
+      uploadForm.append("upload_preset", "Profile_pictures");
+      uploadForm.append("folder", "itemPics");
+
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/def0sfrxq/image/upload",
+        { method: "POST", body: uploadForm }
+      );
+
+      const img = await res.json();
+      if (!img.secure_url) throw new Error("Image upload failed");
+      data.image = img.secure_url;
+    }
+
+    const itemId = document.getElementById("item_id").value;
+
+    if (itemId) {
+      await updateDoc(doc(db, collectionName, itemId), data);
+    } else {
+      await addDoc(collection(db, collectionName), data);
+    }
+
+    itemForm.reset();
+    document.getElementById("item_id").value = "";
+    auctionFields.style.display = "none";
+    alert("Item saved ✅");
+
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+/* ---------- Load Items ---------- */
+const itemsList = document.getElementById("items-list");
+
+function loadItems() {
+  itemsList.innerHTML = "";
+
+  const sections = [
+    { title: "PRIVATE SALES", col: "privatesales" },
+    { title: "LISTINGS (AUCTIONS / KOLLECT)", col: "listings" }
+  ];
+
+  sections.forEach(({ title, col }) => {
+    const section = document.createElement("div");
+    section.innerHTML = `<h4>${title}</h4>`;
+    itemsList.appendChild(section);
+
+    onSnapshot(collection(db, col), snapshot => {
+      section.innerHTML = `<h4>${title}</h4>`;
+
+      snapshot.forEach(d => {
+        const item = d.data();
+        section.innerHTML += `
+          <p>${item.name} – £${item.price}</p>
+          <button onclick="editItem('${d.id}','${col}')">Edit</button>
+          <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
+        `;
+      });
+    });
+  });
+}
+
+/* ---------- Edit / Delete ---------- */
+window.editItem = async (id, col) => {
+  const snap = await getDoc(doc(db, col, id));
+  if (!snap.exists()) return;
+
+  const d = snap.data();
+  document.querySelector('[name="item_name"]').value = d.name || "";
+  document.querySelector('[name="item_description"]').value = d.description || "";
+  document.querySelector('[name="item_price"]').value = d.price || "";
+  document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
+  document.querySelector('[name="sale_type"]').value = d.saletype || "";
+  document.getElementById("item_id").value = id;
+
+  if (d.saletype === "live_auctions") {
+    auctionFields.style.display = "block";
+    if (d.auctionstart)
+      document.querySelector('[name="auctionstart"]').value =
+        d.auctionstart.toDate().toISOString().slice(0, 16);
+    if (d.auctionend)
+      document.querySelector('[name="auctionend"]').value =
+        d.auctionend.toDate().toISOString().slice(0, 16);
+  }
+};
+
+window.deleteItem = async (id, col) => {
+  if (!confirm("Delete this item?")) return;
+  await deleteDoc(doc(db, col, id));
+  alert("Deleted");
+};
+
+/* ---------- Load Bids with Pagination (10 per page) ---------- */
+let allBids = [];
+let currentPage = 1;
+const bidsPerPage = 10;
+
+function renderBidsPage(page) {
+  const bidsList = document.getElementById("bids-list");
+  bidsList.innerHTML = "";
+
+  const startIndex = (page - 1) * bidsPerPage;
+  const endIndex = startIndex + bidsPerPage;
+  const pageBids = allBids.slice(startIndex, endIndex);
+
+  pageBids.forEach(b => {
+    bidsList.innerHTML += `
+      <p>
+        <strong>${b.itemName}</strong><br>
+        Live Price: £${b.livePrice}<br>
+        Bid: £${b.bidAmount}<br>
+        User: ${b.userEmail || "Unknown"}
+      </p>
+    `;
+  });
+
+  renderPaginationControls();
+}
+
+function renderPaginationControls() {
+  let controls = document.getElementById("pagination-controls");
+  if (!controls) {
+    controls = document.createElement("div");
+    controls.id = "pagination-controls";
+    controls.style.marginTop = "10px";
+    document.getElementById("bids-list").after(controls);
+  }
+  controls.innerHTML = "";
+
+  const totalPages = Math.ceil(allBids.length / bidsPerPage);
+
+  if (currentPage > 1) {
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Previous";
+    prevBtn.onclick = () => { currentPage--; renderBidsPage(currentPage); };
+    controls.appendChild(prevBtn);
+  }
+
+  if (currentPage < totalPages) {
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.onclick = () => { currentPage++; renderBidsPage(currentPage); };
+    controls.appendChild(nextBtn);
+  }
+}
+
+function loadBids() {
+  allBids = [];
+
+  onSnapshot(collection(db, "bids"), async snapshot => {
+    allBids = [];
+
+    for (const d of snapshot.docs) {
+      const b = d.data();
+
+      if (!b.listingid) continue;
+
+      const listingSnap = await getDoc(doc(db, "listings", b.listingid));
+      if (!listingSnap.exists()) continue;
+
+      const listing = listingSnap.data();
+
+      allBids.push({
+        itemName: listing.name,
+        livePrice: listing.price,
+        bidAmount: b.bidamount,
+        userEmail: b.useremail || "Unknown"
+      });
+    }
+
+    currentPage = 1;
+    renderBidsPage(currentPage);
+  });
+}
