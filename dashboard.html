@@ -5,10 +5,302 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { firebaseConfig } from "./firebase.js";
+
+// ---------- Firebase Initialization ----------
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ---------- DOM Elements ----------
+const userStatus = document.getElementById("user-status");
+const logoutButton = document.getElementById("logout-button");
+const body = document.body;
+const editBtn = document.getElementById("edit-btn");
+const saveBtn = document.getElementById("save-btn");
+const profilePicEl = document.getElementById("profile-pic");
+const profileUpload = document.getElementById("profile-upload");
+const bidsContainer = document.getElementById("won-bids-container");
+const salesContainer = document.getElementById("purchase-history-container");
+const welcomeName = document.getElementById("welcome-name");
+
+// Updated input IDs
+const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
+const inputs = fields.map(f => document.getElementById(f));
+
+// ---------- Burger Menu & Light/Dark Mode ----------
+window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
+if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
+window.toggleMode = () => {
+  const isLight = body.classList.toggle("light-mode");
+  localStorage.setItem("lightMode", isLight);
+};
+
+// ---------- Logout ----------
+window.logoutUser = async () => {
+  try { 
+    await signOut(auth); 
+    window.location.href = "create_account.html";
+  } catch(e) { console.error("Logout failed:", e); }
+};
+
+// ---------- Helper: format price ----------
+const formatPrice = (price) => {
+  if(!price && price !== 0) return "£0";
+  return "£" + Number(price).toLocaleString();
+};
+
+// ---------- Auth & Dashboard ----------
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return window.location.href = "create_account.html";
+
+  userStatus.textContent = `Logged in as ${user.email}`;
+  logoutButton.style.display = "inline-block";
+
+  const docRef = doc(db, "users", user.uid);
+
+  // ---------- Load profile info ----------
+  onSnapshot(docRef, (docSnap) => {
+    if(docSnap.exists()){
+      const data = docSnap.data();
+      document.getElementById("first-name-input").value = data.firstName || "";
+      document.getElementById("last-name-input").value = data.lastName || "";
+      document.getElementById("email-input").value = data.email || "";
+      document.getElementById("contact-input").value = data.contact || "";
+      document.getElementById("address1-input").value = data.address1 || "";
+      document.getElementById("address2-input").value = data.address2 || "";
+      document.getElementById("city-input").value = data.city || "";
+      document.getElementById("postcode-input").value = data.postcode || "";
+      welcomeName.textContent = data.firstName || "User";
+      if(data.profilepicurl) profilePicEl.src = data.profilepicurl;
+    }
+  });
+
+  // ---------- Enable editing ----------
+  editBtn.addEventListener("click", () => {
+    inputs.forEach(i => i.removeAttribute("readonly"));
+    profileUpload.style.display = "block";
+    editBtn.style.display = "none";
+    saveBtn.style.display = "inline-block";
+  });
+
+  // ---------- Save changes ----------
+  saveBtn.addEventListener("click", async () => {
+    let profilepicurl = profilePicEl.src;
+
+    if(profileUpload.files.length > 0){
+      const file = profileUpload.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "Profile_pictures"); 
+      formData.append("folder", "profilePics");
+
+      const cloudName = "def0sfrxq";
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      const res = await fetch(url, { method: "POST", body: formData });
+      const data = await res.json();
+      profilepicurl = data.secure_url;
+      profilePicEl.src = profilepicurl;
+    }
+
+    await updateDoc(docRef, {
+      firstName: document.getElementById("first-name-input").value.trim(),
+      lastName: document.getElementById("last-name-input").value.trim(),
+      email: document.getElementById("email-input").value.trim(),
+      contact: document.getElementById("contact-input").value.trim(),
+      address1: document.getElementById("address1-input").value.trim(),
+      address2: document.getElementById("address2-input").value.trim(),
+      city: document.getElementById("city-input").value.trim(),
+      postcode: document.getElementById("postcode-input").value.trim(),
+      profilepicurl
+    });
+
+    inputs.forEach(i => i.setAttribute("readonly",""));
+    profileUpload.style.display = "none";
+    editBtn.style.display = "inline-block";
+    saveBtn.style.display = "none";
+
+    welcomeName.textContent = document.getElementById("first-name-input").value.trim() || "User";
+    alert("Profile updated!");
+  });
+
+  // ---------- Profile picture preview ----------
+  profileUpload.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if(file) profilePicEl.src = URL.createObjectURL(file);
+  });
+
+  // ---------- Won Bids Live Update ----------
+  const wonBidsQuery = query(
+    collection(db, "bids"),
+    where("userId", "==", user.uid),
+    where("outbid", "==", false),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(wonBidsQuery, (snapshot) => {
+    if (!bidsContainer) return;
+    bidsContainer.innerHTML = "<h2>Won Bids</h2>";
+    if(snapshot.empty){
+      bidsContainer.innerHTML += "<p>No won bids yet.</p>";
+      return;
+    }
+    snapshot.forEach(doc => {
+      const bid = doc.data();
+      const bidEl = document.createElement("div");
+      bidEl.className = "bid-card";
+      const dateStr = bid.createdAt?.seconds ? new Date(bid.createdAt.seconds * 1000).toLocaleDateString() : "Unknown date";
+      const link = document.createElement("a");
+      link.href = `item.html?id=${bid.itemId}`;
+      link.textContent = `${bid.itemName} – ${formatPrice(bid.bidAmount)} on ${dateStr}`;
+      bidEl.appendChild(link);
+      bidsContainer.appendChild(bidEl);
+    });
+  });
+
+  // ---------- Purchase History Live Update ----------
+  const purchaseQuery = query(
+    collection(db, "successfulsales"),
+    where("buyerId", "==", user.uid),
+    orderBy("date", "desc")
+  );
+
+  onSnapshot(purchaseQuery, (snapshot) => {
+    if (!salesContainer) return;
+    salesContainer.innerHTML = "<h2>Purchase History</h2>";
+    if(snapshot.empty){
+      salesContainer.innerHTML += "<p>No purchases yet.</p>";
+      return;
+    }
+    snapshot.forEach(doc => {
+      const sale = doc.data();
+      const dateStr = sale.date?.seconds ? new Date(sale.date.seconds * 1000).toLocaleDateString() : "Unknown date";
+      const saleEl = document.createElement("div");
+      saleEl.className = "bid-card";
+      const link = document.createElement("a");
+      link.href = `item.html?id=${sale.itemId}`;
+      link.textContent = `${sale.itemName} – ${formatPrice(sale.price)} (${sale.purchaseType}) on ${dateStr}`;
+      saleEl.appendChild(link);
+      salesContainer.appendChild(saleEl);
+    });
+  });
+});
+</script>
+
+<style>
+.container input {
+  background-color: #1e1e1e;
+  border: 2px solid #FFD700;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+  margin: 5px 0;
+  list-style: none;
+}
+
+.container ul {
+  padding-left: 0;
+  list-style: none;
+}
+
+.dashboard-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.dashboard-cards .card {
+  flex: 1 1 300px;
+  min-width: 280px;
+}
+
+#bids-container, #purchase-history-container {
+  padding:15px;
+  background:#1e1e1e;
+  border:2px solid #FFD700;
+  border-radius:5px;
+}
+
+.bid-card {
+  background:#2a2a2a;
+  border:1px solid #FFD700;
+  padding:8px;
+  margin-bottom:5px;
+  border-radius:4px;
+}
+
+.bid-card a {
+  color:#FFD700;
+  text-decoration:none;
+  display:block;
+}
+
+.bid-card a:hover {
+  text-decoration:underline;
+}
+
+#welcome-name {
+  font-weight: normal;
+  color: inherit;
+  font-size: inherit;
+}
+
+#logout-button {
+  background-color: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  border: 2px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#logout-button:hover {
+  background-color: #fff;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
+}
+
+.consign-btn {
+  display: inline-block;
+  background-color: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid #1e1e1e;
+  transition: all 0.3s ease;
+}
+
+.consign-btn:hover {
+  background-color: #fff;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .dashboard-cards {
+    flex-direction: column;
+  }
+}
+</style>
 </head>
 <body>
 
-<div class="burger" onclick="toggleMenu()"><div></div><div></div><div></div></div>
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
 
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
@@ -58,16 +350,3 @@
     </div>
 
     <div id="purchase-history-container" class="card">
-      <h2>Purchase History</h2>
-      <p>Loading your purchase history…</p>
-    </div>
-
-    <div id="live-bids-container" class="card" data-filter-user="true">
-      <h2>Your Live Bids</h2>
-      <p>Loading your live bids…</p>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
