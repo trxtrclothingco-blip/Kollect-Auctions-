@@ -5,29 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
-</head>
+<style>
+/* Bid List Pagination Styling */
+#bids-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
 
+.bid-item {
+  border-bottom: 1px solid #ccc;
+  padding: 8px 0;
+}
+
+#pagination-controls {
+  margin-top: 10px;
+  text-align: center;
+}
+
+#pagination-controls button {
+  margin: 0 5px;
+}
+</style>
+</head>
 <body>
 
-<!-- Burger Menu -->
-<div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
-</div>
-
-<!-- Navigation -->
-<nav class="nav-menu" id="navMenu">
-  <a href="index.html">Home</a>
-  <a href="dashboard.html" id="dashboardNav" style="display:none;">Dashboard</a>
-  <a href="about.html">About Us</a>
-  <a href="live_auctions.html">Live Auctions</a>
-  <a href="kollect_100.html">Kollect 100</a>
-  <a href="private_sales.html">Private Sales</a>
-  <a href="contact.html">Contact Us</a>
-  <a href="admin.html">Admin</a>
-  <a href="results.html">Results</a>
-  <a href="create_account.html">Sign In</a>
-</nav>
- <div id="user-status">Checking login status...</div> 
 <div class="container">
 
   <!-- Password Screen -->
@@ -42,6 +44,7 @@
   <!-- Admin Panel -->
   <div id="admin-panel" style="display:none;">
     
+    <!-- Home Button -->
     <a href="index.html" class="button" style="margin-bottom: 20px; display: inline-block;">
       Home
     </a>
@@ -50,22 +53,34 @@
     <h1>Admin Panel</h1>
     <p>Only authorized personnel can access and manage auction data here.</p>
 
+    <!-- Bids -->
     <div class="card">
       <h3>View All Bids</h3>
       <p style="font-size:14px; opacity:0.8;">
         Showing live price from listings (10 per page)
       </p>
-      <div id="bids-list"></div>
+      <div id="bids-list">
+        <!-- admin.js injects bid items -->
+      </div>
     </div>
 
+    <!-- ✅ ENDED AUCTIONS -->
     <div class="card">
       <h3>Ended Auctions</h3>
       <p style="font-size:14px; opacity:0.8;">
         Completed auctions with winner and final bid
       </p>
-      <div id="ended-auctions-list"></div>
+      <div id="ended-auctions-list">
+        <!-- admin.js injects:
+             ended auction cards
+             winner email
+             winning bid
+             ended timestamp
+        -->
+      </div>
     </div>
 
+    <!-- Add/Edit Item -->
     <div class="card">
       <h3>Add / Edit Item</h3>
       <form id="item-form">
@@ -90,9 +105,11 @@
           <option value="kollect_100">Kollect 100</option>
         </select>
 
+        <!-- AUCTION ONLY FIELDS -->
         <div id="auction-fields" style="display:none;">
           <label>Auction Start</label>
           <input type="datetime-local" name="auctionstart">
+
           <label>Auction End</label>
           <input type="datetime-local" name="auctionend">
         </div>
@@ -104,6 +121,7 @@
       </form>
     </div>
 
+    <!-- Manage Items -->
     <div class="card">
       <h3>Manage Items</h3>
       <div id="items-list"></div>
@@ -112,11 +130,6 @@
   </div>
 </div>
 
-<!-- SAME SCRIPT AS WORKING PAGES -->
-<script type="module" src="script.js"></script>
-
-<!-- ADMIN LOGIC -->
 <script type="module" src="admin.js"></script>
-
 </body>
 </html>
