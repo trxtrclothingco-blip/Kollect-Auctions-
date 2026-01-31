@@ -27,6 +27,37 @@
 #pagination-controls button {
   margin: 0 5px;
 }
+
+/* ADMIN PAGE ONLY — MOBILE MENU FIX */
+@media (max-width: 768px) {
+  body {
+    overflow-x: visible; /* allow menu to slide out fully */
+  }
+
+  .nav-menu {
+    position: fixed; /* independent of container */
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 80vw;
+    max-width: 300px;
+    z-index: 9999;
+    background: #fff; /* same as menu background */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+    transform: translateX(-100%); /* start hidden */
+    transition: transform 0.3s ease;
+  }
+
+  .nav-menu.active {
+    transform: translateX(0);
+  }
+
+  .nav-menu a {
+    display: block;
+    padding: 1em;
+    white-space: normal; /* wrap full text */
+  }
+}
 </style>
 </head>
 
@@ -132,6 +163,12 @@
 
   </div>
 </div>
+
+<script>
+function toggleMenu() {
+  document.getElementById("navMenu").classList.toggle("active");
+}
+</script>
 
 <!-- SAME SCRIPT AS WORKING PAGES -->
 <script type="module" src="script.js"></script>
