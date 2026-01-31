@@ -10,16 +10,19 @@ import {
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
 // DOM elements
-const liveAuctionsContainer = document.getElementById('live-auctions-container'); // Show all live auctions
-const allBidsContainer = document.getElementById('all-bids-container'); // Show all bids
-const endedAuctionsContainer = document.getElementById('ended-auctions-container'); // Optional: ended auctions
+const bidsContainer = document.getElementById('bids-list'); // all bids
+const endedAuctionsContainer = document.getElementById('ended-auctions-list'); // live/ended auctions
 
 function formatPrice(price) {
   if (!price && price !== 0) return '£0';
   return '£' + Number(price).toLocaleString();
 }
 
-// Function to edit a listing (listings or privatesales)
+// Admin info
+const ADMIN_EMAIL = 'peterjames-barrett@outlook.com';
+const ADMIN_UID = 'gBrbEobcS5RCG47acE5ySqxO8yB2';
+
+// Edit function for listings and private sales
 async function editItem(collectionName, itemId, updatedData) {
   try {
     const itemRef = doc(db, collectionName, itemId);
@@ -33,47 +36,14 @@ async function editItem(collectionName, itemId, updatedData) {
 
 auth.onAuthStateChanged(user => {
   if (!user) {
-    if (liveAuctionsContainer) liveAuctionsContainer.innerHTML = '<p>Please log in to see auctions.</p>';
-    if (allBidsContainer) allBidsContainer.innerHTML = '<p>Please log in to see bids.</p>';
-    if (endedAuctionsContainer) endedAuctionsContainer.innerHTML = '<p>Please log in to see ended auctions.</p>';
+    if (bidsContainer) bidsContainer.innerHTML = '<p>Please log in to see bids.</p>';
+    if (endedAuctionsContainer) endedAuctionsContainer.innerHTML = '<p>Please log in to see auctions.</p>';
     return;
   }
 
   const userId = user.uid;
   const userEmail = user.email;
-
-  // ========================
-  // LIVE AUCTIONS (status = live)
-  // ========================
-  const liveAuctionsQuery = query(
-    collection(db, 'listings'),
-    where('status', '==', 'live'),
-    orderBy('auctionstart', 'desc') // newest auctions first
-  );
-
-  onSnapshot(liveAuctionsQuery, snapshot => {
-    if (!liveAuctionsContainer) return;
-    liveAuctionsContainer.innerHTML = '<h2>Live Auctions</h2>';
-    if (snapshot.empty) {
-      liveAuctionsContainer.innerHTML += '<p>No live auctions currently.</p>';
-      return;
-    }
-
-    snapshot.docs.forEach(docSnap => {
-      const auction = docSnap.data();
-      const auctionCard = document.createElement('div');
-      auctionCard.className = 'auction-card';
-      const startDate = auction.auctionstart?.seconds ? new Date(auction.auctionstart.seconds * 1000).toLocaleDateString() : 'Unknown';
-      const endDate = auction.endedat?.seconds ? new Date(auction.endedat.seconds * 1000).toLocaleDateString() : 'Unknown';
-      auctionCard.innerHTML = `
-        <a href="item.html?id=${docSnap.id}">
-          ${auction.name} – ${formatPrice(auction.price)} – ${startDate} to ${endDate}
-        </a>
-        <button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Item</button>
-      `;
-      liveAuctionsContainer.appendChild(auctionCard);
-    });
-  });
+  const isAdmin = userId === ADMIN_UID || userEmail === ADMIN_EMAIL;
 
   // ========================
   // ALL BIDS (newest first)
@@ -84,10 +54,10 @@ auth.onAuthStateChanged(user => {
   );
 
   onSnapshot(allBidsQuery, snapshot => {
-    if (!allBidsContainer) return;
-    allBidsContainer.innerHTML = '<h2>All Bids</h2>';
+    if (!bidsContainer) return;
+    bidsContainer.innerHTML = '';
     if (snapshot.empty) {
-      allBidsContainer.innerHTML += '<p>No bids yet.</p>';
+      bidsContainer.innerHTML = '<p>No bids yet.</p>';
       return;
     }
 
@@ -101,24 +71,23 @@ auth.onAuthStateChanged(user => {
           Listing ID: ${bid.listingid} – ${formatPrice(bid.bidamount)} by ${bid.useremail} on ${dateStr}
         </a>
       `;
-      allBidsContainer.appendChild(bidCard);
+      bidsContainer.appendChild(bidCard);
     });
   });
 
   // ========================
-  // ENDED AUCTIONS (status = ended)
+  // ENDED / LIVE AUCTIONS
   // ========================
   const endedAuctionsQuery = query(
     collection(db, 'listings'),
-    where('status', '==', 'ended'),
-    orderBy('endedat', 'desc')
+    orderBy('createdat', 'desc') // newest first
   );
 
   onSnapshot(endedAuctionsQuery, snapshot => {
     if (!endedAuctionsContainer) return;
-    endedAuctionsContainer.innerHTML = '<h2>Ended Auctions</h2>';
+    endedAuctionsContainer.innerHTML = '';
     if (snapshot.empty) {
-      endedAuctionsContainer.innerHTML += '<p>No ended auctions yet.</p>';
+      endedAuctionsContainer.innerHTML = '<p>No auctions found.</p>';
       return;
     }
 
@@ -127,18 +96,24 @@ auth.onAuthStateChanged(user => {
       const auctionCard = document.createElement('div');
       auctionCard.className = 'auction-card';
       const endDate = auction.endedat?.seconds ? new Date(auction.endedat.seconds * 1000).toLocaleDateString() : 'Unknown';
+
+      // Only show edit button if admin
+      const editButton = isAdmin
+        ? `<button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Listing</button>`
+        : '';
+
       auctionCard.innerHTML = `
         <a href="item.html?id=${docSnap.id}">
-          ${auction.name} – ${formatPrice(auction.winningbid || auction.price)} – Ended on ${endDate}
+          ${auction.name} – ${formatPrice(auction.winningbid || auction.price)} – Ends: ${endDate}
         </a>
-        <button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Listing</button>
+        ${editButton}
       `;
       endedAuctionsContainer.appendChild(auctionCard);
     });
   });
 
   // ========================
-  // PRIVATE SALES (optional)
+  // PRIVATE SALES (optional edits)
   // ========================
   const privateSalesQuery = query(
     collection(db, 'privatesales'),
@@ -146,16 +121,22 @@ auth.onAuthStateChanged(user => {
   );
 
   onSnapshot(privateSalesQuery, snapshot => {
-    if (!endedAuctionsContainer) return; // Reuse endedAuctionsContainer or create a new container
+    if (!endedAuctionsContainer) return; // reuse endedAuctionsContainer
     snapshot.docs.forEach(docSnap => {
       const sale = docSnap.data();
       const saleCard = document.createElement('div');
       saleCard.className = 'auction-card';
+
+      // Only show edit button if admin
+      const editButton = isAdmin
+        ? `<button onclick="editItem('privatesales', '${docSnap.id}', { name: '${sale.name}', saletype: '${sale.saletype}' })">Edit Private Sale</button>`
+        : '';
+
       saleCard.innerHTML = `
         <a href="item.html?id=${docSnap.id}">
           ${sale.name} – ${formatPrice(sale.price)} – Private Sale
         </a>
-        <button onclick="editItem('privatesales', '${docSnap.id}', { name: '${sale.name}', saletype: '${sale.saletype}' })">Edit Private Sale</button>
+        ${editButton}
       `;
       endedAuctionsContainer.appendChild(saleCard);
     });
