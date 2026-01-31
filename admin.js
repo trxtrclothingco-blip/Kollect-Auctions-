@@ -1,153 +1,166 @@
 import { db, auth } from './firebase.js';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  getDoc,
-  doc,
-  setDoc,
-  updateDoc,
-  getDocs
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot, 
+  doc, 
+  updateDoc 
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
 // DOM elements
-const liveBidsContainer = document.getElementById('live-bids-container');
-const wonBidsContainer = document.getElementById('won-bids-container');
-const bidsList = document.getElementById('bids-list');
-const endedAuctionsList = document.getElementById('ended-auctions-list');
-const itemsList = document.getElementById('items-list');
-const itemForm = document.getElementById('item-form');
+const liveAuctionsContainer = document.getElementById('live-auctions-container'); // Show all live auctions
+const allBidsContainer = document.getElementById('all-bids-container'); // Show all bids
+const endedAuctionsContainer = document.getElementById('ended-auctions-container'); // Optional: ended auctions
 
 function formatPrice(price) {
   if (!price && price !== 0) return '£0';
   return '£' + Number(price).toLocaleString();
 }
 
-// ========================
-// ADMIN BIDS AND AUCTIONS
-// ========================
-auth.onAuthStateChanged(async (user) => {
-  if (!user) return;
+// Function to edit a listing (listings or privatesales)
+async function editItem(collectionName, itemId, updatedData) {
+  try {
+    const itemRef = doc(db, collectionName, itemId);
+    await updateDoc(itemRef, updatedData);
+    alert(`${collectionName} item ${itemId} updated successfully.`);
+  } catch (err) {
+    console.error('Error updating item:', err);
+    alert('Failed to update item.');
+  }
+}
 
-  const userId = user.uid.toLowerCase();
-
-  // -------------------
-  // All live bids
-  // -------------------
-  if (bidsList) {
-    const bidsQuery = query(collection(db, 'bids'), orderBy('timestamp', 'desc'));
-    onSnapshot(bidsQuery, async snapshot => {
-      bidsList.innerHTML = '';
-      if (snapshot.empty) {
-        bidsList.innerHTML = '<p>No bids found.</p>';
-        return;
-      }
-
-      for (const docSnap of snapshot.docs) {
-        const bid = docSnap.data();
-        const listingSnap = await getDoc(doc(db, 'listings', bid.listingid));
-        const listing = listingSnap.exists() ? listingSnap.data() : { name: 'Unknown', status: 'unknown' };
-        const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleString() : 'Unknown date';
-        const bidCard = document.createElement('div');
-        bidCard.className = 'bid-card';
-        bidCard.innerHTML = `
-          <strong>${listing.name}</strong> – ${formatPrice(bid.bidamount)} by ${bid.userid} (${listing.status}) on ${dateStr}
-        `;
-        bidsList.appendChild(bidCard);
-      }
-    });
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    if (liveAuctionsContainer) liveAuctionsContainer.innerHTML = '<p>Please log in to see auctions.</p>';
+    if (allBidsContainer) allBidsContainer.innerHTML = '<p>Please log in to see bids.</p>';
+    if (endedAuctionsContainer) endedAuctionsContainer.innerHTML = '<p>Please log in to see ended auctions.</p>';
+    return;
   }
 
-  // -------------------
-  // Ended auctions
-  // -------------------
-  if (endedAuctionsList) {
-    const endedQuery = query(collection(db, 'listings'), where('status', '==', 'ended'), orderBy('endedat', 'desc'));
-    onSnapshot(endedQuery, snapshot => {
-      endedAuctionsList.innerHTML = '';
-      if (snapshot.empty) {
-        endedAuctionsList.innerHTML = '<p>No ended auctions found.</p>';
-        return;
-      }
+  const userId = user.uid;
+  const userEmail = user.email;
 
-      snapshot.docs.forEach(listingSnap => {
-        const listing = listingSnap.data();
-        const endDate = listing.endedat ? new Date(listing.endedat.seconds * 1000).toLocaleString() : 'Unknown';
-        const card = document.createElement('div');
-        card.className = 'bid-card';
-        card.innerHTML = `
-          <strong>${listing.name}</strong> – Ended on ${endDate} – Winner: ${listing.winnerid || 'N/A'} – Winning Bid: ${formatPrice(listing.winningbid || 0)}
-        `;
-        endedAuctionsList.appendChild(card);
-      });
-    });
-  }
+  // ========================
+  // LIVE AUCTIONS (status = live)
+  // ========================
+  const liveAuctionsQuery = query(
+    collection(db, 'listings'),
+    where('status', '==', 'live'),
+    orderBy('auctionstart', 'desc') // newest auctions first
+  );
 
-  // -------------------
-  // Load all products for editing
-  // -------------------
-  if (itemsList) {
-    const listingsSnap = await getDocs(collection(db, 'listings'));
-    itemsList.innerHTML = '';
-    listingsSnap.forEach(docSnap => {
-      const listing = docSnap.data();
-      const card = document.createElement('div');
-      card.className = 'bid-card';
-      card.innerHTML = `
-        <strong>${listing.name}</strong> – ${formatPrice(listing.price || 0)}
-        <button data-id="${docSnap.id}" class="edit-item-btn">Edit</button>
-      `;
-      itemsList.appendChild(card);
-    });
-
-    // Edit button click
-    document.querySelectorAll('.edit-item-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.dataset.id;
-        const docSnap = await getDoc(doc(db, 'listings', id));
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-
-        itemForm.item_id.value = id;
-        itemForm.item_name.value = data.name || '';
-        itemForm.item_description.value = data.description || '';
-        itemForm.item_price.value = data.price || '';
-        itemForm.price_type.value = data.price_type || 'fixed';
-        itemForm.sale_type.value = data.sale_type || '';
-        itemForm.auctionstart.value = data.auctionstart || '';
-        itemForm.auctionend.value = data.auctionend || '';
-      });
-    });
-  }
-});
-
-// -------------------
-// Item form submit
-// -------------------
-if (itemForm) {
-  itemForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const id = itemForm.item_id.value || null;
-    const name = itemForm.item_name.value;
-    const description = itemForm.item_description.value;
-    const price = Number(itemForm.item_price.value);
-    const price_type = itemForm.price_type.value;
-    const sale_type = itemForm.sale_type.value;
-    const auctionstart = itemForm.auctionstart.value || null;
-    const auctionend = itemForm.auctionend.value || null;
-
-    const docData = { name, description, price, price_type, sale_type, auctionstart, auctionend, status: sale_type === 'live_auctions' ? 'live' : 'active' };
-
-    if (id) {
-      await updateDoc(doc(db, 'listings', id), docData);
-      alert('Item updated successfully.');
-    } else {
-      await setDoc(doc(collection(db, 'listings')), docData);
-      alert('Item added successfully.');
+  onSnapshot(liveAuctionsQuery, snapshot => {
+    if (!liveAuctionsContainer) return;
+    liveAuctionsContainer.innerHTML = '<h2>Live Auctions</h2>';
+    if (snapshot.empty) {
+      liveAuctionsContainer.innerHTML += '<p>No live auctions currently.</p>';
+      return;
     }
 
-    itemForm.reset();
+    snapshot.docs.forEach(docSnap => {
+      const auction = docSnap.data();
+      const auctionCard = document.createElement('div');
+      auctionCard.className = 'auction-card';
+      const startDate = auction.auctionstart?.seconds ? new Date(auction.auctionstart.seconds * 1000).toLocaleDateString() : 'Unknown';
+      const endDate = auction.endedat?.seconds ? new Date(auction.endedat.seconds * 1000).toLocaleDateString() : 'Unknown';
+      auctionCard.innerHTML = `
+        <a href="item.html?id=${docSnap.id}">
+          ${auction.name} – ${formatPrice(auction.price)} – ${startDate} to ${endDate}
+        </a>
+        <button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Item</button>
+      `;
+      liveAuctionsContainer.appendChild(auctionCard);
+    });
   });
-}
+
+  // ========================
+  // ALL BIDS (newest first)
+  // ========================
+  const allBidsQuery = query(
+    collection(db, 'bids'),
+    orderBy('timestamp', 'desc')
+  );
+
+  onSnapshot(allBidsQuery, snapshot => {
+    if (!allBidsContainer) return;
+    allBidsContainer.innerHTML = '<h2>All Bids</h2>';
+    if (snapshot.empty) {
+      allBidsContainer.innerHTML += '<p>No bids yet.</p>';
+      return;
+    }
+
+    snapshot.docs.forEach(docSnap => {
+      const bid = docSnap.data();
+      const bidCard = document.createElement('div');
+      bidCard.className = 'bid-card';
+      const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
+      bidCard.innerHTML = `
+        <a href="item.html?id=${bid.listingid}">
+          Listing ID: ${bid.listingid} – ${formatPrice(bid.bidamount)} by ${bid.useremail} on ${dateStr}
+        </a>
+      `;
+      allBidsContainer.appendChild(bidCard);
+    });
+  });
+
+  // ========================
+  // ENDED AUCTIONS (status = ended)
+  // ========================
+  const endedAuctionsQuery = query(
+    collection(db, 'listings'),
+    where('status', '==', 'ended'),
+    orderBy('endedat', 'desc')
+  );
+
+  onSnapshot(endedAuctionsQuery, snapshot => {
+    if (!endedAuctionsContainer) return;
+    endedAuctionsContainer.innerHTML = '<h2>Ended Auctions</h2>';
+    if (snapshot.empty) {
+      endedAuctionsContainer.innerHTML += '<p>No ended auctions yet.</p>';
+      return;
+    }
+
+    snapshot.docs.forEach(docSnap => {
+      const auction = docSnap.data();
+      const auctionCard = document.createElement('div');
+      auctionCard.className = 'auction-card';
+      const endDate = auction.endedat?.seconds ? new Date(auction.endedat.seconds * 1000).toLocaleDateString() : 'Unknown';
+      auctionCard.innerHTML = `
+        <a href="item.html?id=${docSnap.id}">
+          ${auction.name} – ${formatPrice(auction.winningbid || auction.price)} – Ended on ${endDate}
+        </a>
+        <button onclick="editItem('listings', '${docSnap.id}', { name: '${auction.name}', saletype: '${auction.saletype}' })">Edit Listing</button>
+      `;
+      endedAuctionsContainer.appendChild(auctionCard);
+    });
+  });
+
+  // ========================
+  // PRIVATE SALES (optional)
+  // ========================
+  const privateSalesQuery = query(
+    collection(db, 'privatesales'),
+    orderBy('createdat', 'desc')
+  );
+
+  onSnapshot(privateSalesQuery, snapshot => {
+    if (!endedAuctionsContainer) return; // Reuse endedAuctionsContainer or create a new container
+    snapshot.docs.forEach(docSnap => {
+      const sale = docSnap.data();
+      const saleCard = document.createElement('div');
+      saleCard.className = 'auction-card';
+      saleCard.innerHTML = `
+        <a href="item.html?id=${docSnap.id}">
+          ${sale.name} – ${formatPrice(sale.price)} – Private Sale
+        </a>
+        <button onclick="editItem('privatesales', '${docSnap.id}', { name: '${sale.name}', saletype: '${sale.saletype}' })">Edit Private Sale</button>
+      `;
+      endedAuctionsContainer.appendChild(saleCard);
+    });
+  });
+});
+
+// Call function on page load
+document.addEventListener('DOMContentLoaded', () => {});
