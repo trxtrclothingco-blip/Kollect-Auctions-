@@ -1,7 +1,5 @@
-Update this js with the changes please 
-
 import { db, auth } from './firebase.js';
-import { collection, query, where, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
 // DOM elements
 const liveBidsContainer = document.getElementById('live-bids-container');
@@ -12,90 +10,107 @@ function formatPrice(price) {
   return '£' + Number(price).toLocaleString();
 }
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    liveBidsContainer.innerHTML = '<p>Please log in to see your live bids.</p>';
-    wonBidsContainer.innerHTML = '<p>Please log in to see your won bids.</p>';
+    if (liveBidsContainer) liveBidsContainer.innerHTML = '<p>Please log in to see your live bids.</p>';
+    if (wonBidsContainer) wonBidsContainer.innerHTML = '<p>Please log in to see your won bids.</p>';
     return;
   }
 
   const userId = user.uid;
-  const userEmail = user.email;
+  const userEmail = user.email.toLowerCase();
 
   // ========================
   // LIVE BIDS (highest per listing)
   // ========================
-  const liveBidsQuery = query(
-    collection(db, 'bids'),
-    where('userid', '==', userId),
-    orderBy('timestamp', 'desc')
-  );
+  if (liveBidsContainer) {
+    const liveBidsQuery = query(
+      collection(db, 'bids'),
+      where('userid', '==', userId),
+      orderBy('timestamp', 'desc')
+    );
 
-  const highestBidsMap = {};
+    const highestBidsMap = {};
 
-  onSnapshot(liveBidsQuery, snapshot => {
-    highestBidsMap = {}; // reset map
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const { listingid, bidamount } = data;
-      // Keep only highest bid per listing
-      if (!highestBidsMap[listingid] || bidamount > highestBidsMap[listingid].bidamount) {
-        highestBidsMap[listingid] = { ...data, id: doc.id };
+    onSnapshot(liveBidsQuery, async (snapshot) => {
+      // Reset
+      for (const key in highestBidsMap) delete highestBidsMap[key];
+
+      snapshot.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        const { listingid, bidamount } = data;
+
+        // Keep only highest bid per listing
+        if (!highestBidsMap[listingid] || bidamount > highestBidsMap[listingid].bidamount) {
+          highestBidsMap[listingid] = { ...data, id: docSnap.id };
+        }
+      });
+
+      const bidsArray = Object.values(highestBidsMap);
+      liveBidsContainer.innerHTML = '<h2>Your Live Bids</h2>';
+
+      if (!bidsArray.length) {
+        liveBidsContainer.innerHTML += '<p>No active bids yet.</p>';
+        return;
+      }
+
+      // Fetch listing names and check status
+      for (const bid of bidsArray) {
+        const listingSnap = await getDoc(doc(db, 'listings', bid.listingid));
+        if (!listingSnap.exists()) continue;
+        const listing = listingSnap.data();
+        if (listing.status !== 'live') continue;
+
+        const bidCard = document.createElement('div');
+        bidCard.className = 'bid-card';
+        const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
+        bidCard.innerHTML = `
+          <a href="item.html?id=${bid.listingid}">
+            ${listing.name || bid.listingid} – ${formatPrice(bid.bidamount)} placed on ${dateStr}
+          </a>
+        `;
+        liveBidsContainer.appendChild(bidCard);
       }
     });
-
-    // Render live bids
-    const bidsArray = Object.values(highestBidsMap);
-    if (!bidsArray.length) {
-      liveBidsContainer.innerHTML = '<h2>Your Live Bids</h2><p>No active bids yet.</p>';
-      return;
-    }
-
-    liveBidsContainer.innerHTML = '<h2>Your Live Bids</h2>';
-    bidsArray.forEach(bid => {
-      const bidCard = document.createElement('div');
-      bidCard.className = 'bid-card';
-      const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
-      bidCard.innerHTML = `
-        <a href="item.html?id=${bid.listingid}">
-          Listing ID: ${bid.listingid} – ${formatPrice(bid.bidamount)} placed on ${dateStr}
-        </a>
-      `;
-      liveBidsContainer.appendChild(bidCard);
-    });
-  });
+  }
 
   // ========================
   // WON BIDS (ended auctions where user is winning bidder)
   // ========================
-  const wonBidsQuery = query(
-    collection(db, 'bids'),
-    where('useremail', '==', userEmail),
-    orderBy('timestamp', 'desc')
-  );
+  if (wonBidsContainer) {
+    const wonBidsQuery = query(
+      collection(db, 'bids'),
+      where('useremail', '==', userEmail),
+      orderBy('timestamp', 'desc')
+    );
 
-  onSnapshot(wonBidsQuery, snapshot => {
-    if (!wonBidsContainer) return;
-    wonBidsContainer.innerHTML = '<h2>Won Bids</h2>';
-    if (snapshot.empty) {
-      wonBidsContainer.innerHTML += '<p>No won bids yet.</p>';
-      return;
-    }
+    onSnapshot(wonBidsQuery, async (snapshot) => {
+      wonBidsContainer.innerHTML = '<h2>Won Bids</h2>';
+      if (snapshot.empty) {
+        wonBidsContainer.innerHTML += '<p>No won bids yet.</p>';
+        return;
+      }
 
-    snapshot.docs.forEach(doc => {
-      const bid = doc.data();
-      const bidCard = document.createElement('div');
-      bidCard.className = 'bid-card';
-      const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
-      bidCard.innerHTML = `
-        <a href="item.html?id=${bid.listingid}">
-          Listing ID: ${bid.listingid} – Won for ${formatPrice(bid.bidamount)} on ${dateStr}
-        </a>
-      `;
-      wonBidsContainer.appendChild(bidCard);
+      for (const docSnap of snapshot.docs) {
+        const bid = docSnap.data();
+        const listingSnap = await getDoc(doc(db, 'listings', bid.listingid));
+        if (!listingSnap.exists()) continue;
+        const listing = listingSnap.data();
+        if (listing.status !== 'ended') continue;
+
+        const bidCard = document.createElement('div');
+        bidCard.className = 'bid-card';
+        const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : 'Unknown date';
+        bidCard.innerHTML = `
+          <a href="item.html?id=${bid.listingid}">
+            ${listing.name || bid.listingid} – Won for ${formatPrice(bid.bidamount)} on ${dateStr}
+          </a>
+        `;
+        wonBidsContainer.appendChild(bidCard);
+      }
     });
-  });
-}
+  }
+});
 
 // Call function on page load
 document.addEventListener('DOMContentLoaded', () => {});
