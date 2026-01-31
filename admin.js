@@ -41,7 +41,7 @@ passwordForm.addEventListener("submit", async (e) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
-    loadEndedAuctions(); // ✅ load ended auctions on login
+    loadEndedAuctions();
   } catch (err) {
     alert(err.message);
   }
@@ -53,7 +53,7 @@ onAuthStateChanged(auth, (user) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
-    loadEndedAuctions(); // ✅ load ended auctions if already logged in
+    loadEndedAuctions();
   }
 });
 
@@ -90,7 +90,6 @@ itemForm.addEventListener("submit", async (e) => {
       createdat: serverTimestamp()
     };
 
-    /* ---------- AUCTION DATA ---------- */
     if (saleType === "live_auctions") {
       const auctionStart = formData.get("auctionstart");
       const auctionEnd = formData.get("auctionend");
@@ -137,7 +136,7 @@ itemForm.addEventListener("submit", async (e) => {
   }
 });
 
-/* ---------- Load Items ---------- */
+/* ---------- Load Items (LIVE ONLY) ---------- */
 const itemsList = document.getElementById("items-list");
 
 function loadItems() {
@@ -158,6 +157,9 @@ function loadItems() {
 
       snapshot.forEach(d => {
         const item = d.data();
+
+        if (col === "listings" && item.status === "ended") return;
+
         section.innerHTML += `
           <p>${item.name} – £${item.price}</p>
           <button onclick="editItem('${d.id}','${col}')">Edit</button>
@@ -198,7 +200,7 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids with Pagination (10 per page) ---------- */
+/* ---------- Load Bids (Most Recent First) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
@@ -230,7 +232,6 @@ function renderPaginationControls() {
   if (!controls) {
     controls = document.createElement("div");
     controls.id = "pagination-controls";
-    controls.style.marginTop = "10px";
     document.getElementById("bids-list").after(controls);
   }
   controls.innerHTML = "";
@@ -260,7 +261,6 @@ function loadBids() {
 
     for (const d of snapshot.docs) {
       const b = d.data();
-
       if (!b.listingid) continue;
 
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
@@ -272,23 +272,60 @@ function loadBids() {
         itemName: listing.name,
         livePrice: listing.price,
         bidAmount: b.bidamount,
-        userEmail: b.useremail || "Unknown"
+        userEmail: b.useremail || "Unknown",
+        createdat: b.createdat?.seconds || 0
       });
     }
 
+    allBids.sort((a, b) => b.createdat - a.createdat);
     currentPage = 1;
     renderBidsPage(currentPage);
   });
 }
 
-/* ---------- NEW: Load Ended Auctions ---------- */
+/* ---------- Ended Auctions Pagination (3 per page) ---------- */
 const endedAuctionsContainer = document.getElementById("ended-auctions-container");
+let endedAuctions = [];
+let endedPage = 1;
+const endedPerPage = 3;
 
-function loadEndedAuctions() {
-  if (!endedAuctionsContainer) return;
-
+function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
 
+  const start = (endedPage - 1) * endedPerPage;
+  const pageItems = endedAuctions.slice(start, start + endedPerPage);
+
+  pageItems.forEach(item => {
+    endedAuctionsContainer.innerHTML += `
+      <div class="ended-auction-item">
+        <h5>${item.name}</h5>
+        <img src="${item.image || ''}" width="100">
+        <p>${item.description || ''}</p>
+        <p>Winner: ${item.winneremail || "No winner"}</p>
+        <p>Winning Bid: £${item.winningbid || "N/A"}</p>
+      </div>
+    `;
+  });
+
+  const controls = document.createElement("div");
+  if (endedPage > 1) {
+    const prev = document.createElement("button");
+    prev.textContent = "Previous";
+    prev.onclick = () => { endedPage--; renderEndedPage(); };
+    controls.appendChild(prev);
+  }
+
+  if (endedPage * endedPerPage < endedAuctions.length) {
+    const next = document.createElement("button");
+    next.textContent = "Next";
+    next.onclick = () => { endedPage++; renderEndedPage(); };
+    controls.appendChild(next);
+  }
+
+  endedAuctionsContainer.appendChild(controls);
+}
+
+function loadEndedAuctions() {
   const q = query(
     collection(db, "listings"),
     where("status", "==", "ended"),
@@ -296,25 +333,9 @@ function loadEndedAuctions() {
   );
 
   onSnapshot(q, snapshot => {
-    endedAuctionsContainer.innerHTML = "<h4>Ended Auctions</h4>";
-
-    snapshot.forEach(docSnap => {
-      const item = docSnap.data();
-      endedAuctionsContainer.innerHTML += `
-        <div class="ended-auction-item">
-          <h5>${item.name}</h5>
-          <img src="${item.image || ''}" alt="${item.name}" width="100">
-          <p>${item.description || ''}</p>
-          <p>Price: £${item.price}</p>
-          <p>Winner: ${item.winneremail || 'No winner'}</p>
-          <p>Winning Bid: £${item.winningbid || 'N/A'}</p>
-          <p>Ended At: ${item.endedat ? new Date(item.endedat.seconds * 1000).toLocaleString() : 'N/A'}</p>
-        </div>
-      `;
-    });
-
-    if (snapshot.empty) {
-      endedAuctionsContainer.innerHTML += "<p>No ended auctions found.</p>";
-    }
+    endedAuctions = [];
+    snapshot.forEach(d => endedAuctions.push(d.data()));
+    endedPage = 1;
+    renderEndedPage();
   });
 }
