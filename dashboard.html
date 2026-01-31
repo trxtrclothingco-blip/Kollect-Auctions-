@@ -9,7 +9,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
 // ---------- Firebase Initialization ----------
@@ -155,11 +155,11 @@ onAuthStateChanged(auth, async (user) => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
       bidEl.innerHTML = `
-        <a href="item.html?id=${b.listingid}">
-          <strong>${b.itemName}</strong>
-        </a><br>
-        Live Price: ${formatPrice(b.livePrice)}<br>
-        Your Bid: ${formatPrice(b.bidAmount)}
+        <p>
+          <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
+          Live Price: ${formatPrice(b.livePrice)}<br>
+          Bid: ${formatPrice(b.bidAmount)}<br>
+        </p>
       `;
       liveBidsContainer.appendChild(bidEl);
     });
@@ -190,16 +190,11 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  const liveBidsQuery = query(
-    collection(db, "bids"),
-    where("userid", "==", user.uid),
-    orderBy("timestamp", "desc")
-  );
-
-  onSnapshot(liveBidsQuery, async (snapshot) => {
+  onSnapshot(collection(db, "bids"), async snapshot => {
     allLiveBids = [];
-    for (const docSnap of snapshot.docs) {
-      const b = docSnap.data();
+    for (const d of snapshot.docs) {
+      const b = d.data();
+      if (b.userid !== user.uid) continue;
       if (!b.listingid) continue;
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
       if (!listingSnap.exists()) continue;
@@ -238,9 +233,9 @@ onAuthStateChanged(auth, async (user) => {
         <p><strong><a href="item.html?id=${a.id}">${a.name}</a></strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: ${formatPrice(a.winningbid)}</p>
-        <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
+        <p>Highest Bidder: ${a.winneremail || "You"}</p>
         <p>Status: Auction Ended</p>
-        <p>Ended At: ${a.auctionend.toLocaleString()}</p>
+        <p>Ended At: ${a.endedat?.toDate ? a.endedat.toDate().toLocaleString() : "Unknown"}</p>
       `;
       wonBidsContainer.appendChild(bidEl);
     });
@@ -271,45 +266,23 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  const userBidsQuery = query(
-    collection(db, "bids"),
-    where("userid", "==", user.uid),
-    orderBy("timestamp", "desc")
-  );
-
-  onSnapshot(userBidsQuery, async (snapshot) => {
+  onSnapshot(query(collection(db, "listings"), orderBy("auctionend", "asc")), snapshot => {
     allWonAuctions = [];
-    if (snapshot.empty) {
-      renderWonPage(wonPage);
-      return;
-    }
-    const listingIds = new Set();
-    snapshot.forEach((doc) => {
-      listingIds.add(doc.data().listingid);
-    });
-    for (const listingid of listingIds) {
-      const listingDoc = await getDoc(doc(db, "listings", listingid));
-      if (!listingDoc.exists() || listingDoc.data().status !== "ended") continue;
-      const topBidQuery = query(
-        collection(db, "bids"),
-        where("listingid", "==", listingid),
-        orderBy("bidamount", "desc"),
-        limit(1)
-      );
-      const topSnap = await getDocs(topBidQuery);
-      if (topSnap.empty) continue;
-      const topBid = topSnap.docs[0].data();
-      if (topBid.userid !== user.uid) continue;
-      const listing = listingDoc.data();
+
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+      if (d.pricetype !== "auction") return;
+      if (d.winnerid !== user.uid) return;
       allWonAuctions.push({
-        ...listing,
-        id: listingid,
-        auctionend: listing.auctionend?.toDate() || listing.endedat?.toDate(),
-        winningbid: topBid.bidamount,
-        winneremail: topBid.email || "You"
+        ...d,
+        endedat: d.endedat,
+        winningbid: d.winningbid || d.price,
+        winneremail: d.winneremail || "You",
+        id: docSnap.id
       });
-    }
-    allWonAuctions.sort((a, b) => b.auctionend - a.auctionend);
+    });
+
+    allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
     wonPage = 1;
     renderWonPage(wonPage);
   });
@@ -344,6 +317,7 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 
 <style>
+/* === same styles as your original file === */
 .container input {
   background-color: #1e1e1e;
   border: 2px solid #FFD700;
