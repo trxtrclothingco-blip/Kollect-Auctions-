@@ -1,61 +1,97 @@
 import { db, auth } from './firebase.js';
 import { collection, query, where, onSnapshot, orderBy } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-// POINTING TO THE LIVE BIDS BOX ON DASHBOARD
+// POINTING TO DASHBOARD BIDS CONTAINERS
 const liveBidsContainer = document.getElementById('live-bids-container');
+const wonBidsContainer = document.getElementById('won-bids-container');
 
 function loadUserBids() {
   auth.onAuthStateChanged(user => {
     if (!user) {
-      liveBidsContainer.innerHTML = '<p>Please log in to see your bids.</p>';
+      liveBidsContainer.innerHTML = '<p>Please log in to see your live bids.</p>';
+      wonBidsContainer.innerHTML = '<p>Please log in to see your won bids.</p>';
       return;
     }
 
-    // Query all bids by this user, order by timestamp descending
-    const userBidsQuery = query(
+    const userEmail = user.email.toLowerCase();
+
+    // ----- LIVE BIDS -----
+    const liveBidsQuery = query(
       collection(db, 'bids'),
-      where('userid', '==', user.uid),
+      where('userid', '==', userEmail), // lowercase field
       orderBy('timestamp', 'desc')
     );
 
-    const highestBidsMap = {};
+    const liveBidsMap = {};
 
-    // Real-time updates
-    onSnapshot(userBidsQuery, snapshot => {
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        const { listingid, bidamount } = data;
+    onSnapshot(liveBidsQuery, snapshot => {
+      liveBidsMap = {}; // reset
+
+      snapshot.docs.forEach(docSnap => {
+        const bid = docSnap.data();
+        const { listingid, bidamount } = bid;
 
         // Keep only highest bid per listing
-        if (!highestBidsMap[listingid] || bidamount > highestBidsMap[listingid].bidamount) {
-          highestBidsMap[listingid] = { ...data, id: doc.id };
+        if (!liveBidsMap[listingid] || bidamount > liveBidsMap[listingid].bidamount) {
+          liveBidsMap[listingid] = { ...bid, id: docSnap.id };
         }
       });
 
-      // Render
-      renderUserBids(Object.values(highestBidsMap));
+      renderLiveBids(Object.values(liveBidsMap));
+    });
+
+    // ----- WON BIDS -----
+    const wonBidsQuery = query(
+      collection(db, 'bids'),
+      where('userid', '==', userEmail),
+      where('status', '==', 'ended'), // only ended auctions
+      orderBy('timestamp', 'desc')
+    );
+
+    onSnapshot(wonBidsQuery, snapshot => {
+      if (!wonBidsContainer) return;
+      wonBidsContainer.innerHTML = '<h2>Won Bids</h2>';
+
+      if (snapshot.empty) {
+        wonBidsContainer.innerHTML += '<p>No won bids yet.</p>';
+        return;
+      }
+
+      snapshot.docs.forEach(docSnap => {
+        const bid = docSnap.data();
+        const bidCard = document.createElement('div');
+        bidCard.classList.add('ended-auction'); // reuse auction card style
+
+        bidCard.innerHTML = `
+          <h3>${bid.itemname || 'Listing'}</h3>
+          <p><strong>Final Bid:</strong> £${bid.bidamount?.toLocaleString() || '0'}</p>
+        `;
+
+        wonBidsContainer.appendChild(bidCard);
+      });
     });
   });
 }
 
-function renderUserBids(bids) {
+function renderLiveBids(bids) {
   if (!bids.length) {
-    liveBidsContainer.innerHTML = '<p>You have not placed any bids yet.</p>';
+    liveBidsContainer.innerHTML = '<h2>Your Live Bids</h2><p>No active bids yet.</p>';
     return;
   }
 
-  liveBidsContainer.innerHTML = ''; // clear container
+  liveBidsContainer.innerHTML = '<h2>Your Live Bids</h2>'; // header
   bids.forEach(bid => {
     const bidCard = document.createElement('div');
-    bidCard.classList.add('ended-auction'); // reuse your auction card style
+    bidCard.classList.add('ended-auction'); // reuse auction card style
 
     bidCard.innerHTML = `
-      <h3>Listing ID: ${bid.listingid}</h3>
-      <p><strong>Your Highest Bid:</strong> £${bid.bidamount.toLocaleString()}</p>
+      <h3>${bid.itemname || 'Listing'}</h3>
+      <p><strong>Your Highest Bid:</strong> £${bid.bidamount?.toLocaleString() || '0'}</p>
     `;
+
     liveBidsContainer.appendChild(bidCard);
   });
 }
 
-// Call this on page load
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', loadUserBids);
