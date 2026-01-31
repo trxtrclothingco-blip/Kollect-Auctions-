@@ -1,3 +1,5 @@
+Update this js with the changes please 
+
 import { db, auth } from './firebase.js';
 import { collection, query, where, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
