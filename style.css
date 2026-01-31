@@ -28,6 +28,11 @@ body.light-mode {
    GLOBAL LAYOUT
 ===================== */
 
+/* Hide user status globally */
+#user-status {
+  display: none !important;
+}
+
 .container {
     width: 100%;
     max-width: 1200px;
