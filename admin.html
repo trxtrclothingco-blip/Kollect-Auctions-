@@ -26,6 +26,35 @@
 #pagination-controls button {
   margin: 0 5px;
 }
+
+/* Ended Auctions Styling */
+.ended-auction {
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px;
+  height: 400px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: hidden;
+}
+
+.ended-auction img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.ended-auction h3,
+.ended-auction p {
+  margin: 5px 0;
+  color: #FFD700;
+}
 </style>
 </head>
 <body>
@@ -70,13 +99,8 @@
       <p style="font-size:14px; opacity:0.8;">
         Completed auctions with winner and final bid
       </p>
-      <div id="ended-auctions-list">
-        <!-- admin.js injects:
-             ended auction cards
-             winner email
-             winning bid
-             ended timestamp
-        -->
+      <div id="ended-auctions-container">
+        <!-- admin.js injects ended auction cards including winner email and auction end timestamp -->
       </div>
     </div>
 
