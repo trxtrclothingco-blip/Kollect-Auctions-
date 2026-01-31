@@ -8,6 +8,64 @@
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
 <script type="module" src="products.js"></script>
+
+<style>
+/* ✅ Enhanced Bid Button */
+.bid-button {
+  background: linear-gradient(135deg, #FFD700, #e6c200);
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 18px;
+  margin-top: 10px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.bid-button:hover {
+  background: linear-gradient(135deg, #ffdf33, #f0cc00);
+  transform: translateY(-1px);
+}
+
+.bid-button:active {
+  transform: translateY(0);
+}
+
+.bid-button:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* ✅ Bid success popup */
+#bid-success-msg {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #1a1a1a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInOut 2.5s ease forwards;
+  z-index: 9999;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-5px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+</style>
+
 </head>
 
 <body data-page="liveauctions">
@@ -37,7 +95,7 @@
   <div id="live-auctions-list"></div>
 </div>
 
-<div id="bid-success-msg" style="display:none;">
+<div id="bid-success-msg">
   <p>Bid placed successfully!</p>
 </div>
 
@@ -160,7 +218,6 @@ function loadLiveAuctions() {
       const bidInput = card.querySelector('.bid-input');
       bidBtn.onclick = () => placeBid(docSnap.id, bidInput, Number(price));
 
-      // Countdown & auto end auction
       if (auctionend && auctionend.toDate) {
         const endTime = auctionend.toDate();
         const el = card.querySelector('.auction-length');
@@ -186,7 +243,6 @@ function loadLiveAuctions() {
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 
-// ✅ Burger toggle same as Admin page
 function toggleMenu() {
   const nav = document.getElementById("navMenu");
   nav.classList.toggle("open");
