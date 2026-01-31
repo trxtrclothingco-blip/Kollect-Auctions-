@@ -57,12 +57,17 @@ onAuthStateChanged(auth, async (user) => {
   onSnapshot(docRef, (snap) => {
     if (!snap.exists()) return;
     const data = snap.data();
-    inputs.forEach(f => { const key = f.id.replace("-input","").toLowerCase(); f.value = data[key] || ""; });
+    // Populate fields with persisted values
+    inputs.forEach(f => {
+      const key = f.id.replace("-input","").toLowerCase();
+      if(!f.value) f.value = data[key] || "";
+    });
     welcomeName.textContent = data.firstname || "User";
     if (data.profilepicurl) profilePicEl.src = data.profilepicurl;
   });
 
   editBtn.addEventListener("click", () => {
+    // Only remove readonly, do not clear values
     inputs.forEach(i => i.removeAttribute("readonly"));
     profileUpload.style.display = "block";
     editBtn.style.display = "none";
@@ -99,7 +104,7 @@ onAuthStateChanged(auth, async (user) => {
     if(file) profilePicEl.src = URL.createObjectURL(file);
   });
 
-  // ---------- Live Bids with Item Names ----------
+  // ---------- Live Bids only active listings ----------
   if (liveBidsContainer) {
     const liveBidsQuery = query(
       collection(db, "bids"),
@@ -126,15 +131,19 @@ onAuthStateChanged(auth, async (user) => {
         return;
       }
 
-      // Fetch all listing names
+      // Fetch all listing names and filter only active
       const listingIds = [...new Set(bidsArray.map(b => b.listingid))];
       const listingsData = {};
       for(const id of listingIds){
         const listingSnap = await getDoc(doc(db,"listings",id));
-        if(listingSnap.exists()) listingsData[id] = listingSnap.data();
+        if(listingSnap.exists()) {
+          const data = listingSnap.data();
+          if(data.status === "live") listingsData[id] = data;
+        }
       }
 
       bidsArray.forEach(bid => {
+        if(!listingsData[bid.listingid]) return; // skip ended listings
         const bidEl = document.createElement("div");
         bidEl.className = "bid-card";
         const dateStr = bid.timestamp?.seconds ? new Date(bid.timestamp.seconds * 1000).toLocaleDateString() : "Unknown date";
@@ -187,7 +196,7 @@ onAuthStateChanged(auth, async (user) => {
     });
   }
 
-  // ---------- Purchase History remains unchanged ----------
+  // ---------- Purchase History ----------
   const purchaseQuery = query(
     collection(db, "successfulsales"),
     where("buyerid", "==", user.uid),
@@ -217,7 +226,6 @@ onAuthStateChanged(auth, async (user) => {
 });
 </script>
 
-<!-- Styles remain unchanged -->
 <style>
 .container input { background-color:#1e1e1e; border:2px solid #FFD700; color:#fff; padding:8px; border-radius:4px; width:100%; margin:5px 0;}
 .container ul{padding-left:0; list-style:none;}
