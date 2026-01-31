@@ -7,7 +7,10 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -38,6 +41,7 @@ passwordForm.addEventListener("submit", async (e) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
+    loadEndedAuctions(); // ✅ load ended auctions on login
   } catch (err) {
     alert(err.message);
   }
@@ -49,6 +53,7 @@ onAuthStateChanged(auth, (user) => {
     adminPanel.style.display = "block";
     loadItems();
     loadBids();
+    loadEndedAuctions(); // ✅ load ended auctions if already logged in
   }
 });
 
@@ -273,5 +278,43 @@ function loadBids() {
 
     currentPage = 1;
     renderBidsPage(currentPage);
+  });
+}
+
+/* ---------- NEW: Load Ended Auctions ---------- */
+const endedAuctionsContainer = document.getElementById("ended-auctions-container");
+
+function loadEndedAuctions() {
+  if (!endedAuctionsContainer) return;
+
+  endedAuctionsContainer.innerHTML = "";
+
+  const q = query(
+    collection(db, "listings"),
+    where("status", "==", "ended"),
+    orderBy("endedat", "desc")
+  );
+
+  onSnapshot(q, snapshot => {
+    endedAuctionsContainer.innerHTML = "<h4>Ended Auctions</h4>";
+
+    snapshot.forEach(docSnap => {
+      const item = docSnap.data();
+      endedAuctionsContainer.innerHTML += `
+        <div class="ended-auction-item">
+          <h5>${item.name}</h5>
+          <img src="${item.image || ''}" alt="${item.name}" width="100">
+          <p>${item.description || ''}</p>
+          <p>Price: £${item.price}</p>
+          <p>Winner: ${item.winneremail || 'No winner'}</p>
+          <p>Winning Bid: £${item.winningbid || 'N/A'}</p>
+          <p>Ended At: ${item.endedat ? new Date(item.endedat.seconds * 1000).toLocaleString() : 'N/A'}</p>
+        </div>
+      `;
+    });
+
+    if (snapshot.empty) {
+      endedAuctionsContainer.innerHTML += "<p>No ended auctions found.</p>";
+    }
   });
 }
