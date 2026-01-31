@@ -50,14 +50,36 @@
     <h1>Admin Panel</h1>
     <p>Only authorized personnel can access and manage auction data here.</p>
 
+    <!-- ========================= -->
+    <!-- LIVE BIDS -->
+    <!-- ========================= -->
+    <div class="card">
+      <h3>Live Bids</h3>
+      <div id="live-bids-container"></div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- WON BIDS -->
+    <!-- ========================= -->
+    <div class="card">
+      <h3>Won Bids</h3>
+      <div id="won-bids-container"></div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- VIEW ALL BIDS -->
+    <!-- ========================= -->
     <div class="card">
       <h3>View All Bids</h3>
       <p style="font-size:14px; opacity:0.8;">
-        Showing live price from listings (10 per page)
+        Showing all bids from users
       </p>
       <div id="bids-list"></div>
     </div>
 
+    <!-- ========================= -->
+    <!-- ENDED AUCTIONS -->
+    <!-- ========================= -->
     <div class="card">
       <h3>Ended Auctions</h3>
       <p style="font-size:14px; opacity:0.8;">
@@ -66,6 +88,9 @@
       <div id="ended-auctions-list"></div>
     </div>
 
+    <!-- ========================= -->
+    <!-- ADD / EDIT ITEM -->
+    <!-- ========================= -->
     <div class="card">
       <h3>Add / Edit Item</h3>
       <form id="item-form">
@@ -104,6 +129,9 @@
       </form>
     </div>
 
+    <!-- ========================= -->
+    <!-- MANAGE ITEMS -->
+    <!-- ========================= -->
     <div class="card">
       <h3>Manage Items</h3>
       <div id="items-list"></div>
