@@ -39,6 +39,35 @@
   cursor: not-allowed;
 }
 
+/* ✅ Bid input styling (matches site CSS) */
+.bid-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 10px;
+  background: #1a1a1a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bid-input::placeholder {
+  color: #999;
+}
+
+.bid-input:focus {
+  border-color: #ffdf33;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.bid-input:disabled {
+  background: #111;
+  color: #666;
+  border-color: #555;
+}
+
 /* ✅ Bid success popup */
 #bid-success-msg {
   position: fixed;
