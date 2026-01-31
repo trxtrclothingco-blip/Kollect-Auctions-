@@ -24,11 +24,13 @@
   border: 2px solid #FFD700;
   border-radius: 8px;
   padding: 12px;
-  max-width: 300px;
+  width: 300px; /* fixed width */
+  height: 400px; /* fixed height */
   margin: 15px;
   display: inline-block;
   vertical-align: top;
   text-align: center;
+  overflow: hidden; /* prevent overflow if text is long */
 }
 
 .ended-auction img {
