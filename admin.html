@@ -5,8 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+
 <style>
-/* Bid List Pagination Styling */
+/* =========================
+   BURGER MENU STYLES
+========================= */
+.burger {
+  width: 30px;
+  cursor: pointer;
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+}
+
+.burger div {
+  height: 3px;
+  background: #FFD700;
+  margin: 6px 0;
+}
+
+/* Nav menu */
+.nav-menu {
+  position: fixed;
+  top: 0;
+  left: -250px;
+  width: 220px;
+  height: 100%;
+  background: #111;
+  padding-top: 60px;
+  transition: left 0.3s ease;
+  z-index: 1000;
+}
+
+.nav-menu a {
+  display: block;
+  padding: 12px 20px;
+  color: #FFD700;
+  text-decoration: none;
+}
+
+.nav-menu a:hover {
+  background: #222;
+}
+
+.nav-menu.active {
+  left: 0;
+}
+
+/* =========================
+   EXISTING STYLES
+========================= */
 #bids-list {
   max-height: 400px;
   overflow-y: auto;
@@ -28,10 +77,13 @@
 }
 </style>
 </head>
+
 <body>
 
 <div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
+  <div></div>
+  <div></div>
+  <div></div>
 </div>
 
 <nav class="nav-menu" id="navMenu">
@@ -61,7 +113,6 @@
   <!-- Admin Panel -->
   <div id="admin-panel" style="display:none;">
     
-    <!-- Home Button -->
     <a href="index.html" class="button" style="margin-bottom: 20px; display: inline-block;">
       Home
     </a>
@@ -70,34 +121,22 @@
     <h1>Admin Panel</h1>
     <p>Only authorized personnel can access and manage auction data here.</p>
 
-    <!-- Bids -->
     <div class="card">
       <h3>View All Bids</h3>
       <p style="font-size:14px; opacity:0.8;">
         Showing live price from listings (10 per page)
       </p>
-      <div id="bids-list">
-        <!-- admin.js injects bid items -->
-      </div>
+      <div id="bids-list"></div>
     </div>
 
-    <!-- ✅ ENDED AUCTIONS -->
     <div class="card">
       <h3>Ended Auctions</h3>
       <p style="font-size:14px; opacity:0.8;">
         Completed auctions with winner and final bid
       </p>
-      <div id="ended-auctions-list">
-        <!-- admin.js injects:
-             ended auction cards
-             winner email
-             winning bid
-             ended timestamp
-        -->
-      </div>
+      <div id="ended-auctions-list"></div>
     </div>
 
-    <!-- Add/Edit Item -->
     <div class="card">
       <h3>Add / Edit Item</h3>
       <form id="item-form">
@@ -122,7 +161,6 @@
           <option value="kollect_100">Kollect 100</option>
         </select>
 
-        <!-- AUCTION ONLY FIELDS -->
         <div id="auction-fields" style="display:none;">
           <label>Auction Start</label>
           <input type="datetime-local" name="auctionstart">
@@ -138,7 +176,6 @@
       </form>
     </div>
 
-    <!-- Manage Items -->
     <div class="card">
       <h3>Manage Items</h3>
       <div id="items-list"></div>
@@ -147,7 +184,12 @@
   </div>
 </div>
 
+<script>
+function toggleMenu() {
+  document.getElementById("navMenu").classList.toggle("active");
+}
+</script>
+
 <script type="module" src="admin.js"></script>
 </body>
 </html>
- 
