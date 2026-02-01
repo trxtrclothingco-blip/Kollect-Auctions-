@@ -247,9 +247,10 @@ onAuthStateChanged(auth, async (user) => {
       const listing = listingSnap.data();
       if (listing.status !== "live") continue;
 
+      // ← UPDATE LIVE PRICE IN REAL-TIME
       tempBids.push({
         itemName: listing.name,
-        livePrice: listing.price,
+        livePrice: listing.price, // this updates automatically on snapshot
         bidAmount: b.bidamount,
         listingid: b.listingid
       });
