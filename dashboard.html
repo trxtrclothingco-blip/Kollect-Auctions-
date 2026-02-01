@@ -159,21 +159,28 @@ onAuthStateChanged(auth, async (user) => {
     if(file) profilePicEl.src = URL.createObjectURL(file);
   });
 
-  // ---------- Live Bids Live Update ----------
+  // ---------- Live Bids Live Update for ALL USERS ----------
   let allLiveBids = [];
   let livePage = 1;
   const bidsPerPage = 10;
 
-  async function placeBid(listingid) {
-    const bidAmount = prompt("Enter your bid amount:");
-    if(!bidAmount || isNaN(bidAmount)) return alert("Invalid bid amount");
+  async function placeBid(listingid, currentPrice) {
+    const bidAmountStr = prompt(`Enter your bid amount (must be higher than ${formatPrice(currentPrice)}):`);
+    const bidAmount = Number(bidAmountStr);
+    if (!bidAmount || isNaN(bidAmount)) return alert("Invalid bid amount");
+    if (bidAmount <= currentPrice) return alert(`Bid must be higher than current live price (${formatPrice(currentPrice)})`);
+
     await addDoc(collection(db, "bids"), {
-      bidamount: Number(bidAmount),
+      bidamount: bidAmount,
       listingid,
       timestamp: serverTimestamp(),
       useremail: user.email,
       userid: user.uid
     });
+
+    const listingRef = doc(db, "listings", listingid);
+    await updateDoc(listingRef, { price: bidAmount });
+
     alert("Bid placed successfully!");
   }
 
@@ -198,8 +205,7 @@ onAuthStateChanged(auth, async (user) => {
         </p>
         <button class="consign-btn place-bid-btn">Place Bid</button>
       `;
-      const btn = bidEl.querySelector(".place-bid-btn");
-      btn.addEventListener("click", () => placeBid(b.listingid));
+      bidEl.querySelector(".place-bid-btn").addEventListener("click", () => placeBid(b.listingid, b.livePrice));
       liveBidsContainer.appendChild(bidEl);
     });
     renderLivePagination();
@@ -229,13 +235,12 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  // ---------- UPDATED: Keep only highest bid per item ----------
+  // ---------- Keep only highest bid per item (ALL USERS) ----------
   onSnapshot(collection(db, "bids"), async snapshot => {
     const tempBids = [];
 
     for (const d of snapshot.docs) {
       const b = d.data();
-      if (b.userid !== user.uid) continue;
       if (!b.listingid) continue;
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
       if (!listingSnap.exists()) continue;
@@ -250,7 +255,6 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
 
-    // Keep only the highest bid per listing
     const highestBidsMap = {};
     tempBids.forEach(bid => {
       if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
@@ -263,7 +267,7 @@ onAuthStateChanged(auth, async (user) => {
     renderLiveBidsPage(livePage);
   });
 
-  // ---------- Won Bids Live Update ----------
+  // ---------- Won Bids & Purchase History (unchanged) ----------
   let allWonAuctions = [];
   let wonPage = 1;
   const auctionsPerPage = 3;
@@ -339,7 +343,6 @@ onAuthStateChanged(auth, async (user) => {
     renderWonPage(wonPage);
   });
 
-  // ---------- Purchase History Live Update ----------
   const purchaseQuery = query(
     collection(db, "successfulsales"),
     where("buyerId", "==", user.uid),
