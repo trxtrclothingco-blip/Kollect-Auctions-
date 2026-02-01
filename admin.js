@@ -200,7 +200,7 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (Highest & Most Recent First) ---------- */
+/* ---------- Load Bids (Most Recent First) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
@@ -254,13 +254,9 @@ function renderPaginationControls() {
 }
 
 function loadBids() {
-  const q = query(
-    collection(db, "bids"),
-    orderBy("bidamount", "desc"),
-    orderBy("createdat", "desc")
-  );
+  allBids = [];
 
-  onSnapshot(q, async snapshot => {
+  onSnapshot(collection(db, "bids"), async snapshot => {
     allBids = [];
 
     for (const d of snapshot.docs) {
@@ -281,6 +277,7 @@ function loadBids() {
       });
     }
 
+    allBids.sort((a, b) => b.createdat - a.createdat);
     currentPage = 1;
     renderBidsPage(currentPage);
   });
