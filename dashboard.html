@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,8 +56,8 @@ const formatPrice = (price) => {
   return "£" + Number(price).toLocaleString();
 };
 
-// ---------- Custom alert for profile updated ----------
-function showProfileUpdatedPopup(message) {
+// ---------- Custom alert ----------
+function showPopup(message) {
   const popup = document.createElement("div");
   popup.textContent = message;
   popup.style.position = "fixed";
@@ -151,7 +150,7 @@ onAuthStateChanged(auth, async (user) => {
     saveBtn.style.display = "none";
 
     welcomeName.textContent = document.getElementById("first-name-input").value.trim() || "User";
-    showProfileUpdatedPopup("Profile updated!");
+    showPopup("Profile updated!");
   });
 
   // ---------- Profile picture preview ----------
@@ -165,11 +164,10 @@ onAuthStateChanged(auth, async (user) => {
   let livePage = 1;
   const bidsPerPage = 10;
 
-  async function placeBid(listingid, currentPrice) {
-    const bidAmountStr = prompt(`Enter your bid amount (must be higher than ${formatPrice(currentPrice)}):`);
-    const bidAmount = Number(bidAmountStr);
-    if (!bidAmount || isNaN(bidAmount)) return alert("Invalid bid amount");
-    if (bidAmount <= currentPrice) return alert(`Bid must be higher than current live price (${formatPrice(currentPrice)})`);
+  async function placeBid(listingid, currentPrice, bidInputEl) {
+    const bidAmount = Number(bidInputEl.value);
+    if (!bidAmount || isNaN(bidAmount)) return showPopup("Invalid bid amount!");
+    if (bidAmount <= currentPrice) return showPopup(`Bid must be higher than ${formatPrice(currentPrice)}`);
 
     await addDoc(collection(db, "bids"), {
       bidamount: bidAmount,
@@ -182,7 +180,8 @@ onAuthStateChanged(auth, async (user) => {
     const listingRef = doc(db, "listings", listingid);
     await updateDoc(listingRef, { price: bidAmount });
 
-    alert("Bid placed successfully!");
+    bidInputEl.value = "";
+    showPopup("Bid placed successfully!");
   }
 
   function renderLiveBidsPage(page) {
@@ -201,12 +200,33 @@ onAuthStateChanged(auth, async (user) => {
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
-          Live Price: ${formatPrice(b.livePrice)}<br>
-          Bid: ${formatPrice(b.bidAmount)}<br>
+          Live Price: ${formatPrice(b.livePrice)}
         </p>
-        <button class="consign-btn place-bid-btn">Place Bid</button>
       `;
-      bidEl.querySelector(".place-bid-btn").addEventListener("click", () => placeBid(b.listingid, b.livePrice));
+
+      // create input and button inline
+      const bidContainer = document.createElement("div");
+      bidContainer.style.display = "flex";
+      bidContainer.style.gap = "8px";
+      const bidInput = document.createElement("input");
+      bidInput.type = "number";
+      bidInput.min = b.livePrice + 1;
+      bidInput.placeholder = "Your bid";
+      bidInput.style.flex = "1";
+      bidInput.style.backgroundColor = "#1e1e1e";
+      bidInput.style.color = "#fff";
+      bidInput.style.border = "2px solid #FFD700";
+      bidInput.style.borderRadius = "4px";
+      bidInput.style.padding = "6px";
+      const bidBtn = document.createElement("button");
+      bidBtn.className = "consign-btn";
+      bidBtn.textContent = "Place Bid";
+      bidBtn.onclick = () => placeBid(b.listingid, b.livePrice, bidInput);
+
+      bidContainer.appendChild(bidInput);
+      bidContainer.appendChild(bidBtn);
+      bidEl.appendChild(bidContainer);
+
       liveBidsContainer.appendChild(bidEl);
     });
     renderLivePagination();
