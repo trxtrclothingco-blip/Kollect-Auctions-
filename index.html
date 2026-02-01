@@ -171,6 +171,7 @@ searchBtn.addEventListener("click", async () => {
     const name = item.name?.toLowerCase() || "";
 
     if (type === "auction" && item.pricetype !== "auction") return;
+    if (type === "auction" && item.status !== "live") return;
     if (!name.includes(searchText)) return;
 
     const price = type === "auction" ? (item.winningbid || item.price) : item.price;
