@@ -159,7 +159,7 @@ onAuthStateChanged(auth, async (user) => {
     if(file) profilePicEl.src = URL.createObjectURL(file);
   });
 
-  // ---------- Live Bids Live Update ----------
+  // ---------- Live Bids with working bid button ----------
   let allLiveBids = [];
   let livePage = 1;
   const bidsPerPage = 10;
@@ -183,35 +183,29 @@ onAuthStateChanged(auth, async (user) => {
           Live Price: ${formatPrice(b.livePrice)}<br>
           Bid: ${formatPrice(b.bidAmount)}<br>
         </p>
-        <div class="bid-container">
-          <input type="number" min="${b.livePrice}" placeholder="Enter bid amount" class="bid-input" />
-          <button class="consign-btn bid-button">Place Bid</button>
-        </div>
+        <input type="number" class="bid-input" min="${b.livePrice+1}" placeholder="Enter bid">
+        <button class="bid-button">Place Bid</button>
       `;
-
-      // ---------- Add bid button functionality ----------
+      // ✅ Working bid button
       const bidInput = bidEl.querySelector(".bid-input");
       const bidButton = bidEl.querySelector(".bid-button");
-      bidButton.addEventListener("click", async () => {
-        if(!auth.currentUser) return alert("Login required");
-        const bidAmount = Number(bidInput.value.trim());
-        if(isNaN(bidAmount) || bidAmount <= b.livePrice) return alert(`Bid must be higher than £${b.livePrice}`);
+      bidButton.onclick = async () => {
+        const bidAmount = Number(bidInput.value);
+        if(!bidAmount || bidAmount <= b.livePrice) return alert("Bid must be higher than current price.");
         bidInput.disabled = true;
         try {
           await addDoc(collection(db, "bids"), {
-            auctionid: b.listingid,
+            listingid: b.listingid,
             bidamount: bidAmount,
-            userid: auth.currentUser.uid,
-            email: auth.currentUser.email,
-            createdat: serverTimestamp()
+            userid: user.uid,
+            useremail: user.email,
+            timestamp: serverTimestamp()
           });
           await updateDoc(doc(db, "listings", b.listingid), { price: bidAmount });
           bidInput.value = "";
-          showProfileUpdatedPopup("Bid placed!");
-        } catch(e) { console.error(e); alert("Bid failed."); }
-        finally { bidInput.disabled = false; }
-      });
-
+          showProfileUpdatedPopup("Bid placed successfully!");
+        } catch(e){ console.error(e); alert("Bid failed"); } finally { bidInput.disabled=false; }
+      };
       liveBidsContainer.appendChild(bidEl);
     });
     renderLivePagination();
@@ -241,10 +235,9 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  // ---------- UPDATED: Keep only highest bid per item ----------
+  // ---------- Keep only highest bid per item ----------
   onSnapshot(collection(db, "bids"), async snapshot => {
     const tempBids = [];
-
     for (const d of snapshot.docs) {
       const b = d.data();
       if (b.userid !== user.uid) continue;
@@ -253,7 +246,6 @@ onAuthStateChanged(auth, async (user) => {
       if (!listingSnap.exists()) continue;
       const listing = listingSnap.data();
       if (listing.status !== "live") continue;
-
       tempBids.push({
         itemName: listing.name,
         livePrice: listing.price,
@@ -261,15 +253,12 @@ onAuthStateChanged(auth, async (user) => {
         listingid: b.listingid
       });
     }
-
-    // Keep only the highest bid per listing
     const highestBidsMap = {};
     tempBids.forEach(bid => {
       if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
         highestBidsMap[bid.listingid] = bid;
       }
     });
-
     allLiveBids = Object.values(highestBidsMap);
     livePage = 1;
     renderLiveBidsPage(livePage);
@@ -332,7 +321,6 @@ onAuthStateChanged(auth, async (user) => {
 
   onSnapshot(query(collection(db, "listings"), orderBy("auctionend", "asc")), snapshot => {
     allWonAuctions = [];
-
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
       if (d.pricetype !== "auction") return;
@@ -345,7 +333,6 @@ onAuthStateChanged(auth, async (user) => {
         id: docSnap.id
       });
     });
-
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
     wonPage = 1;
     renderWonPage(wonPage);
@@ -474,80 +461,100 @@ onAuthStateChanged(auth, async (user) => {
 .consign-btn:hover {
   background-color: #fff;
   color: #FFD700;
-  border: 2px solid #FFD700;
   transform: scale(1.05);
 }
 
-@media (max-width: 768px) {
-  .dashboard-cards {
-    flex-direction: column;
-  }
+.bid-button {
+  background: linear-gradient(135deg, #FFD700, #e6c200);
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 18px;
+  margin-top: 10px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.bid-button:hover {
+  background: linear-gradient(135deg, #ffdf33, #f0cc00);
+  transform: translateY(-1px);
+}
+
+.bid-button:active {
+  transform: translateY(0);
+}
+
+.bid-button:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.bid-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 10px;
+  background: #1a1a1a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bid-input::placeholder {
+  color: #999;
+}
+
+.bid-input:focus {
+  border-color: #ffdf33;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.bid-input:disabled {
+  background: #111;
+  color: #666;
+  border-color: #555;
+}
+
+#bid-success-msg {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #1a1a1a;
+  color: #FFD700;
+  border: 1px solid #FFD700;
+  padding: 12px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInOut 2.5s ease forwards;
+  z-index: 9999;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-5px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
 }
 </style>
+
 </head>
-<body>
-
-<div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
-</div>
-
-<nav class="nav-menu" id="navMenu">
-  <a href="index.html">Home</a>
-  <a href="dashboard.html">Dashboard</a>
-  <a href="live_auctions.html">Live Auctions</a>
-  <a href="kollect_100.html">Kollect 100</a>
-  <a href="private_sales.html">Private Sales</a>
-  <a href="contact.html">Contact Us</a>
-  <a href="admin.html">Admin</a>
-  <a href="results.html">Results</a>
-</nav>
-
-<div id="user-status">Checking login status...</div>
-<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
-
+<body data-page="dashboard">
+<div id="user-status"></div>
+<button id="logout-button" onclick="logoutUser()" style="display:none;">Logout</button>
 <div class="container">
   <h1>Welcome, <span id="welcome-name">User</span></h1>
-
-  <div style="margin: 15px 0;">
-    <a href="contact.html" class="consign-btn">Consign an Item</a>
-  </div>
-
-  <div class="card">
-    <h2>Your Profile</h2>
-    <img id="profile-pic" src="default-profile.png" alt="Profile Picture" style="width:120px; height:120px; border-radius:50%; display:block; margin:0 auto 10px;">
-    <input type="file" id="profile-upload" accept="image/*" style="display:none; margin-bottom:15px;">
-    <ul>
-      <li>First Name: <input id="first-name-input" readonly placeholder="First Name" /></li>
-      <li>Last Name: <input id="last-name-input" readonly placeholder="Last Name" /></li>
-      <li>Email: <input id="email-input" readonly placeholder="Email" /></li>
-      <li>Contact: <input id="contact-input" readonly placeholder="Phone Number" /></li>
-      <li>Address 1: <input id="address1-input" readonly placeholder="Address Line 1" /></li>
-      <li>Address 2: <input id="address2-input" readonly placeholder="Address Line 2" /></li>
-      <li>City: <input id="city-input" readonly placeholder="City" /></li>
-      <li>Postcode: <input id="postcode-input" readonly placeholder="Postcode" /></li>
-    </ul>
-    <div style="margin-top:10px;">
-      <button id="edit-btn" class="consign-btn">Edit Profile</button>
-      <button id="save-btn" class="consign-btn" style="display:none;">Save Profile</button>
-    </div>
-  </div>
-
-  <div class="dashboard-cards">
-    <div id="live-bids-container" class="card">
-      <h2>Live Bids</h2>
-      <p>Loading your live bids…</p>
-    </div>
-
-    <div id="won-bids-container" class="card">
-      <h2>Won Bids</h2>
-      <p>Loading your won bids…</p>
-    </div>
-
-    <div id="purchase-history-container" class="card">
-      <h2>Purchase History</h2>
-      <p>Loading your purchase history…</p>
-    </div>
-  </div>
+  <div id="live-bids-container"></div>
+  <div id="won-bids-container"></div>
+  <div id="purchase-history-container"></div>
 </div>
 </body>
 </html>
