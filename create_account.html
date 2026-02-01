@@ -7,6 +7,27 @@
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
+<style>
+/* Popup message styling */
+.popup-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4caf50;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 1000;
+  font-family: inherit;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+.popup-message.show {
+  opacity: 1;
+}
+</style>
 </head>
 <body>
 
@@ -104,6 +125,16 @@ onAuthStateChanged(auth, user => {
   }
 });
 
+// ---------- Show Popup ----------
+function showPopupMessage(message){
+  const popup = document.createElement("div");
+  popup.className = "popup-message";
+  popup.textContent = message;
+  document.body.appendChild(popup);
+  setTimeout(()=>popup.classList.add("show"), 10);
+  setTimeout(()=>popup.remove(), 3000);
+}
+
 // ---------- Login ----------
 loginForm?.addEventListener("submit", async e => {
   e.preventDefault();
@@ -111,7 +142,7 @@ loginForm?.addEventListener("submit", async e => {
   const password = document.getElementById("login-password").value;
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    alert("Login successful!");
+    showPopupMessage("Login successful!");
     loginForm.reset();
     window.location.href = "index.html"; // redirect after login
   } catch (err) {
