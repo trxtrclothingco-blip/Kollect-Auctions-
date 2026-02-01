@@ -159,7 +159,7 @@ onAuthStateChanged(auth, async (user) => {
     if(file) profilePicEl.src = URL.createObjectURL(file);
   });
 
-  // ---------- Live Bids Live Update for ALL USERS ----------
+  // ---------- Live Bids for Only Items User Has Bid On ----------
   let allLiveBids = [];
   let livePage = 1;
   const bidsPerPage = 10;
@@ -198,21 +198,16 @@ onAuthStateChanged(auth, async (user) => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
 
-      // Get current user's bid for this listing
       let userBidAmount = 0;
-      const bidsSnap = await query(collection(db, "bids"), where("listingid", "==", b.listingid));
+      const bidsSnap = query(collection(db, "bids"), where("listingid", "==", b.listingid), where("userid","==",user.uid));
       onSnapshot(bidsSnap, (snapshot) => {
         snapshot.forEach(doc => {
-          const bidData = doc.data();
-          if(bidData.userid === user.uid) userBidAmount = bidData.bidamount;
+          userBidAmount = doc.data().bidamount; // latest user bid
         });
-        if(userBidAmount > 0){
-          const userBidEl = bidEl.querySelector(".user-bid");
-          if(userBidEl) userBidEl.textContent = `Your Bid: ${formatPrice(userBidAmount)}`;
-        }
+        const userBidSpan = bidEl.querySelector(".user-bid");
+        if(userBidSpan) userBidSpan.textContent = `Your Bid: ${formatPrice(userBidAmount)}`;
       });
 
-      // Countdown timer
       const listingDoc = await getDoc(doc(db, "listings", b.listingid));
       const auctionEndTime = listingDoc.exists() ? listingDoc.data().auctionend?.toDate() : null;
 
@@ -242,7 +237,6 @@ onAuthStateChanged(auth, async (user) => {
         }, 1000);
       }
 
-      // create input and button inline
       const bidContainer = document.createElement("div");
       bidContainer.style.display = "flex";
       bidContainer.style.gap = "8px";
@@ -294,8 +288,8 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  // ---------- Keep only highest bid per item (ALL USERS) ----------
-  onSnapshot(collection(db, "bids"), async snapshot => {
+  // ---------- Only user’s live bids ----------
+  onSnapshot(query(collection(db, "bids"), where("userid","==",user.uid)), async snapshot => {
     const tempBids = [];
 
     for (const d of snapshot.docs) {
