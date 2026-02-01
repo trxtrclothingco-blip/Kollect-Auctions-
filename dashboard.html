@@ -177,46 +177,42 @@ onAuthStateChanged(auth, async (user) => {
     pageBids.forEach(b => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
-
-      // Option A: Add bid input and button
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
           Live Price: ${formatPrice(b.livePrice)}<br>
           Bid: ${formatPrice(b.bidAmount)}<br>
         </p>
-        <input type="number" class="bid-input" placeholder="Your bid" style="margin-top:5px; width:70%;">
-        <button class="bid-btn" style="margin-left:5px;">Bid Now</button>
+        <div class="bid-container">
+          <input type="number" min="${b.livePrice}" placeholder="Enter bid amount" class="bid-input" />
+          <button class="consign-btn bid-button">Place Bid</button>
+        </div>
       `;
 
-      // Append to container first
-      liveBidsContainer.appendChild(bidEl);
-
-      // Add bid button functionality
-      const input = bidEl.querySelector(".bid-input");
-      const button = bidEl.querySelector(".bid-btn");
-      button.onclick = async () => {
-        const value = Number(input.value);
-        if (!value || value <= b.livePrice) return alert("Bid must be higher than current price");
-
+      // ---------- Add bid button functionality ----------
+      const bidInput = bidEl.querySelector(".bid-input");
+      const bidButton = bidEl.querySelector(".bid-button");
+      bidButton.addEventListener("click", async () => {
+        if(!auth.currentUser) return alert("Login required");
+        const bidAmount = Number(bidInput.value.trim());
+        if(isNaN(bidAmount) || bidAmount <= b.livePrice) return alert(`Bid must be higher than £${b.livePrice}`);
+        bidInput.disabled = true;
         try {
           await addDoc(collection(db, "bids"), {
-            userid: user.uid,
-            listingid: b.listingid,
-            bidamount: value,
+            auctionid: b.listingid,
+            bidamount: bidAmount,
+            userid: auth.currentUser.uid,
+            email: auth.currentUser.email,
             createdat: serverTimestamp()
           });
+          await updateDoc(doc(db, "listings", b.listingid), { price: bidAmount });
+          bidInput.value = "";
+          showProfileUpdatedPopup("Bid placed!");
+        } catch(e) { console.error(e); alert("Bid failed."); }
+        finally { bidInput.disabled = false; }
+      });
 
-          await updateDoc(doc(db, "listings", b.listingid), {
-            price: value
-          });
-
-          input.value = "";
-        } catch (err) {
-          console.error("Bid failed:", err);
-          alert("Bid failed. See console.");
-        }
-      };
+      liveBidsContainer.appendChild(bidEl);
     });
     renderLivePagination();
   }
@@ -266,6 +262,7 @@ onAuthStateChanged(auth, async (user) => {
       });
     }
 
+    // Keep only the highest bid per listing
     const highestBidsMap = {};
     tempBids.forEach(bid => {
       if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
@@ -471,4 +468,86 @@ onAuthStateChanged(auth, async (user) => {
   padding: 10px 20px;
   border-radius: 8px;
   border: 2px solid #1e1e1e;
-  transition: all 0
+  transition: all 0.3s ease;
+}
+
+.consign-btn:hover {
+  background-color: #fff;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .dashboard-cards {
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Kollect 100</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="admin.html">Admin</a>
+  <a href="results.html">Results</a>
+</nav>
+
+<div id="user-status">Checking login status...</div>
+<button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+
+<div class="container">
+  <h1>Welcome, <span id="welcome-name">User</span></h1>
+
+  <div style="margin: 15px 0;">
+    <a href="contact.html" class="consign-btn">Consign an Item</a>
+  </div>
+
+  <div class="card">
+    <h2>Your Profile</h2>
+    <img id="profile-pic" src="default-profile.png" alt="Profile Picture" style="width:120px; height:120px; border-radius:50%; display:block; margin:0 auto 10px;">
+    <input type="file" id="profile-upload" accept="image/*" style="display:none; margin-bottom:15px;">
+    <ul>
+      <li>First Name: <input id="first-name-input" readonly placeholder="First Name" /></li>
+      <li>Last Name: <input id="last-name-input" readonly placeholder="Last Name" /></li>
+      <li>Email: <input id="email-input" readonly placeholder="Email" /></li>
+      <li>Contact: <input id="contact-input" readonly placeholder="Phone Number" /></li>
+      <li>Address 1: <input id="address1-input" readonly placeholder="Address Line 1" /></li>
+      <li>Address 2: <input id="address2-input" readonly placeholder="Address Line 2" /></li>
+      <li>City: <input id="city-input" readonly placeholder="City" /></li>
+      <li>Postcode: <input id="postcode-input" readonly placeholder="Postcode" /></li>
+    </ul>
+    <div style="margin-top:10px;">
+      <button id="edit-btn" class="consign-btn">Edit Profile</button>
+      <button id="save-btn" class="consign-btn" style="display:none;">Save Profile</button>
+    </div>
+  </div>
+
+  <div class="dashboard-cards">
+    <div id="live-bids-container" class="card">
+      <h2>Live Bids</h2>
+      <p>Loading your live bids…</p>
+    </div>
+
+    <div id="won-bids-container" class="card">
+      <h2>Won Bids</h2>
+      <p>Loading your won bids…</p>
+    </div>
+
+    <div id="purchase-history-container" class="card">
+      <h2>Purchase History</h2>
+      <p>Loading your purchase history…</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
