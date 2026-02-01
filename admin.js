@@ -200,16 +200,14 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (Live Prepend Newest Only) ---------- */
+/* ---------- Load Bids (Newest First, Live) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
 const bidsList = document.getElementById("bids-list");
-let bidElementsMap = {}; // map of bid doc IDs to elements for live update
 
 function renderBidsPage(page) {
   bidsList.innerHTML = "";
-  bidElementsMap = {};
 
   const startIndex = (page - 1) * bidsPerPage;
   const endIndex = startIndex + bidsPerPage;
@@ -224,7 +222,6 @@ function renderBidsPage(page) {
       User: ${b.userEmail || "Unknown"}
     `;
     bidsList.appendChild(bidEl);
-    bidElementsMap[b.id] = bidEl;
   });
 
   renderPaginationControls();
@@ -257,63 +254,34 @@ function renderPaginationControls() {
 }
 
 function loadBids() {
-  allBids = [];
+  const bidsCollection = query(collection(db, "bids"), orderBy("createdat", "desc"));
 
-  onSnapshot(query(collection(db, "bids"), orderBy("createdat", "desc")), async snapshot => {
-    snapshot.docChanges().forEach(async change => {
-      const b = change.doc.data();
-      if (!b.listingid) return;
+  onSnapshot(bidsCollection, async snapshot => {
+    allBids = [];
+
+    for (const d of snapshot.docs) {
+      const b = d.data();
+      if (!b.listingid) continue;
 
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
-      if (!listingSnap.exists()) return;
+      if (!listingSnap.exists()) continue;
       const listing = listingSnap.data();
 
-      const bidObj = {
-        id: change.doc.id,
+      allBids.push({
+        id: d.id,
         itemName: listing.name,
         livePrice: listing.price,
         bidAmount: b.bidamount,
         userEmail: b.useremail || "Unknown",
         createdat: b.createdat?.seconds || 0
-      };
+      });
+    }
 
-      if (change.type === "added") {
-        // prepend newest bids
-        allBids.unshift(bidObj);
-        if (bidsList) {
-          const bidEl = document.createElement("p");
-          bidEl.innerHTML = `
-            <strong>${bidObj.itemName}</strong><br>
-            Live Price: £${bidObj.livePrice}<br>
-            Bid: £${bidObj.bidAmount}<br>
-            User: ${bidObj.userEmail || "Unknown"}
-          `;
-          bidsList.prepend(bidEl);
-          bidElementsMap[bidObj.id] = bidEl;
-        }
-      }
+    // ensure newest first
+    allBids.sort((a, b) => b.createdat - a.createdat);
 
-      if (change.type === "modified") {
-        const existingEl = bidElementsMap[change.doc.id];
-        if (existingEl) {
-          existingEl.innerHTML = `
-            <strong>${bidObj.itemName}</strong><br>
-            Live Price: £${bidObj.livePrice}<br>
-            Bid: £${bidObj.bidAmount}<br>
-            User: ${bidObj.userEmail || "Unknown"}
-          `;
-        }
-      }
-
-      if (change.type === "removed") {
-        const existingEl = bidElementsMap[change.doc.id];
-        if (existingEl) existingEl.remove();
-        allBids = allBids.filter(bid => bid.id !== change.doc.id);
-      }
-    });
-
-    // trim to current page
     currentPage = 1;
+    renderBidsPage(currentPage);
   });
 }
 
