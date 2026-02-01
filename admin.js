@@ -200,13 +200,13 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (Newest First, Live) ---------- */
+/* ---------- Load Bids (Most Recent First) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
-const bidsList = document.getElementById("bids-list");
 
 function renderBidsPage(page) {
+  const bidsList = document.getElementById("bids-list");
   bidsList.innerHTML = "";
 
   const startIndex = (page - 1) * bidsPerPage;
@@ -214,14 +214,14 @@ function renderBidsPage(page) {
   const pageBids = allBids.slice(startIndex, endIndex);
 
   pageBids.forEach(b => {
-    const bidEl = document.createElement("p");
-    bidEl.innerHTML = `
-      <strong>${b.itemName}</strong><br>
-      Live Price: £${b.livePrice}<br>
-      Bid: £${b.bidAmount}<br>
-      User: ${b.userEmail || "Unknown"}
+    bidsList.innerHTML += `
+      <p>
+        <strong>${b.itemName}</strong><br>
+        Live Price: £${b.livePrice}<br>
+        Bid: £${b.bidAmount}<br>
+        User: ${b.userEmail || "Unknown"}
+      </p>
     `;
-    bidsList.appendChild(bidEl);
   });
 
   renderPaginationControls();
@@ -232,7 +232,7 @@ function renderPaginationControls() {
   if (!controls) {
     controls = document.createElement("div");
     controls.id = "pagination-controls";
-    bidsList.after(controls);
+    document.getElementById("bids-list").after(controls);
   }
   controls.innerHTML = "";
 
@@ -254,9 +254,9 @@ function renderPaginationControls() {
 }
 
 function loadBids() {
-  const bidsCollection = query(collection(db, "bids"), orderBy("createdat", "desc"));
+  allBids = [];
 
-  onSnapshot(bidsCollection, async snapshot => {
+  onSnapshot(collection(db, "bids"), async snapshot => {
     allBids = [];
 
     for (const d of snapshot.docs) {
@@ -265,10 +265,10 @@ function loadBids() {
 
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
       if (!listingSnap.exists()) continue;
+
       const listing = listingSnap.data();
 
       allBids.push({
-        id: d.id,
         itemName: listing.name,
         livePrice: listing.price,
         bidAmount: b.bidamount,
@@ -277,9 +277,7 @@ function loadBids() {
       });
     }
 
-    // ensure newest first
     allBids.sort((a, b) => b.createdat - a.createdat);
-
     currentPage = 1;
     renderBidsPage(currentPage);
   });
