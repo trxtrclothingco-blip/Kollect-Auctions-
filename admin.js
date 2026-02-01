@@ -200,28 +200,31 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (Most Recent First) ---------- */
+/* ---------- Load Bids (Live Prepend Newest Only) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
+const bidsList = document.getElementById("bids-list");
+let bidElementsMap = {}; // map of bid doc IDs to elements for live update
 
 function renderBidsPage(page) {
-  const bidsList = document.getElementById("bids-list");
   bidsList.innerHTML = "";
+  bidElementsMap = {};
 
   const startIndex = (page - 1) * bidsPerPage;
   const endIndex = startIndex + bidsPerPage;
   const pageBids = allBids.slice(startIndex, endIndex);
 
   pageBids.forEach(b => {
-    bidsList.innerHTML += `
-      <p>
-        <strong>${b.itemName}</strong><br>
-        Live Price: £${b.livePrice}<br>
-        Bid: £${b.bidAmount}<br>
-        User: ${b.userEmail || "Unknown"}
-      </p>
+    const bidEl = document.createElement("p");
+    bidEl.innerHTML = `
+      <strong>${b.itemName}</strong><br>
+      Live Price: £${b.livePrice}<br>
+      Bid: £${b.bidAmount}<br>
+      User: ${b.userEmail || "Unknown"}
     `;
+    bidsList.appendChild(bidEl);
+    bidElementsMap[b.id] = bidEl;
   });
 
   renderPaginationControls();
@@ -232,7 +235,7 @@ function renderPaginationControls() {
   if (!controls) {
     controls = document.createElement("div");
     controls.id = "pagination-controls";
-    document.getElementById("bids-list").after(controls);
+    bidsList.after(controls);
   }
   controls.innerHTML = "";
 
@@ -256,30 +259,61 @@ function renderPaginationControls() {
 function loadBids() {
   allBids = [];
 
-  onSnapshot(collection(db, "bids"), async snapshot => {
-    allBids = [];
-
-    for (const d of snapshot.docs) {
-      const b = d.data();
-      if (!b.listingid) continue;
+  onSnapshot(query(collection(db, "bids"), orderBy("createdat", "desc")), async snapshot => {
+    snapshot.docChanges().forEach(async change => {
+      const b = change.doc.data();
+      if (!b.listingid) return;
 
       const listingSnap = await getDoc(doc(db, "listings", b.listingid));
-      if (!listingSnap.exists()) continue;
-
+      if (!listingSnap.exists()) return;
       const listing = listingSnap.data();
 
-      allBids.push({
+      const bidObj = {
+        id: change.doc.id,
         itemName: listing.name,
         livePrice: listing.price,
         bidAmount: b.bidamount,
         userEmail: b.useremail || "Unknown",
         createdat: b.createdat?.seconds || 0
-      });
-    }
+      };
 
-    allBids.sort((a, b) => b.createdat - a.createdat);
+      if (change.type === "added") {
+        // prepend newest bids
+        allBids.unshift(bidObj);
+        if (bidsList) {
+          const bidEl = document.createElement("p");
+          bidEl.innerHTML = `
+            <strong>${bidObj.itemName}</strong><br>
+            Live Price: £${bidObj.livePrice}<br>
+            Bid: £${bidObj.bidAmount}<br>
+            User: ${bidObj.userEmail || "Unknown"}
+          `;
+          bidsList.prepend(bidEl);
+          bidElementsMap[bidObj.id] = bidEl;
+        }
+      }
+
+      if (change.type === "modified") {
+        const existingEl = bidElementsMap[change.doc.id];
+        if (existingEl) {
+          existingEl.innerHTML = `
+            <strong>${bidObj.itemName}</strong><br>
+            Live Price: £${bidObj.livePrice}<br>
+            Bid: £${bidObj.bidAmount}<br>
+            User: ${bidObj.userEmail || "Unknown"}
+          `;
+        }
+      }
+
+      if (change.type === "removed") {
+        const existingEl = bidElementsMap[change.doc.id];
+        if (existingEl) existingEl.remove();
+        allBids = allBids.filter(bid => bid.id !== change.doc.id);
+      }
+    });
+
+    // trim to current page
     currentPage = 1;
-    renderBidsPage(currentPage);
   });
 }
 
