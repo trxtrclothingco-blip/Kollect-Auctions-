@@ -61,7 +61,7 @@
     <form id="login-form">
       <input type="email" id="login-email" placeholder="Email" required>
       <input type="password" id="login-password" placeholder="Password" required>
-      <button type="submit" class="button">Sign In</button>
+      <button type="button" id="login-button" class="button">Sign In</button>
     </form>
   </div>
 
@@ -91,6 +91,7 @@ import { collection, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/fi
 
 // ---------- DOM ----------
 const loginForm = document.getElementById("login-form");
+const loginButton = document.getElementById("login-button");
 const signupForm = document.getElementById("signup-form");
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
@@ -136,8 +137,7 @@ function showPopupMessage(message){
 }
 
 // ---------- Login ----------
-loginForm?.addEventListener("submit", async e => {
-  e.preventDefault();
+loginButton?.addEventListener("click", async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
   try {
