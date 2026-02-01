@@ -154,6 +154,24 @@
   </div>
 </div>
 
+<script>
+const bidsList = document.getElementById("bids-list");
+
+if (bidsList) {
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.classList && node.classList.contains("bid-item")) {
+          bidsList.prepend(node);
+        }
+      });
+    });
+  });
+
+  observer.observe(bidsList, { childList: true });
+}
+</script>
+
 <script type="module" src="admin.js"></script>
 </body>
 </html>
