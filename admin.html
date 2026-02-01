@@ -154,30 +154,6 @@
   </div>
 </div>
 
-<script>
-const bidsList = document.getElementById("bids-list");
-
-function sortBidsByHighest() {
-  const bids = Array.from(bidsList.querySelectorAll(".bid-item"));
-
-  bids.sort((a, b) => {
-    const aAmount = parseFloat(a.textContent.replace(/[^0-9.]/g, "")) || 0;
-    const bAmount = parseFloat(b.textContent.replace(/[^0-9.]/g, "")) || 0;
-    return bAmount - aAmount;
-  });
-
-  bids.forEach(bid => bidsList.appendChild(bid));
-}
-
-if (bidsList) {
-  const observer = new MutationObserver(() => {
-    sortBidsByHighest();
-  });
-
-  observer.observe(bidsList, { childList: true, subtree: true });
-}
-</script>
-
 <script type="module" src="admin.js"></script>
 </body>
 </html>
