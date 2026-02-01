@@ -197,39 +197,12 @@ onAuthStateChanged(auth, async (user) => {
     pageBids.forEach(b => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
-      
-      // Countdown timer element
-      const countdownEl = document.createElement("p");
-      countdownEl.style.fontWeight = "bold";
-      countdownEl.style.color = "#FFD700";
-      
-      function updateCountdown() {
-        const now = new Date().getTime();
-        const endTime = b.auctionEnd ? b.auctionEnd.toDate().getTime() : now;
-        const distance = endTime - now;
-        if (distance <= 0) {
-          countdownEl.textContent = "Auction ended";
-        } else {
-          const h = Math.floor(distance / (1000 * 60 * 60));
-          const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          const s = Math.floor((distance % (1000 * 60)) / 1000);
-          countdownEl.textContent = `Time Left: ${h}h ${m}m ${s}s`;
-        }
-      }
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-
-      // Show current user's bid if exists
-      const userBidAmount = b.userBid ? formatPrice(b.userBid) : "None";
-
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
-          Live Price: ${formatPrice(b.livePrice)}<br>
-          Your Bid: ${userBidAmount}
+          Live Price: ${formatPrice(b.livePrice)}
         </p>
       `;
-      bidEl.appendChild(countdownEl);
 
       // create input and button inline
       const bidContainer = document.createElement("div");
@@ -296,20 +269,14 @@ onAuthStateChanged(auth, async (user) => {
       if (listing.status !== "live") continue;
 
       // ← UPDATE LIVE PRICE IN REAL-TIME
-      let userBid = null;
-      if (b.userid === user.uid) userBid = b.bidamount;
-
       tempBids.push({
         itemName: listing.name,
-        livePrice: listing.price, 
+        livePrice: listing.price, // this updates automatically on snapshot
         bidAmount: b.bidamount,
-        userBid,
-        listingid: b.listingid,
-        auctionEnd: listing.auctionend
+        listingid: b.listingid
       });
     }
 
-    // Only keep highest bid per item
     const highestBidsMap = {};
     tempBids.forEach(bid => {
       if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
