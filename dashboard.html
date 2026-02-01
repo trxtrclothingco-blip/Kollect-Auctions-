@@ -194,15 +194,53 @@ onAuthStateChanged(auth, async (user) => {
     const start = (page - 1) * bidsPerPage;
     const end = start + bidsPerPage;
     const pageBids = allLiveBids.slice(start, end);
-    pageBids.forEach(b => {
+    pageBids.forEach(async b => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
+
+      // Get current user's bid for this listing
+      let userBidAmount = 0;
+      const bidsSnap = await query(collection(db, "bids"), where("listingid", "==", b.listingid));
+      onSnapshot(bidsSnap, (snapshot) => {
+        snapshot.forEach(doc => {
+          const bidData = doc.data();
+          if(bidData.userid === user.uid) userBidAmount = bidData.bidamount;
+        });
+        if(userBidAmount > 0){
+          const userBidEl = bidEl.querySelector(".user-bid");
+          if(userBidEl) userBidEl.textContent = `Your Bid: ${formatPrice(userBidAmount)}`;
+        }
+      });
+
+      // Countdown timer
+      const listingDoc = await getDoc(doc(db, "listings", b.listingid));
+      const auctionEndTime = listingDoc.exists() ? listingDoc.data().auctionend?.toDate() : null;
+
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
-          Live Price: ${formatPrice(b.livePrice)}
+          Live Price: ${formatPrice(b.livePrice)}<br>
+          <span class="user-bid">${userBidAmount > 0 ? `Your Bid: ${formatPrice(userBidAmount)}` : ''}</span><br>
+          <span class="countdown-timer">Loading timer…</span>
         </p>
       `;
+
+      const countdownEl = bidEl.querySelector(".countdown-timer");
+      if(auctionEndTime){
+        const interval = setInterval(() => {
+          const now = new Date();
+          let diff = auctionEndTime - now;
+          if(diff <= 0){
+            countdownEl.textContent = "Auction ended";
+            clearInterval(interval);
+          } else {
+            const hours = Math.floor(diff/1000/60/60);
+            const minutes = Math.floor((diff/1000/60)%60);
+            const seconds = Math.floor((diff/1000)%60);
+            countdownEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
+          }
+        }, 1000);
+      }
 
       // create input and button inline
       const bidContainer = document.createElement("div");
@@ -268,10 +306,9 @@ onAuthStateChanged(auth, async (user) => {
       const listing = listingSnap.data();
       if (listing.status !== "live") continue;
 
-      // ← UPDATE LIVE PRICE IN REAL-TIME
       tempBids.push({
         itemName: listing.name,
-        livePrice: listing.price, // this updates automatically on snapshot
+        livePrice: listing.price,
         bidAmount: b.bidamount,
         listingid: b.listingid
       });
