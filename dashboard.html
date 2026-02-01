@@ -164,7 +164,7 @@ onAuthStateChanged(auth, async (user) => {
   let livePage = 1;
   const bidsPerPage = 10;
 
-  async function placeBid(listingid, currentPrice, bidInputEl) {
+  async function placeBid(listingid, currentPrice, bidInputEl, userBidSpan) {
     const bidAmount = Number(bidInputEl.value);
     if (!bidAmount || isNaN(bidAmount)) return showPopup("Invalid bid amount!");
     if (bidAmount <= currentPrice) return showPopup(`Bid must be higher than ${formatPrice(currentPrice)}`);
@@ -181,6 +181,7 @@ onAuthStateChanged(auth, async (user) => {
     await updateDoc(listingRef, { price: bidAmount });
 
     bidInputEl.value = "";
+    userBidSpan.textContent = `Your Bid: ${formatPrice(bidAmount)}`; // immediate update
     showPopup("Bid placed successfully!");
   }
 
@@ -198,27 +199,24 @@ onAuthStateChanged(auth, async (user) => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
 
-      let userBidAmount = 0;
-      const bidsSnap = query(collection(db, "bids"), where("listingid", "==", b.listingid), where("userid","==",user.uid));
-      onSnapshot(bidsSnap, (snapshot) => {
-        snapshot.forEach(doc => {
-          userBidAmount = doc.data().bidamount; // latest user bid
-        });
-        const userBidSpan = bidEl.querySelector(".user-bid");
-        if(userBidSpan) userBidSpan.textContent = `Your Bid: ${formatPrice(userBidAmount)}`;
-      });
-
       const listingDoc = await getDoc(doc(db, "listings", b.listingid));
       const auctionEndTime = listingDoc.exists() ? listingDoc.data().auctionend?.toDate() : null;
+
+      // Create user bid span first for live update
+      const userBidSpan = document.createElement("span");
+      userBidSpan.className = "user-bid";
+      userBidSpan.textContent = "";
 
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
           Live Price: ${formatPrice(b.livePrice)}<br>
-          <span class="user-bid">${userBidAmount > 0 ? `Your Bid: ${formatPrice(userBidAmount)}` : ''}</span><br>
           <span class="countdown-timer">Loading timer…</span>
         </p>
       `;
+
+      // Append the user bid span after the price line
+      bidEl.querySelector("p").appendChild(userBidSpan);
 
       const countdownEl = bidEl.querySelector(".countdown-timer");
       if(auctionEndTime){
@@ -253,11 +251,21 @@ onAuthStateChanged(auth, async (user) => {
       const bidBtn = document.createElement("button");
       bidBtn.className = "consign-btn";
       bidBtn.textContent = "Place Bid";
-      bidBtn.onclick = () => placeBid(b.listingid, b.livePrice, bidInput);
+      bidBtn.onclick = () => placeBid(b.listingid, b.livePrice, bidInput, userBidSpan);
 
       bidContainer.appendChild(bidInput);
       bidContainer.appendChild(bidBtn);
       bidEl.appendChild(bidContainer);
+
+      // Real-time updates of this user's bid
+      const userBidQuery = query(collection(db, "bids"), where("listingid", "==", b.listingid), where("userid", "==", user.uid));
+      onSnapshot(userBidQuery, snapshot => {
+        let latestBid = 0;
+        snapshot.forEach(doc => {
+          latestBid = Math.max(latestBid, doc.data().bidamount);
+        });
+        if(latestBid > 0) userBidSpan.textContent = `Your Bid: ${formatPrice(latestBid)}`;
+      });
 
       liveBidsContainer.appendChild(bidEl);
     });
