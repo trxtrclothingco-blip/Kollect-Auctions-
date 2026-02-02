@@ -6,7 +6,6 @@
 <title>Create Account – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
 <style>
 /* Popup message styling */
 .popup-message {
@@ -87,7 +86,7 @@
 <script type="module">
 import { auth, db } from "./firebase.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { collection, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // ---------- DOM ----------
 const loginForm = document.getElementById("login-form");
@@ -153,16 +152,16 @@ loginButton?.addEventListener("click", async () => {
 // ---------- Signup ----------
 signupForm?.addEventListener("submit", async e => {
   e.preventDefault();
-  const firstName = document.getElementById("signup-firstname").value;
-  const lastName = document.getElementById("signup-lastname").value;
-  const email = document.getElementById("signup-email").value;
+  const firstName = document.getElementById("signup-firstname").value.trim();
+  const lastName = document.getElementById("signup-lastname").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
   const password = document.getElementById("signup-password").value;
   const confirmPassword = document.getElementById("signup-confirm-password").value;
-  const contact = document.getElementById("signup-contact").value;
-  const address1 = document.getElementById("signup-address1").value;
-  const address2 = document.getElementById("signup-address2").value;
-  const city = document.getElementById("signup-city").value;
-  const postcode = document.getElementById("signup-postcode").value;
+  const contact = document.getElementById("signup-contact").value.trim();
+  const address1 = document.getElementById("signup-address1").value.trim();
+  const address2 = document.getElementById("signup-address2").value.trim();
+  const city = document.getElementById("signup-city").value.trim();
+  const postcode = document.getElementById("signup-postcode").value.trim();
 
   if(password !== confirmPassword){
     return alert("Passwords do not match!");
@@ -173,8 +172,8 @@ signupForm?.addEventListener("submit", async e => {
     const user = userCredential.user;
     await updateProfile(user, { displayName: firstName + " " + lastName });
 
-    // Save additional user info in Firestore
-    await addDoc(collection(db, "users"), {
+    // ✅ Save additional user info in Firestore using uid as doc ID
+    await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       firstName,
       lastName,
@@ -184,17 +183,17 @@ signupForm?.addEventListener("submit", async e => {
       address2,
       city,
       postcode,
-      createdAt: new Date()
+      profilepicurl: "",
+      createdAt: serverTimestamp()
     });
 
-    alert("Account created successfully!");
+    showPopupMessage("Account created successfully!");
     signupForm.reset();
-    window.location.href = "index.html"; // redirect after signup
+    setTimeout(() => window.location.href = "dashboard.html", 1500); // auto redirect
   } catch (err) {
     alert("Signup failed: " + err.message);
   }
 });
 </script>
-
 </body>
 </html>
