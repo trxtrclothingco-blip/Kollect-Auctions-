@@ -169,6 +169,8 @@ body.light-mode #modeToggle {
     display: block;
     margin: 0 auto 40px; /* space between image and button */
     transition: all 0.5s ease; /* smooth transition when JS swaps src */
+    border: none;
+    outline: none;
 }
 
 /* =====================
