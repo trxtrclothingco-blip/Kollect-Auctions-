@@ -136,9 +136,8 @@ import {
   orderBy,
   onSnapshot,
   doc,
-  updateDoc,
-  addDoc,
   serverTimestamp,
+  runTransaction,
   getDocs
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
@@ -152,11 +151,11 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
     status.textContent = `Signed in as ${user.email}`;
-    logoutBtn.style.display = 'inline-block';
+    if(logoutBtn) logoutBtn.style.display = 'inline-block';
   } else {
     currentUser = null;
     status.textContent = 'You are not signed in';
-    logoutBtn.style.display = 'none';
+    if(logoutBtn) logoutBtn.style.display = 'none';
   }
 });
 
@@ -164,27 +163,58 @@ function logoutUser() {
   signOut(auth);
 }
 
-// ✅ Place a bid
-async function placeBid(listingId, bidInput, currentPrice) {
+// ✅ Place a bid (transaction-based)
+async function placeBid(listingId, bidInput) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
   const bidAmount = Number(bidInput.value);
-  if (!bidAmount || bidAmount <= currentPrice)
-    return alert('Bid must be higher than current price.');
+  if (!bidAmount) return alert('Invalid bid.');
 
-  await addDoc(collection(db, 'bids'), {
-    listingid: listingId,
-    bidamount: bidAmount,
-    userid: currentUser.uid,
-    useremail: currentUser.email,
-    timestamp: serverTimestamp()
-  });
+  bidInput.disabled = true;
 
-  await updateDoc(doc(db, 'listings', listingId), { price: bidAmount });
+  try {
+    const listingRef = doc(db, 'listings', listingId);
+    const bidsRef = collection(db, 'bids');
 
-  bidInput.value = '';
-  const msg = document.getElementById('bid-success-msg');
-  msg.style.display = 'flex';
-  setTimeout(() => msg.style.display = 'none', 2500);
+    await runTransaction(db, async (transaction) => {
+      const listingSnap = await transaction.get(listingRef);
+      if (!listingSnap.exists()) throw 'Listing not found';
+
+      const listing = listingSnap.data();
+      const currentPrice = Number(listing.price || 0);
+
+      if (bidAmount <= currentPrice)
+        throw `Bid must be higher than £${currentPrice}`;
+
+      // Update listing with winning bid
+      transaction.update(listingRef, {
+        price: bidAmount,
+        winningbid: bidAmount,
+        winnerid: currentUser.uid,
+        winneremail: currentUser.email
+      });
+
+      // Record bid in bids collection
+      const bidRef = doc(bidsRef);
+      transaction.set(bidRef, {
+        listingid: listingId,
+        bidamount: bidAmount,
+        userid: currentUser.uid,
+        useremail: currentUser.email,
+        timestamp: serverTimestamp()
+      });
+    });
+
+    bidInput.value = '';
+    const msg = document.getElementById('bid-success-msg');
+    msg.style.display = 'flex';
+    setTimeout(() => (msg.style.display = 'none'), 2500);
+
+  } catch (err) {
+    console.error(err);
+    alert(typeof err === 'string' ? err : 'Bid failed. Please try again.');
+  } finally {
+    bidInput.disabled = false;
+  }
 }
 
 // ✅ End auction
@@ -216,7 +246,7 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
-// ✅ Load live auctions like ended auction cards
+// ✅ Load live auctions
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -239,13 +269,13 @@ function loadLiveAuctions() {
         <p>${description || ''}</p>
         <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
         <p class="auction-length"></p>
-        <input type="number" class="bid-input" min="${Number(price)+1}" placeholder="Your bid">
+        <input type="number" class="bid-input" placeholder="Your bid">
         <button class="bid-button">Place Bid</button>
       `;
 
       const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
-      bidBtn.onclick = () => placeBid(docSnap.id, bidInput, Number(price));
+      bidBtn.onclick = () => placeBid(docSnap.id, bidInput);
 
       if (auctionend && auctionend.toDate) {
         const endTime = auctionend.toDate();
