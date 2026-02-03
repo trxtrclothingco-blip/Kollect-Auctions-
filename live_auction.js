@@ -1,6 +1,6 @@
 import { db, auth } from "./firebase.js";
 import { 
-  collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc 
+  collection, query, orderBy, onSnapshot, serverTimestamp, doc, runTransaction
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
@@ -47,39 +47,66 @@ function updateBidButtons(){
 }
 
 // Place bid for a listing
-async function placeBid(listingId, bidInput, currentPrice){
-  if(!currentUser) return alert("Login required");
+async function placeBid(listingId, bidInput){
+  if (!currentUser) return alert("Login required");
 
   const bidAmount = Number(bidInput.value.trim());
-  if(isNaN(bidAmount) || bidAmount <= currentPrice) return alert(`Bid must be higher than £${currentPrice}`);
+  if (isNaN(bidAmount)) return alert("Invalid bid");
 
   bidInput.disabled = true;
-  try {
-    // Add bid to Firestore
-    await addDoc(collection(db, "bids"), {
-      auctionid: listingId,
-      bidamount: bidAmount,
-      userid: currentUser.uid,
-      email: currentUser.email,
-      createdat: serverTimestamp()
-    });
 
-    // Update listing price
+  try {
     const listingRef = doc(db, "listings", listingId);
-    await updateDoc(listingRef, { price: bidAmount });
+    const bidsRef = collection(db, "bids");
+
+    await runTransaction(db, async (transaction) => {
+      const listingSnap = await transaction.get(listingRef);
+
+      if (!listingSnap.exists()) {
+        throw "Listing not found";
+      }
+
+      const listing = listingSnap.data();
+      const currentPrice = Number(listing.price || 0);
+
+      // 🔒 Auction rule: must be strictly higher
+      if (bidAmount <= currentPrice) {
+        throw `Bid must be higher than £${currentPrice}`;
+      }
+
+      // Update listing (single source of truth)
+      transaction.update(listingRef, {
+        price: bidAmount,
+        winningbid: bidAmount,
+        winnerid: currentUser.uid,
+        winneremail: currentUser.email
+      });
+
+      // Record bid
+      const bidRef = doc(bidsRef);
+      transaction.set(bidRef, {
+        listingid: listingId,
+        bidamount: bidAmount,
+        userid: currentUser.uid,
+        useremail: currentUser.email,
+        timestamp: serverTimestamp()
+      });
+    });
 
     bidInput.value = "";
 
-    // Show success message
     const msgDiv = document.getElementById("bid-success-msg");
-    if(msgDiv){
+    if (msgDiv) {
       msgDiv.style.display = "flex";
-      setTimeout(() => { msgDiv.style.display = "none"; }, 2500);
+      setTimeout(() => (msgDiv.style.display = "none"), 2500);
     }
-  } catch(e){
-    console.error(e);
-    alert("Bid failed. Please try again.");
-  } finally { bidInput.disabled = false; }
+
+  } catch (err) {
+    console.error(err);
+    alert(typeof err === "string" ? err : "Bid failed");
+  } finally {
+    bidInput.disabled = false;
+  }
 }
 
 // --- Load Listings from Firestore ---
@@ -110,7 +137,7 @@ function loadListings(){
         <p class="price-display">Price: £${Number(price).toLocaleString()}</p>
         ${(auctionstart && auctionend) ? '<p class="auction-timer"></p>' : ''}
         <div class="bid-container">
-          <input type="number" min="${price}" placeholder="Enter bid amount" class="bid-input">
+          <input type="number" placeholder="Enter bid amount" class="bid-input">
           <button class="button bid-button">${currentUser ? "Place Bid" : "Login to bid"}</button>
         </div>
       `;
@@ -118,7 +145,7 @@ function loadListings(){
       // Bid button event
       const bidInput = card.querySelector(".bid-input");
       const bidButton = card.querySelector(".bid-button");
-      bidButton.addEventListener("click", () => placeBid(docSnap.id, bidInput, price));
+      bidButton.addEventListener("click", () => placeBid(docSnap.id, bidInput));
 
       // Countdown timer
       if(auctionstart && auctionend){
