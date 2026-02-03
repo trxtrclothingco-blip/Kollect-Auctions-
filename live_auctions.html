@@ -138,7 +138,8 @@ import {
   doc,
   serverTimestamp,
   runTransaction,
-  getDocs
+  getDocs,
+  updateDoc
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
@@ -163,7 +164,7 @@ function logoutUser() {
   signOut(auth);
 }
 
-// ✅ Place a bid (transaction-based)
+// ✅ Place a bid (transaction-based, ONLY updates price)
 async function placeBid(listingId, bidInput) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
   const bidAmount = Number(bidInput.value);
@@ -185,12 +186,9 @@ async function placeBid(listingId, bidInput) {
       if (bidAmount <= currentPrice)
         throw `Bid must be higher than £${currentPrice}`;
 
-      // Update listing with winning bid
+      // ✅ ONLY update price
       transaction.update(listingRef, {
-        price: bidAmount,
-        winningbid: bidAmount,
-        winnerid: currentUser.uid,
-        winneremail: currentUser.email
+        price: bidAmount
       });
 
       // Record bid in bids collection
