@@ -80,10 +80,7 @@ onAuthStateChanged(auth, async user => {
 
     if (currentUserUid === adminUid) pinnedInput.style.display = "block";
 
-    // add user to active users
     await setDoc(doc(activeUsersCol, currentUserUid), { username: userFirstName, lastActive: serverTimestamp() });
-
-    // remove user from active users on disconnect
     window.addEventListener("beforeunload", async () => {
       await deleteDoc(doc(activeUsersCol, currentUserUid));
     });
@@ -110,39 +107,31 @@ onSnapshot(messagesQuery, snapshot => {
     const message = document.createElement("div");
     message.className = "chat-message";
 
-    // emoji
     const emoji = document.createElement("div");
     emoji.className = "chat-emoji";
     emoji.textContent = data.emoji || "💬";
 
-    // bubble
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
 
-    // username
     const name = document.createElement("div");
     name.className = "chat-username";
     name.textContent = data.username || "anonymous";
 
-    // timestamp
     const timestamp = document.createElement("div");
     timestamp.className = "chat-timestamp";
     if (data.timestamp?.toDate) timestamp.textContent = data.timestamp.toDate().toLocaleString();
 
-    // message content
     const content = document.createElement("div");
     content.textContent = data.text || "";
 
-    // highlight mentions
     if (currentUserUid && data.text?.includes(`@${userFirstName}`)) bubble.style.backgroundColor = "rgba(255,255,0,0.2)";
 
-    // reply (if present)
     if (data.replyTo) {
       const replyDiv = document.createElement("div");
       replyDiv.className = "chat-reply";
       replyDiv.textContent = `↪ Replying to ${data.replyTo.username}: ${data.replyTo.text.split("\n")[0]}`;
       replyDiv.style.cursor = "pointer";
-      // click to reply
       replyDiv.onclick = () => {
         input.value = `@${data.username} `;
         replyToMessage = { username: data.replyTo.username, text: data.replyTo.text.split("\n")[0] };
@@ -151,7 +140,6 @@ onSnapshot(messagesQuery, snapshot => {
       bubble.appendChild(replyDiv);
     }
 
-    // clickable reply arrow
     const replyArrow = document.createElement("div");
     replyArrow.className = "chat-reply";
     replyArrow.textContent = "↩ Reply";
@@ -167,7 +155,6 @@ onSnapshot(messagesQuery, snapshot => {
     bubble.appendChild(content);
     bubble.appendChild(timestamp);
 
-    // profile pic
     const profileImg = document.createElement("img");
     profileImg.src = data.profilepicurl || "https://via.placeholder.com/36";
     profileImg.style.width = "36px";
@@ -175,14 +162,12 @@ onSnapshot(messagesQuery, snapshot => {
     profileImg.style.borderRadius = "50%";
     profileImg.style.marginRight = "10px";
 
-    // reactions
     const reactionsDiv = document.createElement("div");
     reactionsDiv.className = "chat-reactions";
     reactionsDiv.style.marginTop = "4px";
     reactionsDiv.style.display = "flex";
     reactionsDiv.style.gap = "4px";
 
-    // render reactions
     ["👍","❤️","😂"].forEach(emojiChar => {
       const span = document.createElement("span");
       span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || ""}`;
@@ -209,7 +194,7 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 9️⃣ send message
+// 9️⃣ send message (persistent reactions added)
 // ------------------------
 async function sendMessage() {
   if (!auth.currentUser) return;
@@ -220,9 +205,10 @@ async function sendMessage() {
     username: userFirstName,
     uid: currentUserUid,
     profilepicurl: userProfilePic,
-    text: text,
+    text,
     emoji: "💬",
-    timestamp: serverTimestamp()
+    timestamp: serverTimestamp(),
+    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // <-- persistent reactions
   };
 
   if (replyToMessage) messageData.replyTo = replyToMessage;
