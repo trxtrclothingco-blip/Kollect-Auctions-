@@ -5,17 +5,10 @@
 <title>Kollect Chat</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- YOUR EXISTING CSS -->
 <link rel="stylesheet" href="style.css">
 
 <style>
-/* =====================
-   CHAT-SPECIFIC STYLES
-===================== */
-
-.chat-card {
-    max-width: 800px;
-}
+.chat-card { max-width: 800px; }
 
 #chatWindow {
     height: 420px;
@@ -26,15 +19,9 @@
     background: rgba(0,0,0,0.35);
 }
 
-body.light-mode #chatWindow {
-    background: rgba(240,240,240,0.8);
-}
+body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 
-.chat-message {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 14px;
-}
+.chat-message { display: flex; align-items: flex-start; margin-bottom: 14px; }
 
 .chat-emoji {
     font-size: 22px;
@@ -52,9 +39,7 @@ body.light-mode #chatWindow {
     width: 100%;
 }
 
-body.light-mode .chat-bubble {
-    background: rgba(255,255,255,0.9);
-}
+body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
 .chat-username {
     font-size: 12px;
@@ -63,14 +48,9 @@ body.light-mode .chat-bubble {
     margin-bottom: 4px;
 }
 
-.chat-input {
-    display: flex;
-    gap: 10px;
-}
+.chat-input { display: flex; gap: 10px; }
 
-.chat-input input {
-    flex: 1;
-}
+.chat-input input { flex: 1; }
 </style>
 </head>
 
@@ -85,12 +65,8 @@ body.light-mode .chat-bubble {
         <div id="chatWindow"></div>
 
         <div class="chat-input">
-            <input
-                id="messageInput"
-                type="text"
-                placeholder="Type a message… 😎🔥💎"
-            >
-            <button class="button" id="sendButton">Send</button>
+            <input id="messageInput" type="text" placeholder="Log in to post messages…" disabled>
+            <button class="button" id="sendButton" disabled>Send</button>
         </div>
     </div>
 
@@ -99,40 +75,69 @@ body.light-mode .chat-bubble {
 <!-- FIREBASE & CHAT SCRIPT -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
+import { getFirestore, collection, doc, getDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 // 1️⃣ Firebase config
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCGfejcFwdLTKow_yPptWfbdyrcc2b6dNc",
+    authDomain: "kollectauctions-b9de9.firebaseapp.com",
+    projectId: "kollectauctions-b9de9",
+    storageBucket: "kollectauctions-b9de9.firebasestorage.app",
+    messagingSenderId: "185844480439",
+    appId: "1:185844480439:web:36de485ff58fcca2cc5032",
+    measurementId: "G-DJ0NLNG2LN"
 };
 
 // 2️⃣ Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// 3️⃣ Reference collection
+// 3️⃣ References
 const messagesCol = collection(db, "kollectchat");
 const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
+const usersCol = collection(db, "users");
 
 // 4️⃣ DOM elements
 const chatWindow = document.getElementById("chatWindow");
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 
-// 5️⃣ Ask username
-let username = prompt("Enter your display name:");
-if (!username) username = "anonymous";
+// 5️⃣ Cached user info
+let userFirstName = "anonymous";
+let userProfilePic = "";
 
-// 6️⃣ Listen for real-time updates
+// 6️⃣ Auth state
+onAuthStateChanged(auth, async user => {
+    if (user) {
+        const userDocRef = doc(usersCol, user.uid);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            userFirstName = data.firstName || "anonymous";
+            userProfilePic = data.profilepicurl || "";
+        }
+
+        input.disabled = false;
+        sendButton.disabled = false;
+        input.placeholder = "Type a message… 😎🔥💎";
+    } else {
+        userFirstName = "anonymous";
+        userProfilePic = "";
+        input.disabled = true;
+        sendButton.disabled = true;
+        input.placeholder = "Log in to post messages…";
+    }
+});
+
+// 7️⃣ Real-time messages
 onSnapshot(messagesQuery, snapshot => {
-    chatWindow.innerHTML = ""; // clear chat
-    snapshot.forEach(doc => {
-        const data = doc.data();
+    chatWindow.innerHTML = "";
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         const message = document.createElement("div");
         message.className = "chat-message";
 
@@ -152,21 +157,35 @@ onSnapshot(messagesQuery, snapshot => {
 
         bubble.appendChild(name);
         bubble.appendChild(content);
+
+        const profileImg = document.createElement("img");
+        profileImg.src = data.profilepicurl || "https://via.placeholder.com/36";
+        profileImg.style.width = "36px";
+        profileImg.style.height = "36px";
+        profileImg.style.borderRadius = "50%";
+        profileImg.style.marginRight = "10px";
+
+        message.appendChild(profileImg);
         message.appendChild(emoji);
         message.appendChild(bubble);
 
         chatWindow.appendChild(message);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
     });
+
+    chatWindow.scrollTop = chatWindow.scrollHeight;
 });
 
-// 7️⃣ Send message function
+// 8️⃣ Send message
 async function sendMessage() {
+    if (!auth.currentUser) return;
+
     const text = input.value.trim();
     if (!text) return;
 
     await addDoc(messagesCol, {
-        username: username,
+        username: userFirstName,
+        uid: auth.currentUser.uid,
+        profilepicurl: userProfilePic,
         text: text,
         emoji: "💬",
         timestamp: serverTimestamp()
@@ -175,7 +194,7 @@ async function sendMessage() {
     input.value = "";
 }
 
-// 8️⃣ Event listeners
+// 9️⃣ Event listeners
 sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
