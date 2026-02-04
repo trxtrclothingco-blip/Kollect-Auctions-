@@ -1,3 +1,5 @@
+Remove the pinned message box above the chat box no other changes olease return the file in full 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +11,7 @@
 <style>
 .chat-card { max-width: 800px; }
 #activeUserCount { margin-bottom: 8px; font-weight: bold; }
+#pinnedBox { margin-bottom: 10px; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); font-weight: bold; display: none; }
 #chatWindow { height: 420px; overflow-y: auto; padding: 15px; margin-bottom: 15px; border-radius: 12px; background: rgba(0,0,0,0.35); }
 body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 .chat-message { display: flex; align-items: flex-start; margin-bottom: 14px; }
@@ -33,6 +36,10 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
     <div id="activeUserCount">Active users: 0</div>
     <div id="pinnedBox"></div>
+
+    <div class="card chat-card">
+        <input id="pinnedInput" placeholder="Pin a message…">
+        <div id="chatWindow"></div>
 
         <div class="chat-input">
             <input id="messageInput" type="text" placeholder="Log in to post messages…" disabled>
