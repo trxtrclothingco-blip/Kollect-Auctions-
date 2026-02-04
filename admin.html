@@ -239,17 +239,15 @@ const analyticsBody = document.getElementById("analytics-table-body");
 
 let itemData = {};
 
-// ITEMS collection – FIELD "name" inside listings
+// ITEMS collection – name and price are direct fields
 onSnapshot(collection(db, "items"), snap => {
   itemData = {};
   snap.forEach(doc => {
     const data = doc.data();
-    if (data.listings) {
-      itemData[doc.id] = {
-        name: data.listings.name || "Unknown Item",
-        price: data.listings.price || "-"
-      };
-    }
+    itemData[doc.id] = {
+      name: data.name || "Unknown Item",
+      price: data.price || "-"
+    };
   });
 });
 
@@ -294,17 +292,20 @@ document.addEventListener("click", e => {
 
 // Fading titles effect on horizontal scroll
 const cardsRow = document.querySelector('.cards-row');
-cardsRow.addEventListener('scroll', () => {
-  const cards = cardsRow.querySelectorAll('.card h3');
+const cards = cardsRow.querySelectorAll('.card h3');
+function updateOpacity() {
   const scrollLeft = cardsRow.scrollLeft;
   const cardWidth = cards[0]?.offsetWidth || 300;
   cards.forEach((title, i) => {
-    const pos = i * cardWidth;
-    const diff = Math.abs(scrollLeft - pos);
-    const opacity = 1 - Math.min(diff / (cardWidth * 2), 0.7);
+    const cardCenter = i * cardWidth + cardWidth/2;
+    const viewportCenter = scrollLeft + cardsRow.offsetWidth/2;
+    const diff = Math.abs(viewportCenter - cardCenter);
+    const opacity = Math.max(0.3, 1 - diff / (cardsRow.offsetWidth));
     title.style.opacity = opacity;
   });
-});
+}
+cardsRow.addEventListener('scroll', updateOpacity);
+updateOpacity();
 </script>
 
 </body>
