@@ -55,6 +55,37 @@
   margin: 5px 0;
   color: #FFD700;
 }
+
+/* Analytics Box Styling */
+.analytics-card {
+  border: 2px solid #4CAF50;
+  border-radius: 8px;
+  padding: 12px;
+  width: 400px;
+  display: inline-block;
+  vertical-align: top;
+  margin-left: 20px;
+}
+
+.analytics-card h3 {
+  margin-bottom: 10px;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: left;
+}
+
+.analytics-table th {
+  background: #f2f2f2;
+}
 </style>
 </head>
 <body>
@@ -82,14 +113,31 @@
     <h1>Admin Panel</h1>
     <p>Only authorized personnel can access and manage auction data here.</p>
 
-    <!-- Bids -->
-    <div class="card">
-      <h3>View All Bids</h3>
-      <p style="font-size:14px; opacity:0.8;">
-        Showing live price from listings (10 per page)
-      </p>
-      <div id="bids-list">
-        <!-- admin.js injects bid items -->
+    <!-- Bids + Analytics -->
+    <div style="display:flex; align-items:flex-start;">
+      <div class="card">
+        <h3>View All Bids</h3>
+        <p style="font-size:14px; opacity:0.8;">
+          Showing live price from listings (10 per page)
+        </p>
+        <div id="bids-list">
+          <!-- admin.js injects bid items -->
+        </div>
+      </div>
+
+      <!-- Analytics Box -->
+      <div class="analytics-card">
+        <h3>Auction Analytics</h3>
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Auction Title</th>
+              <th>Number of Bids</th>
+              <th>Average Bid</th>
+            </tr>
+          </thead>
+          <tbody id="analytics-table-body"></tbody>
+        </table>
       </div>
     </div>
 
@@ -99,9 +147,7 @@
       <p style="font-size:14px; opacity:0.8;">
         Completed auctions with winner and final bid
       </p>
-      <div id="ended-auctions-container">
-        <!-- admin.js injects ended auction cards including winner email and auction end timestamp -->
-      </div>
+      <div id="ended-auctions-container"></div>
     </div>
 
     <!-- Add/Edit Item -->
@@ -109,10 +155,8 @@
       <h3>Add / Edit Item</h3>
       <form id="item-form">
         <input type="hidden" id="item_id" name="item_id">
-
         <input type="text" name="item_name" placeholder="Item Name" required>
         <textarea name="item_description" placeholder="Item Description"></textarea>
-
         <input type="number" name="item_price" placeholder="Price / Auction Start Price" required>
 
         <label>Price Type</label>
@@ -129,23 +173,19 @@
           <option value="kollect_100">Kollect 100</option>
         </select>
 
-        <!-- AUCTION ONLY FIELDS -->
         <div id="auction-fields" style="display:none;">
           <label>Auction Start</label>
           <input type="datetime-local" name="auctionstart">
-
           <label>Auction End</label>
           <input type="datetime-local" name="auctionend">
         </div>
 
         <label>Upload Image</label>
         <input type="file" name="item_image" id="item_image" accept="image/*">
-
         <button type="submit" class="button">Add / Update Item</button>
       </form>
     </div>
 
-    <!-- Manage Items -->
     <div class="card">
       <h3>Manage Items</h3>
       <div id="items-list"></div>
@@ -155,5 +195,48 @@
 </div>
 
 <script type="module" src="admin.js"></script>
+
+<!-- 🔹 Analytics Logic (ONLY ADDITION) -->
+<script type="module">
+import { getFirestore, collection, onSnapshot } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getApp } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+
+const db = getFirestore(getApp());
+const analyticsBody = document.getElementById("analytics-table-body");
+
+onSnapshot(collection(db, "bids"), snapshot => {
+  const auctions = {};
+
+  snapshot.forEach(doc => {
+    const { listingid, bidamount } = doc.data();
+
+    if (!auctions[listingid]) {
+      auctions[listingid] = { total: 0, count: 0 };
+    }
+
+    auctions[listingid].total += Number(bidamount);
+    auctions[listingid].count += 1;
+  });
+
+  analyticsBody.innerHTML = "";
+
+  Object.entries(auctions)
+    .sort((a, b) => b[1].count - a[1].count)
+    .forEach(([listingid, data]) => {
+      const avg = (data.total / data.count).toFixed(2);
+
+      analyticsBody.innerHTML += `
+        <tr>
+          <td>${listingid}</td>
+          <td>${data.count}</td>
+          <td>£${avg}</td>
+        </tr>
+      `;
+    });
+});
+</script>
+
 </body>
 </html>
