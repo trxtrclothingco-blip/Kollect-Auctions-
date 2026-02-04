@@ -10,51 +10,41 @@
 /* ===== GLOBAL CARD LAYOUT ===== */
 .cards-row-container {
   position: relative;
+  width: 100%;
+  overflow: hidden;
 }
 
 .cards-row {
   display: flex;
   gap: 20px;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  padding-bottom: 10px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.cards-row::-webkit-scrollbar {
-  display: none;
+  transition: transform 0.5s ease;
 }
 
 .card {
   background: #1f1f1f;
   border-radius: 12px;
   padding: 16px;
-  flex: 0 0 300px;
+  flex: 0 0 100%;
   max-width: 100%;
   min-height: 420px;
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s;
+  transition: transform 0.3s, opacity 0.3s;
+  opacity: 0.3;
 }
 
-.card h3 {
-  margin-bottom: 6px;
-  transition: opacity 0.3s;
-}
-
-.card p {
-  font-size: 14px;
-  opacity: 0.8;
-  margin-bottom: 10px;
+.card.active {
+  opacity: 1;
 }
 
 /* ===== ARROWS ===== */
 .carousel-arrow {
   position: absolute;
-  top: -25px;
-  width: 30px;
-  height: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
   background: rgba(255,255,255,0.2);
   color: #fff;
   border-radius: 50%;
@@ -71,10 +61,10 @@
   background: rgba(255,255,255,0.5);
 }
 .carousel-arrow.left {
-  left: 0;
+  left: 10px;
 }
 .carousel-arrow.right {
-  right: 0;
+  right: 10px;
 }
 
 /* ===== BIDS LIST ===== */
@@ -155,10 +145,10 @@ thead {
   #ended-auctions-container {
     justify-content: center;
   }
+
   .carousel-arrow {
-    top: -35px;
-    width: 25px;
-    height: 25px;
+    width: 30px;
+    height: 30px;
   }
 }
 </style>
@@ -191,9 +181,9 @@ thead {
 
       <div class="cards-row">
 
-        <div class="card">
+        <div class="card active">
           <h3>View All Bids</h3>
-          <p>Showing live price from listings (10 per page)</p>
+          <p>Showing live price from bids (10 per page)</p>
           <div id="bids-list"></div>
         </div>
 
@@ -282,6 +272,7 @@ const bidsListEl = document.getElementById("bids-list");
 let itemData = {};
 let bidData = {};
 let removedItems = new Set();
+let activeIndex = 0;
 
 // Load items
 onSnapshot(collection(db, "items"), snap => {
@@ -310,7 +301,7 @@ onSnapshot(collection(db, "bids"), snapshot => {
     // View All Bids list
     const bidDiv = document.createElement('div');
     bidDiv.classList.add('bid-item');
-    const itemName = itemData[listingid]?.name || listingid;
+    const itemName = doc.data().itemname || itemData[listingid]?.name || listingid;
     const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
     bidDiv.textContent = `${itemName} (${livePrice}) - £${bidamount}`;
     bidsListEl.appendChild(bidDiv);
@@ -318,7 +309,7 @@ onSnapshot(collection(db, "bids"), snapshot => {
   renderMostPopular();
 });
 
-// Render Most Popular Auctions from bidsListEl
+// Render Most Popular Auctions from live bids
 function renderMostPopular() {
   analyticsBody.innerHTML = "";
   const auctions = {};
@@ -333,12 +324,12 @@ function renderMostPopular() {
   Object.entries(auctions)
     .sort((a,b) => b[1].count - a[1].count)
     .forEach(([listingid, data]) => {
-      const title = itemData[listingid]?.name || listingid;
-      const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
-
+      const highestBidItem = Array.from(bidsListEl.children)
+        .find(b => b.textContent.includes(listingid));
+      const title = highestBidItem ? highestBidItem.textContent.split(' (')[0] : listingid;
       analyticsBody.innerHTML += `
         <tr data-id="${listingid}">
-          <td>${title} <span style="font-size:12px; opacity:0.7;">(${livePrice})</span></td>
+          <td>${title}</td>
           <td>${data.count}</td>
           <td>£${data.highest}</td>
           <td><span class="action-btn remove">Remove</span></td>
@@ -358,31 +349,26 @@ document.addEventListener("click", e => {
   }
 });
 
-// Fading titles effect
+// Carousel
 const cardsRow = document.querySelector('.cards-row');
-const cards = cardsRow.querySelectorAll('.card h3');
-function updateOpacity() {
-  const scrollLeft = cardsRow.scrollLeft;
-  const cardWidth = cards[0]?.offsetWidth || 300;
-  cards.forEach((title, i) => {
-    const cardCenter = i * cardWidth + cardWidth/2;
-    const viewportCenter = scrollLeft + cardsRow.offsetWidth/2;
-    const diff = Math.abs(viewportCenter - cardCenter);
-    const opacity = Math.max(0.3, 1 - diff / (cardsRow.offsetWidth));
-    title.style.opacity = opacity;
+const cards = Array.from(cardsRow.querySelectorAll('.card'));
+function updateActiveCard() {
+  cards.forEach((card, i) => {
+    card.classList.toggle('active', i === activeIndex);
+    const offset = (i - activeIndex) * 100;
+    card.style.transform = `translateX(${offset}%)`;
+    card.style.opacity = i === activeIndex ? 1 : 0.3;
   });
 }
-cardsRow.addEventListener('scroll', updateOpacity);
-updateOpacity();
+updateActiveCard();
 
-// Arrow functionality
-const leftArrow = document.querySelector('.carousel-arrow.left');
-const rightArrow = document.querySelector('.carousel-arrow.right');
-leftArrow.addEventListener('click', () => {
-  cardsRow.scrollBy({ left: -300, behavior: 'smooth' });
+document.querySelector('.carousel-arrow.left').addEventListener('click', () => {
+  if (activeIndex > 0) activeIndex--;
+  updateActiveCard();
 });
-rightArrow.addEventListener('click', () => {
-  cardsRow.scrollBy({ left: 300, behavior: 'smooth' });
+document.querySelector('.carousel-arrow.right').addEventListener('click', () => {
+  if (activeIndex < cards.length - 1) activeIndex++;
+  updateActiveCard();
 });
 </script>
 
