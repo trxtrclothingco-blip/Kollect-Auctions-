@@ -1,11 +1,11 @@
 // ------------------------
-// kollect chat firestore js with auth
+// kollect chat firestore js with persistent usernames
 // ------------------------
 
 // import firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 // ------------------------
@@ -39,9 +39,10 @@ const sendButton = document.getElementById("sendButton");
 // ------------------------
 const messagesCol = collection(db, "kollectchat");
 const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
+const usersCol = collection(db, "users");
 
 // ------------------------
-// 4️⃣ username from firebase auth
+// 4️⃣ user state
 // ------------------------
 let username = "anonymous";
 
@@ -50,13 +51,35 @@ input.disabled = true;
 sendButton.disabled = true;
 input.placeholder = "Log in to post messages";
 
-// listen for auth state changes
-onAuthStateChanged(auth, user => {
+// ------------------------
+// 5️⃣ handle auth state changes
+// ------------------------
+onAuthStateChanged(auth, async user => {
     if (user) {
-        username = user.displayName || "anonymous";
+        const userDocRef = doc(usersCol, user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        // if user exists, load username
+        if (userSnap.exists()) {
+            username = userSnap.data().username || "anonymous";
+        } else {
+            // first time: ask user for a persistent username
+            let chosenName = "";
+            while (!chosenName) {
+                chosenName = prompt("Choose a username (will be permanent):");
+            }
+            username = chosenName;
+            await setDoc(userDocRef, {
+                username: chosenName,
+                createdAt: serverTimestamp()
+            });
+        }
+
+        // enable chat input
         input.disabled = false;
         sendButton.disabled = false;
         input.placeholder = "Type a message… 😎🔥💎";
+
     } else {
         username = "anonymous";
         input.disabled = true;
@@ -66,7 +89,7 @@ onAuthStateChanged(auth, user => {
 });
 
 // ------------------------
-// 5️⃣ listen to messages in real-time
+// 6️⃣ listen to messages in real-time
 // ------------------------
 onSnapshot(messagesQuery, snapshot => {
     chatWindow.innerHTML = ""; // clear chat window
@@ -101,7 +124,7 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 6️⃣ send message function
+// 7️⃣ send message function
 // ------------------------
 async function sendMessage() {
     if (!auth.currentUser) return; // prevent sending if not logged in
@@ -120,7 +143,7 @@ async function sendMessage() {
 }
 
 // ------------------------
-// 7️⃣ event listeners
+// 8️⃣ event listeners
 // ------------------------
 sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => {
