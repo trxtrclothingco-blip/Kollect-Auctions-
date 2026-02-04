@@ -45,7 +45,7 @@ const usersCol = collection(db, "users");
 // 4️⃣ user state
 // ------------------------
 let username = "anonymous";
-let profilePicUrl = ""; // user's profile picture
+let profilePicUrl = "";
 
 // disable input/send by default
 input.disabled = true;
@@ -56,114 +56,110 @@ input.placeholder = "Log in to post messages";
 // 5️⃣ handle auth state changes
 // ------------------------
 onAuthStateChanged(auth, async user => {
-    if (user) {
-        const userDocRef = doc(usersCol, user.uid);
-        const userSnap = await getDoc(userDocRef);
+  if (user) {
+    const userDocRef = doc(usersCol, user.uid);
+    const userSnap = await getDoc(userDocRef);
 
-        if (userSnap.exists()) {
-            const data = userSnap.data();
-            username = data.firstName || "anonymous";
-            profilePicUrl = data.profilepicurl || ""; // optional profile pic
-        } else {
-            username = "anonymous";
-            profilePicUrl = "";
-        }
-
-        input.disabled = false;
-        sendButton.disabled = false;
-        input.placeholder = "Type a message… 😎🔥💎";
-
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      username = data.firstName || "anonymous";
+      profilePicUrl = data.profilepicurl || "";
     } else {
-        username = "anonymous";
-        profilePicUrl = "";
-        input.disabled = true;
-        sendButton.disabled = true;
-        input.placeholder = "Log in to post messages";
+      username = "anonymous";
+      profilePicUrl = "";
     }
+
+    input.disabled = false;
+    sendButton.disabled = false;
+    input.placeholder = "Type a message… 😎🔥💎";
+  } else {
+    username = "anonymous";
+    profilePicUrl = "";
+    input.disabled = true;
+    sendButton.disabled = true;
+    input.placeholder = "Log in to post messages";
+  }
 });
 
 // ------------------------
 // 6️⃣ listen to messages in real-time
 // ------------------------
 onSnapshot(messagesQuery, snapshot => {
-    chatWindow.innerHTML = ""; // clear chat window
-    snapshot.forEach(async docSnap => {
-        const data = docSnap.data();
+  chatWindow.innerHTML = ""; // clear chat window
 
-        const message = document.createElement("div");
-        message.className = "chat-message";
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
 
-        const emoji = document.createElement("div");
-        emoji.className = "chat-emoji";
-        emoji.textContent = data.emoji || "💬";
+    const message = document.createElement("div");
+    message.className = "chat-message";
 
-        const bubble = document.createElement("div");
-        bubble.className = "chat-bubble";
+    const emoji = document.createElement("div");
+    emoji.className = "chat-emoji";
+    emoji.textContent = data.emoji || "💬";
 
-        // fetch profile pic for each message user
-        let messageUsername = data.username || "anonymous";
-        let messageProfilePic = "";
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
 
-        if (data.username) {
-            // try to find user doc by firstName match
-            // for a more reliable solution, consider storing uid in message
-            const usersQueryRef = collection(db, "users");
-            const userDocRef = doc(usersCol, data.uid || "");
-            if (data.uid) {
-                const userSnap = await getDoc(userDocRef);
-                if (userSnap.exists()) {
-                    const uData = userSnap.data();
-                    messageProfilePic = uData.profilepicurl || "";
-                    messageUsername = uData.firstName || messageUsername;
-                }
-            }
-        }
+    const name = document.createElement("div");
+    name.className = "chat-username";
+    name.textContent = data.username || "anonymous";
 
-        // profile pic img
-        const profileImg = document.createElement("img");
-        profileImg.src = messageProfilePic || "https://via.placeholder.com/36"; // default avatar
-        profileImg.style.width = "36px";
-        profileImg.style.height = "36px";
-        profileImg.style.borderRadius = "50%";
-        profileImg.style.marginRight = "10px";
+    const content = document.createElement("div");
+    content.textContent = data.text || "";
 
-        const name = document.createElement("div");
-        name.className = "chat-username";
-        name.textContent = messageUsername;
+    bubble.appendChild(name);
+    bubble.appendChild(content);
 
-        const content = document.createElement("div");
-        content.textContent = data.text || "";
+    const profileImg = document.createElement("img");
+    profileImg.src = data.profilepicurl || "https://via.placeholder.com/36";
+    profileImg.style.width = "36px";
+    profileImg.style.height = "36px";
+    profileImg.style.borderRadius = "50%";
+    profileImg.style.marginRight = "10px";
 
-        bubble.appendChild(name);
-        bubble.appendChild(content);
+    message.appendChild(profileImg);
+    message.appendChild(emoji);
+    message.appendChild(bubble);
 
-        message.appendChild(profileImg);
-        message.appendChild(emoji);
-        message.appendChild(bubble);
+    chatWindow.appendChild(message);
+  });
 
-        chatWindow.appendChild(message);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    });
+  chatWindow.scrollTop = chatWindow.scrollHeight;
 });
 
 // ------------------------
 // 7️⃣ send message function
 // ------------------------
 async function sendMessage() {
-    if (!auth.currentUser) return;
+  if (!auth.currentUser) return;
 
-    const text = input.value.trim();
-    if (!text) return;
+  const text = input.value.trim();
+  if (!text) return;
 
-    await addDoc(messagesCol, {
-        username: username,
-        uid: auth.currentUser.uid, // store UID for profile pic lookup
-        text: text,
-        emoji: "💬",
-        timestamp: serverTimestamp()
-    });
+  // fetch firstName & profilepicurl again to be 100% sure
+  const userDocRef = doc(usersCol, auth.currentUser.uid);
+  const userSnap = await getDoc(userDocRef);
 
-    input.value = "";
+  let firstName = "anonymous";
+  let profilePic = "";
+
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    firstName = data.firstName || "anonymous";
+    profilePic = data.profilepicurl || "";
+  }
+
+  await addDoc(messagesCol, {
+    username: firstName,
+    uid: auth.currentUser.uid,
+    profilepicurl: profilePic,
+    text: text,
+    emoji: "💬",
+    timestamp: serverTimestamp()
+  });
+
+  // clear input
+  input.value = "";
 }
 
 // ------------------------
@@ -171,5 +167,5 @@ async function sendMessage() {
 // ------------------------
 sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
+  if (e.key === "Enter") sendMessage();
 });
