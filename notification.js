@@ -1,91 +1,104 @@
-// notification.js — site-wide
-(function() {
-  const notifiedEndingSoon = new Set();
-  const notifiedOutbid = new Set();
-  const notifiedWon = new Set();
+// notification.js
+import { db, auth } from './firebase.js';
+import { collection, query, where, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-  function showToast(message) {
-    const toast = document.createElement("div");
-    toast.textContent = message;
-    toast.style.cssText = `
-      position:fixed;
-      bottom:20px;
-      right:20px;
-      background:#333;
-      color:#fff;
-      padding:12px 18px;
-      border-radius:6px;
-      z-index:9999;
-      font-size:14px;
-      opacity:0;
-      transition:opacity .3s;
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.style.opacity = 1, 50);
-    setTimeout(() => {
-      toast.style.opacity = 0;
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
-  }
+let currentUser = null;
+let notificationsShown = {}; // Track which notifications have fired per listing
 
-  async function initNotifications() {
-    const { db, auth } = window._firebase;
-    if (!db || !auth) return;
+// Track logged-in user
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  if(user) initNotifications();
+});
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return; // not logged in
+// Initialize notifications after user logs in
+function initNotifications() {
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    const listingId = card.dataset.listingId || card.id; // ID must match Firestore listing doc
 
-      const userId = user.uid;
+    // Track user's bids for this listing
+    const bidsRef = collection(db, 'bids');
+    const bidsQuery = query(bidsRef, where('userid', '==', currentUser.uid), where('listingid', '==', listingId), orderBy('timestamp'));
 
-      // --- Listen to all user's bids ---
-      const userBidsQuery = query(collection(db, "bids"), where("userid", "==", userId));
-      onSnapshot(userBidsQuery, async (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-          const bidData = change.doc.data();
-          const listingId = bidData.listingid;
+    onSnapshot(bidsQuery, snapshot => {
+      if(snapshot.empty) return; // user has not bid here
 
-          // Fetch listing info
-          const listingDoc = await getDoc(doc(db, "listings", listingId));
-          if (!listingDoc.exists()) return;
-          const listing = listingDoc.data();
+      const userBid = snapshot.docs[snapshot.docs.length - 1].data(); // latest bid
+      const priceEl = card.querySelector('.price-display') || card.querySelector('p strong'); 
+      const countdownEl = card.querySelector('.auction-timer') || card.querySelector('.auction-length');
 
-          const auctionTitle = listing.name || "Auction";
-          const auctionEndTime = listing.auctionend?.toDate ? listing.auctionend.toDate() : new Date(listing.auctionend);
-          const now = new Date();
+      if(!priceEl || !countdownEl) return;
 
-          // --- 5 minutes left notification ---
-          const diffMs = auctionEndTime - now;
-          if (diffMs <= 5*60*1000 && diffMs > 0 && !notifiedEndingSoon.has(listingId)) {
-            showToast(`⚠️ Auction "${auctionTitle}" ends in 5 minutes!`);
-            notifiedEndingSoon.add(listingId);
-          }
-
-          // --- Outbid check ---
-          const allBidsQuery = query(collection(db, "bids"), where("listingid", "==", listingId));
-          onSnapshot(allBidsQuery, (bidsSnap) => {
-            let highestBid = 0;
-            let yourBid = 0;
-            bidsSnap.forEach(doc => {
-              const b = doc.data();
-              if (b.bidamount > highestBid) highestBid = b.bidamount;
-              if (b.userid === userId) yourBid = b.bidamount;
-            });
-
-            if (highestBid > yourBid && yourBid > 0 && !notifiedOutbid.has(listingId)) {
-              showToast(`💔 You have been outbid on "${auctionTitle}"!`);
-              notifiedOutbid.add(listingId);
+      const checkTimer = () => {
+        const diff = new Date(countdownEl.dataset.endtime || countdownEl.textContent) - new Date();
+        if(diff <= 0){
+          // Auction ended
+          if(!notificationsShown[listingId + '_winner']){
+            const currentPrice = Number(priceEl.textContent.replace(/[^\d.]/g,''));
+            if(currentPrice === userBid.bidamount){
+              showNotification(`You won auction: ${card.querySelector('h3').textContent}`);
+            } else {
+              showNotification(`Auction ended: ${card.querySelector('h3').textContent}`);
             }
-          });
-
-          // --- Winner notification ---
-          if (listing.winnerid === userId && !notifiedWon.has(listingId)) {
-            showToast(`🏆 You won the auction "${auctionTitle}"!`);
-            notifiedWon.add(listingId);
+            notificationsShown[listingId + '_winner'] = true;
           }
-        });
-      });
-    });
-  }
+          return clearInterval(intervals[listingId]);
+        }
 
-  document.addEventListener("DOMContentLoaded", initNotifications);
-})();
+        // 5-minute warning
+        if(diff <= 5*60*1000 && !notificationsShown[listingId + '_5min']){
+          showNotification(`5 minutes left for auction: ${card.querySelector('h3').textContent}`);
+          notificationsShown[listingId + '_5min'] = true;
+        }
+
+        // Outbid check
+        const currentPrice = Number(priceEl.textContent.replace(/[^\d.]/g,''));
+        if(currentPrice > userBid.bidamount && !notificationsShown[listingId + '_outbid']){
+          showNotification(`You have been outbid on: ${card.querySelector('h3').textContent}`);
+          notificationsShown[listingId + '_outbid'] = true;
+        }
+      };
+
+      const intervals = {};
+      intervals[listingId] = setInterval(checkTimer, 1000);
+    });
+  });
+}
+
+// Simple mobile-friendly notification
+function showNotification(msg){
+  const existing = document.getElementById('live-notification');
+  if(existing) existing.remove();
+
+  const notif = document.createElement('div');
+  notif.id = 'live-notification';
+  notif.style.position = 'fixed';
+  notif.style.top = '20px';
+  notif.style.right = '20px';
+  notif.style.background = '#1a1a1a';
+  notif.style.color = '#FFD700';
+  notif.style.border = '1px solid #FFD700';
+  notif.style.padding = '12px 18px';
+  notif.style.borderRadius = '6px';
+  notif.style.zIndex = 9999;
+  notif.style.fontWeight = 'bold';
+  notif.style.animation = 'fadeInOut 3s ease forwards';
+  notif.textContent = msg;
+
+  document.body.appendChild(notif);
+
+  setTimeout(() => notif.remove(), 3000);
+}
+
+// CSS animation
+const style = document.createElement('style');
+style.textContent = `
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-5px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}`;
+document.head.appendChild(style);
