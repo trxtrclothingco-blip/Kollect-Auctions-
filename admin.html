@@ -206,7 +206,7 @@ thead {
               <tr>
                 <th>Auction</th>
                 <th>Bids</th>
-                <th>Avg Bid</th>
+                <th>Highest Bid</th>
                 <th>Remove</th>
               </tr>
             </thead>
@@ -277,9 +277,13 @@ import { getApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.j
 
 const db = getFirestore(getApp());
 const analyticsBody = document.getElementById("analytics-table-body");
+const bidsListEl = document.getElementById("bids-list");
 
 let itemData = {};
+let bidData = {};
+let removedItems = new Set();
 
+// Load items
 onSnapshot(collection(db, "items"), snap => {
   itemData = {};
   snap.forEach(doc => {
@@ -291,42 +295,66 @@ onSnapshot(collection(db, "items"), snap => {
       };
     }
   });
+  renderMostPopular();
 });
 
+// Load bids
 onSnapshot(collection(db, "bids"), snapshot => {
-  const auctions = {};
-
+  bidData = {};
+  bidsListEl.innerHTML = "";
   snapshot.forEach(doc => {
     const { listingid, bidamount } = doc.data();
-    if (!auctions[listingid]) auctions[listingid] = { total: 0, count: 0 };
-    auctions[listingid].total += Number(bidamount);
-    auctions[listingid].count += 1;
-  });
+    if (!bidData[listingid]) bidData[listingid] = [];
+    bidData[listingid].push(Number(bidamount));
 
+    // View All Bids list
+    const bidDiv = document.createElement('div');
+    bidDiv.classList.add('bid-item');
+    const itemName = itemData[listingid]?.name || listingid;
+    const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
+    bidDiv.textContent = `${itemName} (${livePrice}) - £${bidamount}`;
+    bidsListEl.appendChild(bidDiv);
+  });
+  renderMostPopular();
+});
+
+// Render Most Popular Auctions from bidsListEl
+function renderMostPopular() {
   analyticsBody.innerHTML = "";
+  const auctions = {};
+  for (const [listingid, bids] of Object.entries(bidData)) {
+    if (removedItems.has(listingid)) continue;
+    auctions[listingid] = {
+      count: bids.length,
+      highest: Math.max(...bids)
+    };
+  }
 
   Object.entries(auctions)
     .sort((a,b) => b[1].count - a[1].count)
     .forEach(([listingid, data]) => {
-      const avg = (data.total / data.count).toFixed(2);
       const title = itemData[listingid]?.name || listingid;
       const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
 
       analyticsBody.innerHTML += `
-        <tr>
+        <tr data-id="${listingid}">
           <td>${title} <span style="font-size:12px; opacity:0.7;">(${livePrice})</span></td>
           <td>${data.count}</td>
-          <td>£${avg}</td>
+          <td>£${data.highest}</td>
           <td><span class="action-btn remove">Remove</span></td>
         </tr>
       `;
     });
-});
+}
 
+// Remove persistent row
 document.addEventListener("click", e => {
   if (e.target.classList.contains("remove")) {
     const row = e.target.closest("tr");
-    if (row) row.remove();
+    if (row) {
+      removedItems.add(row.getAttribute('data-id'));
+      row.remove();
+    }
   }
 });
 
