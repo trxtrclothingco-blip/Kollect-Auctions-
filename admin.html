@@ -5,114 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
-
 <style>
-/* ===== GLOBAL CARD LAYOUT ===== */
-.cards-row-container {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-}
-
-.cards-row {
-  display: flex;
-  flex-wrap: nowrap;
-  transition: transform 0.5s ease;
-}
-
-.card {
-  background: #1f1f1f;
-  border-radius: 12px;
-  padding: 16px;
-  flex: 0 0 100%;
-  max-width: 100%;
-  min-height: 420px;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s, opacity 0.3s;
-  opacity: 0.3;
-}
-
-.card.active {
-  opacity: 1;
-}
-
-/* ===== ARROWS ===== */
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  font-weight: bold;
-  z-index: 10;
-  user-select: none;
-  transition: background 0.3s;
-}
-.carousel-arrow:hover {
-  background: rgba(255,255,255,0.5);
-}
-.carousel-arrow.left {
-  left: 10px;
-}
-.carousel-arrow.right {
-  right: 10px;
-}
-
-/* ===== BIDS LIST ===== */
+/* Bid List Pagination Styling */
 #bids-list {
-  flex: 1;
+  max-height: 400px;
   overflow-y: auto;
   margin-top: 10px;
 }
 
 .bid-item {
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #ccc;
   padding: 8px 0;
 }
 
-/* ===== TABLE ===== */
-table {
-  width: 100%;
-  border-collapse: collapse;
+#pagination-controls {
+  margin-top: 10px;
+  text-align: center;
 }
 
-th, td {
-  padding: 6px 4px;
-  text-align: left;
+#pagination-controls button {
+  margin: 0 5px;
 }
 
-thead {
-  border-bottom: 1px solid #444;
-}
-
-.action-btn {
-  cursor: pointer;
-  font-size: 12px;
-  color: #ff4d4d;
-}
-
-/* ===== ENDED AUCTIONS ===== */
-#ended-auctions-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
+/* Ended Auctions Styling */
 .ended-auction {
   background: #2a2a2a;
   border: 2px solid #FFD700;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 12px;
-  width: 280px;
+  width: 300px;
   height: 400px;
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
   text-align: center;
   overflow: hidden;
 }
@@ -130,25 +55,8 @@ thead {
   margin: 5px 0;
   color: #FFD700;
 }
-
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-  .card {
-    min-height: auto;
-  }
-
-  #ended-auctions-container {
-    justify-content: center;
-  }
-
-  .carousel-arrow {
-    width: 30px;
-    height: 30px;
-  }
-}
 </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -164,58 +72,47 @@ thead {
 
   <!-- Admin Panel -->
   <div id="admin-panel" style="display:none;">
+    
+    <!-- Home Button -->
+    <a href="index.html" class="button" style="margin-bottom: 20px; display: inline-block;">
+      Home
+    </a>
 
-    <a href="index.html" class="button" style="margin-bottom:20px; display:inline-block;">Home</a>
-
+    <img src="IMG_1685.jpeg" alt="Kollect Auctions Logo" class="hero-image">
     <h1>Admin Panel</h1>
+    <p>Only authorized personnel can access and manage auction data here.</p>
 
-    <!-- CAROUSEL: BIDS + MOST POPULAR -->
-    <div class="cards-row-container">
-      <div class="carousel-arrow left">&#10094;</div>
-      <div class="carousel-arrow right">&#10095;</div>
-
-      <div class="cards-row">
-
-        <div class="card active">
-          <h3>View All Bids</h3>
-          <p>Showing live price from bids (10 per page)</p>
-          <div id="bids-list"></div>
-        </div>
-
-        <div class="card">
-          <h3>Most Popular Auctions</h3>
-          <p>Ranked by bid activity</p>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Auction</th>
-                <th>Bids</th>
-                <th>Highest Bid</th>
-                <th>Remove</th>
-              </tr>
-            </thead>
-            <tbody id="analytics-table-body"></tbody>
-          </table>
-        </div>
-
+    <!-- Bids -->
+    <div class="card">
+      <h3>View All Bids</h3>
+      <p style="font-size:14px; opacity:0.8;">
+        Showing live price from listings (10 per page)
+      </p>
+      <div id="bids-list">
+        <!-- admin.js injects bid items -->
       </div>
     </div>
 
-    <!-- ENDED AUCTIONS -->
+    <!-- ✅ ENDED AUCTIONS -->
     <div class="card">
       <h3>Ended Auctions</h3>
-      <p>Completed auctions with winner and final bid</p>
-      <div id="ended-auctions-container"></div>
+      <p style="font-size:14px; opacity:0.8;">
+        Completed auctions with winner and final bid
+      </p>
+      <div id="ended-auctions-container">
+        <!-- admin.js injects ended auction cards including winner email and auction end timestamp -->
+      </div>
     </div>
 
-    <!-- ADD / EDIT -->
+    <!-- Add/Edit Item -->
     <div class="card">
       <h3>Add / Edit Item</h3>
       <form id="item-form">
         <input type="hidden" id="item_id" name="item_id">
+
         <input type="text" name="item_name" placeholder="Item Name" required>
         <textarea name="item_description" placeholder="Item Description"></textarea>
+
         <input type="number" name="item_price" placeholder="Price / Auction Start Price" required>
 
         <label>Price Type</label>
@@ -232,19 +129,23 @@ thead {
           <option value="kollect_100">Kollect 100</option>
         </select>
 
+        <!-- AUCTION ONLY FIELDS -->
         <div id="auction-fields" style="display:none;">
           <label>Auction Start</label>
           <input type="datetime-local" name="auctionstart">
+
           <label>Auction End</label>
           <input type="datetime-local" name="auctionend">
         </div>
 
         <label>Upload Image</label>
         <input type="file" name="item_image" id="item_image" accept="image/*">
+
         <button type="submit" class="button">Add / Update Item</button>
       </form>
     </div>
 
+    <!-- Manage Items -->
     <div class="card">
       <h3>Manage Items</h3>
       <div id="items-list"></div>
@@ -254,118 +155,5 @@ thead {
 </div>
 
 <script type="module" src="admin.js"></script>
-
-<script type="module">
-import { getFirestore, collection, onSnapshot } 
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-
-const db = getFirestore(getApp());
-const analyticsBody = document.getElementById("analytics-table-body");
-const bidsListEl = document.getElementById("bids-list");
-
-let itemData = {};
-let bidData = {};
-let removedItems = new Set();
-let activeIndex = 0;
-
-// Load items
-onSnapshot(collection(db, "items"), snap => {
-  itemData = {};
-  snap.forEach(doc => {
-    const data = doc.data();
-    if (data.listings) {
-      itemData[doc.id] = {
-        name: data.listings.name || "Unknown Item",
-        price: data.listings.price || "-"
-      };
-    }
-  });
-  renderMostPopular();
-});
-
-// Load bids
-onSnapshot(collection(db, "bids"), snapshot => {
-  bidData = {};
-  bidsListEl.innerHTML = "";
-  snapshot.forEach(doc => {
-    const { listingid, bidamount } = doc.data();
-    if (!bidData[listingid]) bidData[listingid] = [];
-    bidData[listingid].push(Number(bidamount));
-
-    // View All Bids list
-    const bidDiv = document.createElement('div');
-    bidDiv.classList.add('bid-item');
-    const itemName = doc.data().itemname || itemData[listingid]?.name || listingid;
-    const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
-    bidDiv.textContent = `${itemName} (${livePrice}) - £${bidamount}`;
-    bidsListEl.appendChild(bidDiv);
-  });
-  renderMostPopular();
-});
-
-// Render Most Popular Auctions from live bids
-function renderMostPopular() {
-  analyticsBody.innerHTML = "";
-  const auctions = {};
-  for (const [listingid, bids] of Object.entries(bidData)) {
-    if (removedItems.has(listingid)) continue;
-    auctions[listingid] = {
-      count: bids.length,
-      highest: Math.max(...bids)
-    };
-  }
-
-  Object.entries(auctions)
-    .sort((a,b) => b[1].count - a[1].count)
-    .forEach(([listingid, data]) => {
-      const highestBidItem = Array.from(bidsListEl.children)
-        .find(b => b.textContent.includes(listingid));
-      const title = highestBidItem ? highestBidItem.textContent.split(' (')[0] : listingid;
-      analyticsBody.innerHTML += `
-        <tr data-id="${listingid}">
-          <td>${title}</td>
-          <td>${data.count}</td>
-          <td>£${data.highest}</td>
-          <td><span class="action-btn remove">Remove</span></td>
-        </tr>
-      `;
-    });
-}
-
-// Remove persistent row
-document.addEventListener("click", e => {
-  if (e.target.classList.contains("remove")) {
-    const row = e.target.closest("tr");
-    if (row) {
-      removedItems.add(row.getAttribute('data-id'));
-      row.remove();
-    }
-  }
-});
-
-// Carousel
-const cardsRow = document.querySelector('.cards-row');
-const cards = Array.from(cardsRow.querySelectorAll('.card'));
-function updateActiveCard() {
-  cards.forEach((card, i) => {
-    card.classList.toggle('active', i === activeIndex);
-    const offset = (i - activeIndex) * 100;
-    card.style.transform = `translateX(${offset}%)`;
-    card.style.opacity = i === activeIndex ? 1 : 0.3;
-  });
-}
-updateActiveCard();
-
-document.querySelector('.carousel-arrow.left').addEventListener('click', () => {
-  if (activeIndex > 0) activeIndex--;
-  updateActiveCard();
-});
-document.querySelector('.carousel-arrow.right').addEventListener('click', () => {
-  if (activeIndex < cards.length - 1) activeIndex++;
-  updateActiveCard();
-});
-</script>
-
 </body>
 </html>
