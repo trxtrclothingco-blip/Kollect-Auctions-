@@ -1,8 +1,7 @@
-// notification.js — global, works on any page
-(function () {
-
-  // Track which auctions we've notified to avoid duplicates
+// notification.js — site-wide
+(function() {
   const notifiedEndingSoon = new Set();
+  const notifiedOutbid = new Set();
   const notifiedWon = new Set();
 
   function showToast(message) {
@@ -29,61 +28,64 @@
     }, 3000);
   }
 
-  // Wait until DOM is ready
-  document.addEventListener("DOMContentLoaded", () => {
+  async function initNotifications() {
+    const { db, auth } = window._firebase;
+    if (!db || !auth) return;
 
-    // 1️⃣ Check live bids countdowns
-    function checkLiveBids() {
-      const liveBids = document.querySelectorAll(".bid-card"); // use your bid cards
-      liveBids.forEach(bidEl => {
-        const endTimeStr = bidEl.dataset.endTime || bidEl.querySelector(".countdown-timer")?.dataset.endTime;
-        const title = bidEl.dataset.title || bidEl.querySelector("a")?.textContent;
-        const auctionId = bidEl.dataset.auctionId;
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return; // not logged in
 
-        if (!endTimeStr || !auctionId || !title) return;
+      const userId = user.uid;
 
-        if (notifiedEndingSoon.has(auctionId)) return;
+      // --- Listen to all user's bids ---
+      const userBidsQuery = query(collection(db, "bids"), where("userid", "==", userId));
+      onSnapshot(userBidsQuery, async (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+          const bidData = change.doc.data();
+          const listingId = bidData.listingid;
 
-        const endTime = new Date(endTimeStr);
-        const now = new Date();
-        const diff = endTime - now;
+          // Fetch listing info
+          const listingDoc = await getDoc(doc(db, "listings", listingId));
+          if (!listingDoc.exists()) return;
+          const listing = listingDoc.data();
 
-        if (diff <= 5 * 60 * 1000 && diff > 0) {
-          showToast(`⚠️ Auction "${title}" ends in 5 minutes!`);
-          notifiedEndingSoon.add(auctionId);
-        }
-      });
-    }
+          const auctionTitle = listing.name || "Auction";
+          const auctionEndTime = listing.auctionend?.toDate ? listing.auctionend.toDate() : new Date(listing.auctionend);
+          const now = new Date();
 
-    // Run immediately & every 30s
-    checkLiveBids();
-    setInterval(checkLiveBids, 30000);
+          // --- 5 minutes left notification ---
+          const diffMs = auctionEndTime - now;
+          if (diffMs <= 5*60*1000 && diffMs > 0 && !notifiedEndingSoon.has(listingId)) {
+            showToast(`⚠️ Auction "${auctionTitle}" ends in 5 minutes!`);
+            notifiedEndingSoon.add(listingId);
+          }
 
-    // 2️⃣ Listen for auctions the user has won
-    if (window.firebase && firebase.auth && firebase.firestore) {
-      const db = firebase.firestore();
+          // --- Outbid check ---
+          const allBidsQuery = query(collection(db, "bids"), where("listingid", "==", listingId));
+          onSnapshot(allBidsQuery, (bidsSnap) => {
+            let highestBid = 0;
+            let yourBid = 0;
+            bidsSnap.forEach(doc => {
+              const b = doc.data();
+              if (b.bidamount > highestBid) highestBid = b.bidamount;
+              if (b.userid === userId) yourBid = b.bidamount;
+            });
 
-      firebase.auth().onAuthStateChanged(async (user) => {
-        if (!user) return;
-
-        // Listen for listings where the user is winner
-        const wonQuery = db.collection("listings")
-          .where("winnerid", "==", user.uid);
-
-        wonQuery.onSnapshot(snapshot => {
-          snapshot.docChanges().forEach(change => {
-            const data = change.doc.data();
-            const auctionId = change.doc.id;
-            const title = data.name || "Auction";
-
-            if (change.type === "added" && !notifiedWon.has(auctionId)) {
-              showToast(`🏆 You won the auction "${title}"!`);
-              notifiedWon.add(auctionId);
+            if (highestBid > yourBid && yourBid > 0 && !notifiedOutbid.has(listingId)) {
+              showToast(`💔 You have been outbid on "${auctionTitle}"!`);
+              notifiedOutbid.add(listingId);
             }
           });
+
+          // --- Winner notification ---
+          if (listing.winnerid === userId && !notifiedWon.has(listingId)) {
+            showToast(`🏆 You won the auction "${auctionTitle}"!`);
+            notifiedWon.add(listingId);
+          }
         });
       });
-    }
+    });
+  }
 
-  });
+  document.addEventListener("DOMContentLoaded", initNotifications);
 })();
