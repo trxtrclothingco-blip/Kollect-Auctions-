@@ -1,87 +1,128 @@
 // ------------------------
-// kollect chat firestore js
+// kollect chat firestore js with auth
 // ------------------------
 
-// grab dom elements
-const chatwindow = document.getElementById("chatWindow")
-const messageinput = document.getElementById("messageInput")
+// import firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-// ask username
-let username = prompt("enter your display name:")
-if (!username) username = "anonymous"
-
-// firestore references
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"
-
-// firebase config
-const firebaseconfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-}
+// ------------------------
+// 1️⃣ firebase config (your actual keys)
+// ------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyCGfejcFwdLTKow_yPptWfbdyrcc2b6dNc",
+  authDomain: "kollectauctions-b9de9.firebaseapp.com",
+  projectId: "kollectauctions-b9de9",
+  storageBucket: "kollectauctions-b9de9.firebasestorage.app",
+  messagingSenderId: "185844480439",
+  appId: "1:185844480439:web:36de485ff58fcca2cc5032",
+  measurementId: "G-DJ0NLNG2LN"
+};
 
 // initialize firebase
-const app = initializeApp(firebaseconfig)
-const db = getFirestore(app)
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-// reference kollectchat collection
-const messagescol = collection(db, "kollectchat")
+// ------------------------
+// 2️⃣ dom elements
+// ------------------------
+const chatWindow = document.getElementById("chatWindow");
+const input = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
 
-// query to order messages by timestamp ascending
-const messagesquery = query(messagescol, orderBy("timestamp", "asc"))
+// ------------------------
+// 3️⃣ firestore references
+// ------------------------
+const messagesCol = collection(db, "kollectchat");
+const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
 
-// listen to messages in real-time
-onSnapshot(messagesquery, snapshot => {
-    chatwindow.innerHTML = "" // clear chat window
+// ------------------------
+// 4️⃣ username from firebase auth
+// ------------------------
+let username = "anonymous";
+
+// disable input/send by default
+input.disabled = true;
+sendButton.disabled = true;
+input.placeholder = "Log in to post messages";
+
+// listen for auth state changes
+onAuthStateChanged(auth, user => {
+    if (user) {
+        username = user.displayName || "anonymous";
+        input.disabled = false;
+        sendButton.disabled = false;
+        input.placeholder = "Type a message… 😎🔥💎";
+    } else {
+        username = "anonymous";
+        input.disabled = true;
+        sendButton.disabled = true;
+        input.placeholder = "Log in to post messages";
+    }
+});
+
+// ------------------------
+// 5️⃣ listen to messages in real-time
+// ------------------------
+onSnapshot(messagesQuery, snapshot => {
+    chatWindow.innerHTML = ""; // clear chat window
     snapshot.forEach(doc => {
-        const data = doc.data()
-        const message = document.createElement("div")
-        message.className = "chat-message"
+        const data = doc.data();
 
-        const emoji = document.createElement("div")
-        emoji.className = "chat-emoji"
-        emoji.textContent = data.emoji || "💬"
+        const message = document.createElement("div");
+        message.className = "chat-message";
 
-        const bubble = document.createElement("div")
-        bubble.className = "chat-bubble"
+        const emoji = document.createElement("div");
+        emoji.className = "chat-emoji";
+        emoji.textContent = data.emoji || "💬";
 
-        const name = document.createElement("div")
-        name.className = "chat-username"
-        name.textContent = data.username || "anonymous"
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
 
-        const content = document.createElement("div")
-        content.textContent = data.text || ""
+        const name = document.createElement("div");
+        name.className = "chat-username";
+        name.textContent = data.username || "anonymous";
 
-        bubble.appendChild(name)
-        bubble.appendChild(content)
-        message.appendChild(emoji)
-        message.appendChild(bubble)
+        const content = document.createElement("div");
+        content.textContent = data.text || "";
 
-        chatwindow.appendChild(message)
-        chatwindow.scrollTop = chatwindow.scrollHeight
-    })
-})
+        bubble.appendChild(name);
+        bubble.appendChild(content);
+        message.appendChild(emoji);
+        message.appendChild(bubble);
 
-// send message function
-async function sendmessage() {
-    const text = messageinput.value.trim()
-    if (!text) return
+        chatWindow.appendChild(message);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+});
 
-    await addDoc(messagescol, {
+// ------------------------
+// 6️⃣ send message function
+// ------------------------
+async function sendMessage() {
+    if (!auth.currentUser) return; // prevent sending if not logged in
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    await addDoc(messagesCol, {
         username: username,
         text: text,
         emoji: "💬",
         timestamp: serverTimestamp()
-    })
+    });
 
-    messageinput.value = ""
+    input.value = "";
 }
 
-// enter key sends message
-messageinput.addEventListener("keydown", e => {
-    if (e.key === "enter") sendmessage()
-})
+// ------------------------
+// 7️⃣ event listeners
+// ------------------------
+sendButton.addEventListener("click", sendMessage);
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
