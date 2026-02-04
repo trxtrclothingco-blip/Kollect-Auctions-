@@ -9,7 +9,6 @@
 <style>
 .chat-card { max-width: 800px; }
 #activeUserCount { margin-bottom: 8px; font-weight: bold; }
-#pinnedBox { margin-bottom: 10px; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.1); font-weight: bold; display: none; }
 #chatWindow { height: 420px; overflow-y: auto; padding: 15px; margin-bottom: 15px; border-radius: 12px; background: rgba(0,0,0,0.35); }
 body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 .chat-message { display: flex; align-items: flex-start; margin-bottom: 14px; }
@@ -33,7 +32,6 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
     <p>Live community discussion for collectors</p>
 
     <div id="activeUserCount">Active users: 0</div>
-    <div id="pinnedBox"></div>
 
     <div class="card chat-card">
         <input id="pinnedInput" placeholder="Pin a message…">
@@ -52,7 +50,6 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCGfejcFwdLTKow_yPptWfbdyrcc2b6dNc",
   authDomain: "kollectauctions-b9de9.firebaseapp.com",
@@ -73,7 +70,6 @@ const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 const activeUserCountDiv = document.getElementById("activeUserCount");
 const pinnedInput = document.getElementById("pinnedInput");
-const pinnedBox = document.getElementById("pinnedBox");
 
 const messagesCol = collection(db, "kollectchat");
 const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
@@ -209,10 +205,6 @@ async function sendMessage() {
 
   await addDoc(messagesCol, messageData);
 
-  // show in pinnedBox temporarily for all users
-  pinnedBox.textContent = `${userFirstName}: ${text}`;
-  pinnedBox.style.display = "block";
-
   input.value = "";
   replyToMessage = null;
 }
@@ -229,16 +221,8 @@ onSnapshot(activeUsersCol, snapshot => {
 pinnedInput.addEventListener("keydown", async e => {
   if (e.key==="Enter" && currentUserUid===adminUid) {
     await setDoc(pinnedDoc, { text: pinnedInput.value.trim(), timestamp: serverTimestamp() });
-    pinnedBox.textContent = `📌 ${pinnedInput.value.trim()}`;
-    pinnedBox.style.display = "block";
     pinnedInput.value = "";
   }
-});
-
-// ---------------- Load pinned message
-onSnapshot(pinnedDoc, snap => {
-  const data = snap.data();
-  if (data?.text) { pinnedBox.textContent = `📌 ${data.text}`; pinnedBox.style.display="block"; }
 });
 </script>
 </body>
