@@ -8,7 +8,12 @@
 <link rel="stylesheet" href="style.css">
 
 <style>
+/* =====================
+   CHAT-SPECIFIC STYLES
+===================== */
 .chat-card { max-width: 800px; }
+
+#activeUserCount { margin-bottom: 8px; font-weight: bold; }
 
 #chatWindow {
     height: 420px;
@@ -41,16 +46,21 @@ body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 
 body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
-.chat-username {
-    font-size: 12px;
-    font-weight: 600;
-    opacity: 0.75;
-    margin-bottom: 4px;
-}
+.chat-username { font-size: 12px; font-weight: 600; opacity: 0.75; margin-bottom: 4px; }
+
+.chat-timestamp { font-size: 10px; opacity: 0.6; margin-top: 2px; }
+
+.chat-reply { font-size: 11px; color: #ccc; margin-bottom: 2px; padding-left: 10px; border-left: 2px solid #888; cursor: pointer; }
+
+.chat-reactions span { font-size: 14px; cursor: pointer; margin-right: 4px; }
 
 .chat-input { display: flex; gap: 10px; }
 
 .chat-input input { flex: 1; }
+
+#pinnedInput { width: 100%; padding: 6px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #aaa; display: none; }
+
+.chat-thread { margin-left: 40px; border-left: 1px dashed #555; padding-left: 10px; margin-top: 6px; }
 </style>
 </head>
 
@@ -61,7 +71,10 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
     <h1>Kollect Chat</h1>
     <p>Live community discussion for collectors</p>
 
+    <div id="activeUserCount">Active users: 0</div>
+
     <div class="card chat-card">
+        <input id="pinnedInput" placeholder="Pin a message…">
         <div id="chatWindow"></div>
 
         <div class="chat-input">
@@ -76,7 +89,7 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
-import { getFirestore, collection, doc, getDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 // 1️⃣ Firebase config
@@ -105,14 +118,22 @@ const usersCol = collection(db, "users");
 const chatWindow = document.getElementById("chatWindow");
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
+const pinnedInput = document.getElementById("pinnedInput");
+const activeUserCount = document.getElementById("activeUserCount");
 
 // 5️⃣ Cached user info
 let userFirstName = "anonymous";
 let userProfilePic = "";
+let currentUserUid = "";
+let replyToMessage = null;
 
-// 6️⃣ Auth state
+// 6️⃣ Admin UID
+const adminUid = "gBrbEobcS5RCG47acE5ySqxO8yB2";
+
+// 7️⃣ Auth state
 onAuthStateChanged(auth, async user => {
     if (user) {
+        currentUserUid = user.uid;
         const userDocRef = doc(usersCol, user.uid);
         const userSnap = await getDoc(userDocRef);
         if (userSnap.exists()) {
@@ -124,80 +145,161 @@ onAuthStateChanged(auth, async user => {
         input.disabled = false;
         sendButton.disabled = false;
         input.placeholder = "Type a message… 😎🔥💎";
+
+        if (user.uid === adminUid) pinnedInput.style.display = "block";
     } else {
         userFirstName = "anonymous";
         userProfilePic = "";
+        currentUserUid = "";
         input.disabled = true;
         sendButton.disabled = true;
         input.placeholder = "Log in to post messages…";
+        pinnedInput.style.display = "none";
     }
 });
 
-// 7️⃣ Real-time messages
+// 8️⃣ Listen to messages in real-time
 onSnapshot(messagesQuery, snapshot => {
     chatWindow.innerHTML = "";
+
+    // Build a map of messages for threading
+    const messageMap = {};
     snapshot.forEach(docSnap => {
-        const data = docSnap.data();
+        messageMap[docSnap.id] = { id: docSnap.id, data: docSnap.data(), children: [] };
+    });
+
+    // Assign replies to parent messages
+    Object.values(messageMap).forEach(msg => {
+        if (msg.data.replyTo) {
+            const parent = Object.values(messageMap).find(m => m.data.username === msg.data.replyTo);
+            if (parent) parent.children.push(msg);
+        }
+    });
+
+    // Function to render a message and its replies recursively
+    const renderMessage = (msg, container) => {
         const message = document.createElement("div");
         message.className = "chat-message";
 
         const emoji = document.createElement("div");
         emoji.className = "chat-emoji";
-        emoji.textContent = data.emoji || "💬";
+        emoji.textContent = msg.data.emoji || "💬";
 
         const bubble = document.createElement("div");
         bubble.className = "chat-bubble";
 
         const name = document.createElement("div");
         name.className = "chat-username";
-        name.textContent = data.username || "anonymous";
+        name.textContent = msg.data.username || "anonymous";
+
+        const timestamp = document.createElement("div");
+        timestamp.className = "chat-timestamp";
+        if (msg.data.timestamp?.toDate) timestamp.textContent = msg.data.timestamp.toDate().toLocaleString();
+
+        const reply = document.createElement("div");
+        reply.className = "chat-reply";
+        if (msg.data.replyTo) reply.textContent = `Replying to: ${msg.data.replyTo}`;
+        reply.onclick = () => { input.value = `@${msg.data.username} `; replyToMessage = msg.data.username; input.focus(); };
 
         const content = document.createElement("div");
-        content.textContent = data.text || "";
+        content.innerHTML = msg.data.text || "";
+
+        if (currentUserUid && msg.data.text?.includes(`@${userFirstName}`)) bubble.style.background = "rgba(255,255,0,0.2)";
 
         bubble.appendChild(name);
+        bubble.appendChild(timestamp);
+        bubble.appendChild(reply);
         bubble.appendChild(content);
 
         const profileImg = document.createElement("img");
-        profileImg.src = data.profilepicurl || "https://via.placeholder.com/36";
+        profileImg.src = msg.data.profilepicurl || "https://via.placeholder.com/36";
         profileImg.style.width = "36px";
         profileImg.style.height = "36px";
         profileImg.style.borderRadius = "50%";
         profileImg.style.marginRight = "10px";
 
+        const reactions = document.createElement("div");
+        reactions.className = "chat-reactions";
+        ["👍","❤️","😂"].forEach(emojiChar => {
+            const span = document.createElement("span");
+            span.textContent = emojiChar;
+            span.onclick = async () => {
+                const docRef = doc(db, "kollectchat", msg.id);
+                const currentReactions = msg.data.reactions || {};
+                currentReactions[emojiChar] = (currentReactions[emojiChar] || 0) + 1;
+                await updateDoc(docRef, { reactions: currentReactions });
+            };
+            reactions.appendChild(span);
+            if (msg.data.reactions?.[emojiChar]) {
+                const count = document.createElement("span");
+                count.textContent = ` ${msg.data.reactions[emojiChar]}`;
+                reactions.appendChild(count);
+            }
+        });
+
         message.appendChild(profileImg);
         message.appendChild(emoji);
         message.appendChild(bubble);
+        message.appendChild(reactions);
+        container.appendChild(message);
 
-        chatWindow.appendChild(message);
-    });
+        if (msg.children.length) {
+            const threadContainer = document.createElement("div");
+            threadContainer.className = "chat-thread";
+            msg.children.forEach(child => renderMessage(child, threadContainer));
+            container.appendChild(threadContainer);
+        }
+    };
+
+    // Render top-level messages (not replies)
+    Object.values(messageMap).filter(msg => !msg.data.replyTo).forEach(msg => renderMessage(msg, chatWindow));
 
     chatWindow.scrollTop = chatWindow.scrollHeight;
 });
 
-// 8️⃣ Send message
+// 9️⃣ Send message
 async function sendMessage() {
     if (!auth.currentUser) return;
-
     const text = input.value.trim();
     if (!text) return;
 
     await addDoc(messagesCol, {
         username: userFirstName,
-        uid: auth.currentUser.uid,
+        uid: currentUserUid,
         profilepicurl: userProfilePic,
         text: text,
         emoji: "💬",
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        replyTo: replyToMessage
     });
 
     input.value = "";
+    replyToMessage = null;
 }
 
-// 9️⃣ Event listeners
+// 🔟 Event listeners
 sendButton.addEventListener("click", sendMessage);
-input.addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
+input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+// 1️⃣1️⃣ Active users
+onSnapshot(usersCol, snapshot => {
+    activeUserCount.textContent = `Active users: ${snapshot.size}`;
+});
+
+// 1️⃣2️⃣ Admin pinned message
+pinnedInput.addEventListener("keydown", async e => {
+    if (e.key === "Enter" && currentUserUid === adminUid) {
+        await addDoc(messagesCol, {
+            username: userFirstName,
+            uid: currentUserUid,
+            profilepicurl: userProfilePic,
+            text: pinnedInput.value.trim(),
+            emoji: "📌",
+            timestamp: serverTimestamp(),
+            pinned: true
+        });
+        pinnedInput.value = "";
+    }
 });
 </script>
 
