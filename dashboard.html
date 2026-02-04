@@ -221,12 +221,17 @@ onAuthStateChanged(auth, async (user) => {
       winningSpan.style.fontWeight = "bold";
       winningSpan.textContent = "";
 
+      const livePriceSpan = document.createElement("span");
+      livePriceSpan.textContent = formatPrice(b.livePrice); // NEW live price span
+
       bidEl.innerHTML = `
         <p>
           <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
-          Live Price: ${formatPrice(b.livePrice)}<br>
+          Live Price: 
         </p>
       `;
+      bidEl.querySelector("p").appendChild(livePriceSpan); // append live price span
+      bidEl.querySelector("p").appendChild(document.createElement("br"));
       bidEl.querySelector("p").appendChild(userBidSpan);
       bidEl.querySelector("p").appendChild(document.createElement("br"));
       bidEl.querySelector("p").appendChild(winningSpan);
@@ -276,6 +281,16 @@ onAuthStateChanged(auth, async (user) => {
       bidContainer.appendChild(bidInput);
       bidContainer.appendChild(bidBtn);
       bidEl.appendChild(bidContainer);
+
+      // ---------- NEW: Live second-by-second price listener ----------
+      const listingRefLive = doc(db, "listings", b.listingid);
+      onSnapshot(listingRefLive, snap => {
+        if(snap.exists()){
+          const latestPrice = snap.data().price || 0;
+          livePriceSpan.textContent = formatPrice(latestPrice);
+          bidInput.min = latestPrice + 1;
+        }
+      });
 
       // Real-time updates for this user's bid & winning message
       const bidsQuery = query(collection(db, "bids"), where("listingid","==",b.listingid));
