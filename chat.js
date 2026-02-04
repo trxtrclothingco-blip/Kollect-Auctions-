@@ -136,7 +136,7 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
-  // fetch firstName & profilepicurl again to be 100% sure
+  // fetch firstName & profilepicurl from Firestore
   const userDocRef = doc(usersCol, auth.currentUser.uid);
   const userSnap = await getDoc(userDocRef);
 
