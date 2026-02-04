@@ -90,52 +90,93 @@ body.light-mode .chat-bubble {
                 type="text"
                 placeholder="Type a message… 😎🔥💎"
             >
-            <button class="button" onclick="sendMessage()">Send</button>
+            <button class="button" id="sendButton">Send</button>
         </div>
     </div>
 
 </div>
 
-<script>
-let username = prompt("Enter your display name:");
-if (!username) username = "Anonymous";
+<!-- FIREBASE & CHAT SCRIPT -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
+// 1️⃣ Firebase config
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// 2️⃣ Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 3️⃣ Reference collection
+const messagesCol = collection(db, "kollectchat");
+const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
+
+// 4️⃣ DOM elements
 const chatWindow = document.getElementById("chatWindow");
 const input = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
 
-function sendMessage() {
+// 5️⃣ Ask username
+let username = prompt("Enter your display name:");
+if (!username) username = "anonymous";
+
+// 6️⃣ Listen for real-time updates
+onSnapshot(messagesQuery, snapshot => {
+    chatWindow.innerHTML = ""; // clear chat
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        const message = document.createElement("div");
+        message.className = "chat-message";
+
+        const emoji = document.createElement("div");
+        emoji.className = "chat-emoji";
+        emoji.textContent = data.emoji || "💬";
+
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble";
+
+        const name = document.createElement("div");
+        name.className = "chat-username";
+        name.textContent = data.username || "anonymous";
+
+        const content = document.createElement("div");
+        content.textContent = data.text || "";
+
+        bubble.appendChild(name);
+        bubble.appendChild(content);
+        message.appendChild(emoji);
+        message.appendChild(bubble);
+
+        chatWindow.appendChild(message);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+});
+
+// 7️⃣ Send message function
+async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    const message = document.createElement("div");
-    message.className = "chat-message";
-
-    const emoji = document.createElement("div");
-    emoji.className = "chat-emoji";
-    emoji.textContent = "💬"; // default emoji (upgrade later)
-
-    const bubble = document.createElement("div");
-    bubble.className = "chat-bubble";
-
-    const name = document.createElement("div");
-    name.className = "chat-username";
-    name.textContent = username;
-
-    const content = document.createElement("div");
-    content.textContent = text;
-
-    bubble.appendChild(name);
-    bubble.appendChild(content);
-
-    message.appendChild(emoji);
-    message.appendChild(bubble);
-
-    chatWindow.appendChild(message);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    await addDoc(messagesCol, {
+        username: username,
+        text: text,
+        emoji: "💬",
+        timestamp: serverTimestamp()
+    });
 
     input.value = "";
 }
 
+// 8️⃣ Event listeners
+sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
