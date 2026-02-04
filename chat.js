@@ -1,15 +1,15 @@
 // ------------------------
-// kollect chat firestore js with persistent usernames
+// kollect chat firestore js using firstName + profilepicurl
 // ------------------------
 
 // import firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 // ------------------------
-// 1️⃣ firebase config (your actual keys)
+// 1️⃣ firebase config
 // ------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCGfejcFwdLTKow_yPptWfbdyrcc2b6dNc",
@@ -45,6 +45,7 @@ const usersCol = collection(db, "users");
 // 4️⃣ user state
 // ------------------------
 let username = "anonymous";
+let profilePicUrl = ""; // user's profile picture
 
 // disable input/send by default
 input.disabled = true;
@@ -59,29 +60,22 @@ onAuthStateChanged(auth, async user => {
         const userDocRef = doc(usersCol, user.uid);
         const userSnap = await getDoc(userDocRef);
 
-        // if user exists, load username
         if (userSnap.exists()) {
-            username = userSnap.data().username || "anonymous";
+            const data = userSnap.data();
+            username = data.firstName || "anonymous";
+            profilePicUrl = data.profilepicurl || ""; // optional profile pic
         } else {
-            // first time: ask user for a persistent username
-            let chosenName = "";
-            while (!chosenName) {
-                chosenName = prompt("Choose a username (will be permanent):");
-            }
-            username = chosenName;
-            await setDoc(userDocRef, {
-                username: chosenName,
-                createdAt: serverTimestamp()
-            });
+            username = "anonymous";
+            profilePicUrl = "";
         }
 
-        // enable chat input
         input.disabled = false;
         sendButton.disabled = false;
         input.placeholder = "Type a message… 😎🔥💎";
 
     } else {
         username = "anonymous";
+        profilePicUrl = "";
         input.disabled = true;
         sendButton.disabled = true;
         input.placeholder = "Log in to post messages";
@@ -93,8 +87,8 @@ onAuthStateChanged(auth, async user => {
 // ------------------------
 onSnapshot(messagesQuery, snapshot => {
     chatWindow.innerHTML = ""; // clear chat window
-    snapshot.forEach(doc => {
-        const data = doc.data();
+    snapshot.forEach(async docSnap => {
+        const data = docSnap.data();
 
         const message = document.createElement("div");
         message.className = "chat-message";
@@ -106,15 +100,44 @@ onSnapshot(messagesQuery, snapshot => {
         const bubble = document.createElement("div");
         bubble.className = "chat-bubble";
 
+        // fetch profile pic for each message user
+        let messageUsername = data.username || "anonymous";
+        let messageProfilePic = "";
+
+        if (data.username) {
+            // try to find user doc by firstName match
+            // for a more reliable solution, consider storing uid in message
+            const usersQueryRef = collection(db, "users");
+            const userDocRef = doc(usersCol, data.uid || "");
+            if (data.uid) {
+                const userSnap = await getDoc(userDocRef);
+                if (userSnap.exists()) {
+                    const uData = userSnap.data();
+                    messageProfilePic = uData.profilepicurl || "";
+                    messageUsername = uData.firstName || messageUsername;
+                }
+            }
+        }
+
+        // profile pic img
+        const profileImg = document.createElement("img");
+        profileImg.src = messageProfilePic || "https://via.placeholder.com/36"; // default avatar
+        profileImg.style.width = "36px";
+        profileImg.style.height = "36px";
+        profileImg.style.borderRadius = "50%";
+        profileImg.style.marginRight = "10px";
+
         const name = document.createElement("div");
         name.className = "chat-username";
-        name.textContent = data.username || "anonymous";
+        name.textContent = messageUsername;
 
         const content = document.createElement("div");
         content.textContent = data.text || "";
 
         bubble.appendChild(name);
         bubble.appendChild(content);
+
+        message.appendChild(profileImg);
         message.appendChild(emoji);
         message.appendChild(bubble);
 
@@ -127,13 +150,14 @@ onSnapshot(messagesQuery, snapshot => {
 // 7️⃣ send message function
 // ------------------------
 async function sendMessage() {
-    if (!auth.currentUser) return; // prevent sending if not logged in
+    if (!auth.currentUser) return;
 
     const text = input.value.trim();
     if (!text) return;
 
     await addDoc(messagesCol, {
         username: username,
+        uid: auth.currentUser.uid, // store UID for profile pic lookup
         text: text,
         emoji: "💬",
         timestamp: serverTimestamp()
