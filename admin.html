@@ -12,13 +12,15 @@
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  overflow-x: auto; /* added for horizontal scroll on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
 .card {
   background: #1f1f1f;
   border-radius: 12px;
   padding: 16px;
-  flex: 1;
+  flex: 0 0 auto; /* prevents cards from shrinking too much */
   min-width: 300px;
   max-width: 100%;
   min-height: 420px;
@@ -104,7 +106,7 @@ thead {
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .cards-row {
-    flex-direction: column;
+    flex-direction: row; /* allow horizontal scroll */
   }
 
   .card {
@@ -229,11 +231,12 @@ const analyticsBody = document.getElementById("analytics-table-body");
 
 let itemNames = {};
 
-// ITEMS collection – FIELD IS EXACTLY "name"
+// ITEMS collection – FIELD IS "listings.name"
 onSnapshot(collection(db, "items"), snap => {
   itemNames = {};
   snap.forEach(doc => {
-    itemNames[doc.id] = doc.data().name || "Unknown Item";
+    const data = doc.data();
+    itemNames[doc.id] = (data.listings && data.listings.name) || "Unknown Item";
   });
 });
 
