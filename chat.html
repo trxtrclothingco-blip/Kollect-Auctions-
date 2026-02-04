@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kollect Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- YOUR EXISTING CSS -->
+<link rel="stylesheet" href="style.css">
+
+<style>
+/* =====================
+   CHAT-SPECIFIC STYLES
+===================== */
+
+.chat-card {
+    max-width: 800px;
+}
+
+#chatWindow {
+    height: 420px;
+    overflow-y: auto;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.35);
+}
+
+body.light-mode #chatWindow {
+    background: rgba(240,240,240,0.8);
+}
+
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+
+.chat-emoji {
+    font-size: 22px;
+    width: 36px;
+    text-align: center;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.chat-bubble {
+    background: rgba(255,255,255,0.06);
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-align: left;
+    width: 100%;
+}
+
+body.light-mode .chat-bubble {
+    background: rgba(255,255,255,0.9);
+}
+
+.chat-username {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.75;
+    margin-bottom: 4px;
+}
+
+.chat-input {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input input {
+    flex: 1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Kollect Chat</h1>
+    <p>Live community discussion for collectors</p>
+
+    <div class="card chat-card">
+        <div id="chatWindow"></div>
+
+        <div class="chat-input">
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Type a message… 😎🔥💎"
+            >
+            <button class="button" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let username = prompt("Enter your display name:");
+if (!username) username = "Anonymous";
+
+const chatWindow = document.getElementById("chatWindow");
+const input = document.getElementById("messageInput");
+
+function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    const message = document.createElement("div");
+    message.className = "chat-message";
+
+    const emoji = document.createElement("div");
+    emoji.className = "chat-emoji";
+    emoji.textContent = "💬"; // default emoji (upgrade later)
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+
+    const name = document.createElement("div");
+    name.className = "chat-username";
+    name.textContent = username;
+
+    const content = document.createElement("div");
+    content.textContent = text;
+
+    bubble.appendChild(name);
+    bubble.appendChild(content);
+
+    message.appendChild(emoji);
+    message.appendChild(bubble);
+
+    chatWindow.appendChild(message);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    input.value = "";
+}
+
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+</script>
+
+</body>
+</html>
