@@ -11,25 +11,33 @@
 .cards-row {
   display: flex;
   gap: 20px;
-  flex-wrap: wrap;
-  overflow-x: auto; /* added for horizontal scroll on mobile */
+  flex-wrap: nowrap; /* force horizontal scroll */
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 10px;
   -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.cards-row::-webkit-scrollbar {
+  display: none; /* hide scrollbar */
 }
 
 .card {
   background: #1f1f1f;
   border-radius: 12px;
   padding: 16px;
-  flex: 0 0 auto; /* prevents cards from shrinking too much */
-  min-width: 300px;
+  flex: 0 0 300px; /* fixed width for carousel effect */
   max-width: 100%;
   min-height: 420px;
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s;
 }
 
 .card h3 {
   margin-bottom: 6px;
+  transition: opacity 0.3s; /* fade effect for carousel */
 }
 
 .card p {
@@ -229,14 +237,19 @@ import { getApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.j
 const db = getFirestore(getApp());
 const analyticsBody = document.getElementById("analytics-table-body");
 
-let itemNames = {};
+let itemData = {};
 
-// ITEMS collection – FIELD IS "listings.name"
+// ITEMS collection – FIELD "name" inside listings
 onSnapshot(collection(db, "items"), snap => {
-  itemNames = {};
+  itemData = {};
   snap.forEach(doc => {
     const data = doc.data();
-    itemNames[doc.id] = (data.listings && data.listings.name) || "Unknown Item";
+    if (data.listings) {
+      itemData[doc.id] = {
+        name: data.listings.name || "Unknown Item",
+        price: data.listings.price || "-"
+      };
+    }
   });
 });
 
@@ -257,11 +270,12 @@ onSnapshot(collection(db, "bids"), snapshot => {
     .sort((a,b) => b[1].count - a[1].count)
     .forEach(([listingid, data]) => {
       const avg = (data.total / data.count).toFixed(2);
-      const title = itemNames[listingid] || listingid;
+      const title = itemData[listingid]?.name || listingid;
+      const livePrice = itemData[listingid]?.price ? `£${itemData[listingid].price}` : "-";
 
       analyticsBody.innerHTML += `
         <tr>
-          <td>${title}</td>
+          <td>${title} <span style="font-size:12px; opacity:0.7;">(${livePrice})</span></td>
           <td>${data.count}</td>
           <td>£${avg}</td>
           <td><span class="action-btn remove">Remove</span></td>
@@ -276,6 +290,20 @@ document.addEventListener("click", e => {
     const row = e.target.closest("tr");
     if (row) row.remove();
   }
+});
+
+// Fading titles effect on horizontal scroll
+const cardsRow = document.querySelector('.cards-row');
+cardsRow.addEventListener('scroll', () => {
+  const cards = cardsRow.querySelectorAll('.card h3');
+  const scrollLeft = cardsRow.scrollLeft;
+  const cardWidth = cards[0]?.offsetWidth || 300;
+  cards.forEach((title, i) => {
+    const pos = i * cardWidth;
+    const diff = Math.abs(scrollLeft - pos);
+    const opacity = 1 - Math.min(diff / (cardWidth * 2), 0.7);
+    title.style.opacity = opacity;
+  });
 });
 </script>
 
