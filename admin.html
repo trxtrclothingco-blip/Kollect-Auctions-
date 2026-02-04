@@ -16,7 +16,6 @@
 
 .cards-row {
   display: flex;
-  gap: 20px;
   flex-wrap: nowrap;
   transition: transform 0.5s ease;
 }
@@ -134,10 +133,6 @@ thead {
 
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
-  .cards-row {
-    flex-direction: row;
-  }
-
   .card {
     min-height: auto;
   }
@@ -174,7 +169,7 @@ thead {
 
     <h1>Admin Panel</h1>
 
-    <!-- BIDS + ANALYTICS -->
+    <!-- CAROUSEL: BIDS + MOST POPULAR -->
     <div class="cards-row-container">
       <div class="carousel-arrow left">&#10094;</div>
       <div class="carousel-arrow right">&#10095;</div>
