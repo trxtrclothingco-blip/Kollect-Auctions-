@@ -1,83 +1,89 @@
-// global.js
-(function() {
-  // Make sure Firebase is loaded
-  if (!firebase || !firebase.auth || !firebase.firestore) return;
+// notification.js — global, works on any page
+(function () {
 
-  const db = firebase.firestore();
+  // Track which auctions we've notified to avoid duplicates
+  const notifiedEndingSoon = new Set();
+  const notifiedWon = new Set();
 
-  // Helper function to show toast notifications
   function showToast(message) {
-    // Create toast element
-    const toast = document.createElement('div');
+    const toast = document.createElement("div");
     toast.textContent = message;
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.right = '20px';
-    toast.style.backgroundColor = '#333';
-    toast.style.color = '#fff';
-    toast.style.padding = '10px 20px';
-    toast.style.borderRadius = '5px';
-    toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
-    toast.style.zIndex = 9999;
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.5s ease';
-
+    toast.style.cssText = `
+      position:fixed;
+      bottom:20px;
+      right:20px;
+      background:#333;
+      color:#fff;
+      padding:12px 18px;
+      border-radius:6px;
+      z-index:9999;
+      font-size:14px;
+      opacity:0;
+      transition:opacity .3s;
+    `;
     document.body.appendChild(toast);
-
-    // Fade in
-    setTimeout(() => { toast.style.opacity = '1'; }, 50);
-    // Fade out and remove after 3 seconds
+    setTimeout(() => toast.style.opacity = 1, 50);
     setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 500);
+      toast.style.opacity = 0;
+      setTimeout(() => toast.remove(), 300);
     }, 3000);
   }
 
-  // Listen for auth state
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) return;
+  // Wait until DOM is ready
+  document.addEventListener("DOMContentLoaded", () => {
 
-    const userId = user.uid;
+    // 1️⃣ Check live bids countdowns
+    function checkLiveBids() {
+      const liveBids = document.querySelectorAll(".bid-card"); // use your bid cards
+      liveBids.forEach(bidEl => {
+        const endTimeStr = bidEl.dataset.endTime || bidEl.querySelector(".countdown-timer")?.dataset.endTime;
+        const title = bidEl.dataset.title || bidEl.querySelector("a")?.textContent;
+        const auctionId = bidEl.dataset.auctionId;
 
-    // Function to check live bids and send notifications
-    async function checkEndingSoonAuctions() {
-      try {
-        // 1. Get all auctions the user has bid on from live bids dashboard
-        const liveBidsSnapshot = await db.collection('bids')
-          .where('userId', '==', userId)
-          .get();
+        if (!endTimeStr || !auctionId || !title) return;
 
-        // Keep track of auctions already notified to avoid repeat
-        const notifiedAuctions = new Set();
+        if (notifiedEndingSoon.has(auctionId)) return;
 
-        liveBidsSnapshot.forEach(async (bidDoc) => {
-          const bidData = bidDoc.data();
-          const auctionId = bidData.auctionId;
+        const endTime = new Date(endTimeStr);
+        const now = new Date();
+        const diff = endTime - now;
 
-          // Get auction info
-          const auctionDoc = await db.collection('auctions').doc(auctionId).get();
-          if (!auctionDoc.exists) return;
-          const auction = auctionDoc.data();
-
-          if (auction.status !== 'active') return;
-
-          const timeLeftMs = auction.endTime.toDate() - new Date();
-          const fiveMinutesMs = 5 * 60 * 1000;
-
-          // If less than 5 minutes left and not yet notified
-          if (timeLeftMs <= fiveMinutesMs && timeLeftMs > 0 && !notifiedAuctions.has(auctionId)) {
-            showToast(`⚠️ Auction "${auction.title}" ends in 5 minutes!`);
-            notifiedAuctions.add(auctionId);
-          }
-        });
-      } catch (err) {
-        console.error('Error checking ending soon auctions:', err);
-      }
+        if (diff <= 5 * 60 * 1000 && diff > 0) {
+          showToast(`⚠️ Auction "${title}" ends in 5 minutes!`);
+          notifiedEndingSoon.add(auctionId);
+        }
+      });
     }
 
-    // Check every 30 seconds
-    setInterval(checkEndingSoonAuctions, 30000);
-    // Run immediately on load
-    checkEndingSoonAuctions();
+    // Run immediately & every 30s
+    checkLiveBids();
+    setInterval(checkLiveBids, 30000);
+
+    // 2️⃣ Listen for auctions the user has won
+    if (window.firebase && firebase.auth && firebase.firestore) {
+      const db = firebase.firestore();
+
+      firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user) return;
+
+        // Listen for listings where the user is winner
+        const wonQuery = db.collection("listings")
+          .where("winnerid", "==", user.uid);
+
+        wonQuery.onSnapshot(snapshot => {
+          snapshot.docChanges().forEach(change => {
+            const data = change.doc.data();
+            const auctionId = change.doc.id;
+            const title = data.name || "Auction";
+
+            if (change.type === "added" && !notifiedWon.has(auctionId)) {
+              showToast(`🏆 You won the auction "${title}"!`);
+              notifiedWon.add(auctionId);
+            }
+          });
+        });
+      });
+    }
+
   });
 })();
