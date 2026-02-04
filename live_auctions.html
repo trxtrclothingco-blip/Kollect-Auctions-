@@ -99,6 +99,24 @@
 
 <body data-page="liveauctions">
 
+  <!-- 1️⃣ Firebase v9 modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Make db and auth available globally for notification.js
+    window._firebase = { db, auth };
+  </script>
+
+</head>
+<body>
+
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
