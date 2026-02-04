@@ -29,6 +29,13 @@ passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const passwordInput = document.getElementById("admin-password").value;
 
+  // --- FIX: Only attempt admin sign-in if the current user is intended admin ---
+  const currentUser = auth.currentUser;
+  if (currentUser && currentUser.uid !== ADMIN_UID) {
+    alert("You are already signed in with another account. Sign out first.");
+    return;
+  }
+
   try {
     const cred = await signInWithEmailAndPassword(auth, ADMIN_EMAIL, passwordInput);
     if (cred.user.uid !== ADMIN_UID) {
