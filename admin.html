@@ -55,37 +55,6 @@
   margin: 5px 0;
   color: #FFD700;
 }
-
-/* Analytics Box Styling */
-.analytics-card {
-  border: 2px solid #4CAF50;
-  border-radius: 8px;
-  padding: 12px;
-  width: 400px;
-  display: inline-block;
-  vertical-align: top;
-  margin-left: 20px;
-}
-
-.analytics-card h3 {
-  margin-bottom: 10px;
-}
-
-.analytics-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.analytics-table th,
-.analytics-table td {
-  border: 1px solid #ccc;
-  padding: 6px;
-  text-align: left;
-}
-
-.analytics-table th {
-  background: #f2f2f2;
-}
 </style>
 </head>
 <body>
@@ -104,7 +73,6 @@
   <!-- Admin Panel -->
   <div id="admin-panel" style="display:none;">
     
-    <!-- Home Button -->
     <a href="index.html" class="button" style="margin-bottom: 20px; display: inline-block;">
       Home
     </a>
@@ -114,34 +82,36 @@
     <p>Only authorized personnel can access and manage auction data here.</p>
 
     <!-- Bids + Analytics -->
-    <div style="display:flex; align-items:flex-start;">
+    <div style="display:flex; align-items:flex-start; gap:20px;">
+
       <div class="card">
         <h3>View All Bids</h3>
         <p style="font-size:14px; opacity:0.8;">
           Showing live price from listings (10 per page)
         </p>
-        <div id="bids-list">
-          <!-- admin.js injects bid items -->
-        </div>
+        <div id="bids-list"></div>
       </div>
 
-      <!-- Analytics Box -->
-      <div class="analytics-card">
-        <h3>Auction Analytics</h3>
-        <table class="analytics-table">
+      <div class="card">
+        <h3>Most Popular Auctions</h3>
+        <p style="font-size:14px; opacity:0.8;">
+          Ranked by bid activity
+        </p>
+
+        <table style="width:100%; border-collapse:collapse;">
           <thead>
             <tr>
-              <th>Auction Title</th>
-              <th>Number of Bids</th>
-              <th>Average Bid</th>
+              <th style="text-align:left;">Auction</th>
+              <th>Bids</th>
+              <th>Avg Bid</th>
             </tr>
           </thead>
           <tbody id="analytics-table-body"></tbody>
         </table>
       </div>
+
     </div>
 
-    <!-- ✅ ENDED AUCTIONS -->
     <div class="card">
       <h3>Ended Auctions</h3>
       <p style="font-size:14px; opacity:0.8;">
@@ -150,7 +120,6 @@
       <div id="ended-auctions-container"></div>
     </div>
 
-    <!-- Add/Edit Item -->
     <div class="card">
       <h3>Add / Edit Item</h3>
       <form id="item-form">
@@ -196,16 +165,26 @@
 
 <script type="module" src="admin.js"></script>
 
-<!-- 🔹 Analytics Logic (ONLY ADDITION) -->
 <script type="module">
-import { getFirestore, collection, onSnapshot } 
+import { getFirestore, collection, onSnapshot }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getApp } 
+import { getApp }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 
 const db = getFirestore(getApp());
 const analyticsBody = document.getElementById("analytics-table-body");
 
+let itemNames = {};
+
+// lowercase collection name: items
+onSnapshot(collection(db, "items"), snap => {
+  itemNames = {};
+  snap.forEach(doc => {
+    itemNames[doc.id] = doc.data().item_name || "Unknown Item";
+  });
+});
+
+// lowercase collection name: bids
 onSnapshot(collection(db, "bids"), snapshot => {
   const auctions = {};
 
@@ -226,10 +205,11 @@ onSnapshot(collection(db, "bids"), snapshot => {
     .sort((a, b) => b[1].count - a[1].count)
     .forEach(([listingid, data]) => {
       const avg = (data.total / data.count).toFixed(2);
+      const title = itemNames[listingid] || listingid;
 
       analyticsBody.innerHTML += `
         <tr>
-          <td>${listingid}</td>
+          <td>${title}</td>
           <td>${data.count}</td>
           <td>£${avg}</td>
         </tr>
