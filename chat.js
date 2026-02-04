@@ -1,5 +1,5 @@
 // ------------------------
-// kollect chat firestore js using firstName + profilepicurl
+// kollect chat firestore js using cached firstName + profilepicurl
 // ------------------------
 
 // import firebase modules
@@ -42,10 +42,10 @@ const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
 const usersCol = collection(db, "users");
 
 // ------------------------
-// 4️⃣ user state
+// 4️⃣ cached user state
 // ------------------------
-let username = "anonymous";
-let profilePicUrl = "";
+let userFirstName = "anonymous";
+let userProfilePic = "";
 
 // disable input/send by default
 input.disabled = true;
@@ -62,19 +62,19 @@ onAuthStateChanged(auth, async user => {
 
     if (userSnap.exists()) {
       const data = userSnap.data();
-      username = data.firstName || "anonymous";
-      profilePicUrl = data.profilepicurl || "";
+      userFirstName = data.firstName || "anonymous";
+      userProfilePic = data.profilepicurl || "";
     } else {
-      username = "anonymous";
-      profilePicUrl = "";
+      userFirstName = "anonymous";
+      userProfilePic = "";
     }
 
     input.disabled = false;
     sendButton.disabled = false;
     input.placeholder = "Type a message… 😎🔥💎";
   } else {
-    username = "anonymous";
-    profilePicUrl = "";
+    userFirstName = "anonymous";
+    userProfilePic = "";
     input.disabled = true;
     sendButton.disabled = true;
     input.placeholder = "Log in to post messages";
@@ -136,29 +136,15 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
-  // fetch firstName & profilepicurl from Firestore
-  const userDocRef = doc(usersCol, auth.currentUser.uid);
-  const userSnap = await getDoc(userDocRef);
-
-  let firstName = "anonymous";
-  let profilePic = "";
-
-  if (userSnap.exists()) {
-    const data = userSnap.data();
-    firstName = data.firstName || "anonymous";
-    profilePic = data.profilepicurl || "";
-  }
-
   await addDoc(messagesCol, {
-    username: firstName,
+    username: userFirstName,
     uid: auth.currentUser.uid,
-    profilepicurl: profilePic,
+    profilepicurl: userProfilePic,
     text: text,
     emoji: "💬",
     timestamp: serverTimestamp()
   });
 
-  // clear input
   input.value = "";
 }
 
