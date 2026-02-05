@@ -170,11 +170,11 @@ onSnapshot(messagesQuery, snapshot => {
 
     ["👍","❤️","😂"].forEach(emojiChar => {
       const span = document.createElement("span");
-      span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || ""}`;
+      span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || 0}`;
       span.style.cursor = "pointer";
       span.onclick = async () => {
         const docRef = doc(db, "kollectchat", docSnap.id);
-        const updatedReactions = { ...(data.reactions || {}) };
+        const updatedReactions = { ...(data.reactions || { "👍": 0, "❤️": 0, "😂": 0 }) };
         updatedReactions[emojiChar] = (updatedReactions[emojiChar] || 0) + 1;
         await updateDoc(docRef, { reactions: updatedReactions });
       };
@@ -194,7 +194,7 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 9️⃣ send message (persistent reactions added)
+// 9️⃣ send message (persistent reactions ensured)
 // ------------------------
 async function sendMessage() {
   if (!auth.currentUser) return;
@@ -208,7 +208,7 @@ async function sendMessage() {
     text,
     emoji: "💬",
     timestamp: serverTimestamp(),
-    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // <-- persistent reactions
+    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // <-- every new message has reactions
   };
 
   if (replyToMessage) messageData.replyTo = replyToMessage;
