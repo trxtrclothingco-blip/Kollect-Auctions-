@@ -32,7 +32,7 @@
     inset 0 0 6px rgba(0,255,100,0.4);
 }
 
-/* Dashboard button (gold) */
+/* Dashboard button */
 #dashboardButton {
   padding: 8px 16px;
   font-weight: 700;
@@ -41,17 +41,6 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow:
-    0 0 6px rgba(255,215,0,0.6),
-    0 4px 10px rgba(0,0,0,0.3);
-  transition: all 0.2s ease;
-}
-
-#dashboardButton:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 0 12px rgba(255,215,0,0.9),
-    0 6px 14px rgba(0,0,0,0.4);
 }
 
 /* Chat */
@@ -63,52 +52,52 @@
   border-radius: 12px;
   background: rgba(0,0,0,0.35);
 }
-body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 
-.chat-message { display: flex; align-items: flex-start; margin-bottom: 14px; }
+.chat-message { margin-bottom: 14px; }
 
 .chat-bubble {
   background: rgba(255,255,255,0.06);
   padding: 10px 14px;
   border-radius: 12px;
-  text-align: left;
-  width: 100%;
 }
-body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
 .chat-username {
   font-size: 12px;
   font-weight: 600;
   opacity: 0.75;
-  margin-bottom: 4px;
 }
 
 .chat-timestamp {
   font-size: 10px;
   opacity: 0.6;
-  margin-top: 2px;
 }
 
-.chat-reply {
+.chat-reply-preview {
   font-size: 11px;
   color: #ccc;
-  margin-bottom: 2px;
   padding-left: 10px;
+  margin-bottom: 4px;
   border-left: 2px solid #888;
+}
+
+.reply-action {
+  font-size: 11px;
+  opacity: 0.6;
   cursor: pointer;
+  margin-top: 4px;
+}
+
+#replyIndicator {
+  display: none;
+  font-size: 12px;
+  padding: 6px;
+  margin-bottom: 6px;
+  border-left: 3px solid gold;
+  background: rgba(255,215,0,0.1);
 }
 
 .chat-input { display: flex; gap: 10px; }
 .chat-input input { flex: 1; }
-
-#pinnedInput {
-  width: 100%;
-  padding: 6px;
-  margin-bottom: 8px;
-  border-radius: 6px;
-  border: 1px solid #aaa;
-  display: none;
-}
 </style>
 </head>
 
@@ -116,7 +105,6 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
 <div class="container">
   <h1>Kollect Chat</h1>
-  <p>Live community discussion for collectors</p>
 
   <div id="activeUserCountContainer">
     <div id="activeUserCount">Online</div>
@@ -124,7 +112,7 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
   </div>
 
   <div class="card chat-card">
-    <input id="pinnedInput" placeholder="Pin a message…">
+    <div id="replyIndicator"></div>
     <div id="chatWindow"></div>
 
     <div class="chat-input">
@@ -136,69 +124,34 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-const firebaseConfig = {
+const app = initializeApp({
   apiKey: "AIzaSyCGfejcFwdLTKow_yPptWfbdyrcc2b6dNc",
   authDomain: "kollectauctions-b9de9.firebaseapp.com",
-  projectId: "kollectauctions-b9de9",
-  storageBucket: "kollectauctions-b9de9.firebasestorage.app",
-  messagingSenderId: "185844480439",
-  appId: "1:185844480439:web:36de485ff58fcca2cc5032",
-  measurementId: "G-DJ0NLNG2LN"
-};
+  projectId: "kollectauctions-b9de9"
+});
 
-const app = initializeApp(firebaseConfig);
-getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 const chatWindow = document.getElementById("chatWindow");
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
-const pinnedInput = document.getElementById("pinnedInput");
+const replyIndicator = document.getElementById("replyIndicator");
 
 const messagesCol = collection(db, "kollectchat");
 const messagesQuery = query(messagesCol, orderBy("timestamp", "asc"));
-const usersCol = collection(db, "users");
-const activeUsersCol = collection(db, "kollectchatActiveUsers");
 
-let userFirstName = "anonymous";
-let userProfilePic = "";
-let currentUserUid = "";
-let replyToMessage = null;
+let currentUser = null;
+let replyTo = null;
 
-const adminUid = "gBrbEobcS5RCG47acE5ySqxO8yB2";
-
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
-    currentUserUid = user.uid;
-    const snap = await getDoc(doc(usersCol, user.uid));
-    if (snap.exists()) {
-      userFirstName = snap.data().firstName || "anonymous";
-      userProfilePic = snap.data().profilepicurl || "";
-    }
-
+    currentUser = user;
     input.disabled = false;
     sendButton.disabled = false;
-    input.placeholder = "Type a message…";
-
-    if (currentUserUid === adminUid) pinnedInput.style.display = "block";
-
-    await setDoc(doc(activeUsersCol, currentUserUid), {
-      username: userFirstName,
-      lastActive: serverTimestamp()
-    });
-
-    window.addEventListener("beforeunload", async () => {
-      await deleteDoc(doc(activeUsersCol, currentUserUid));
-    });
-  } else {
-    input.disabled = true;
-    sendButton.disabled = true;
-    pinnedInput.style.display = "none";
   }
 });
 
@@ -207,52 +160,61 @@ onSnapshot(messagesQuery, snapshot => {
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
 
-    const message = document.createElement("div");
-    message.className = "chat-message";
+    const msg = document.createElement("div");
+    msg.className = "chat-message";
 
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
 
-    /* ✅ RESTORED: highlight messages that mention the user */
-    if (currentUserUid && data.text?.includes(`@${userFirstName}`)) {
-      bubble.style.background = "rgba(255, 215, 0, 0.15)";
-      bubble.style.boxShadow = "0 0 12px rgba(255,215,0,0.7)";
+    if (data.replyTo) {
+      bubble.innerHTML += `
+        <div class="chat-reply-preview">
+          Replying to <b>${data.replyTo.username}</b>: ${data.replyTo.text}
+        </div>
+      `;
     }
 
-    bubble.innerHTML = `
-      <div class="chat-username">${data.username || "anonymous"}</div>
-      <div>${data.text || ""}</div>
-      <div class="chat-timestamp">
-        ${data.timestamp?.toDate?.().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || ""}
-      </div>
+    bubble.innerHTML += `
+      <div class="chat-username">${data.username}</div>
+      <div>${data.text}</div>
+      <div class="chat-timestamp">${data.timestamp?.toDate?.().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || ""}</div>
+      <div class="reply-action">↩ Reply</div>
     `;
 
-    message.appendChild(bubble);
-    chatWindow.appendChild(message);
+    bubble.querySelector(".reply-action").onclick = () => {
+      replyTo = {
+        messageId: docSnap.id,
+        username: data.username,
+        text: data.text.split("\n")[0].slice(0, 80)
+      };
+      replyIndicator.style.display = "block";
+      replyIndicator.textContent = `Replying to ${replyTo.username}: ${replyTo.text}`;
+    };
+
+    msg.appendChild(bubble);
+    chatWindow.appendChild(msg);
   });
 
   chatWindow.scrollTop = chatWindow.scrollHeight;
 });
 
 async function sendMessage() {
-  if (!auth.currentUser || !input.value.trim()) return;
+  if (!input.value.trim()) return;
 
   await addDoc(messagesCol, {
-    username: userFirstName,
-    uid: currentUserUid,
-    profilepicurl: userProfilePic,
+    username: auth.currentUser.email || "anonymous",
     text: input.value.trim(),
-    timestamp: serverTimestamp()
+    timestamp: serverTimestamp(),
+    replyTo: replyTo || null
   });
 
   input.value = "";
-  replyToMessage = null;
+  replyTo = null;
+  replyIndicator.style.display = "none";
 }
 
-sendButton.addEventListener("click", sendMessage);
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") sendMessage();
-});
+sendButton.onclick = sendMessage;
+input.onkeydown = e => { if (e.key === "Enter") sendMessage(); };
 </script>
 
 </body>
