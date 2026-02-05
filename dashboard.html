@@ -92,6 +92,59 @@ function showPopup(message) {
   }, 2000);
 }
 
+// ---------- Popup for item details ----------
+function showItemPopup(listing) {
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.backgroundColor = "rgba(0,0,0,0.7)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.zIndex = "10000";
+
+  const box = document.createElement("div");
+  box.style.backgroundColor = "#2a2a2a";
+  box.style.padding = "20px";
+  box.style.border = "2px solid #FFD700";
+  box.style.borderRadius = "8px";
+  box.style.maxWidth = "400px";
+  box.style.textAlign = "center";
+  box.style.position = "relative";
+
+  const closeBtn = document.createElement("span");
+  closeBtn.textContent = "✖";
+  closeBtn.style.position = "absolute";
+  closeBtn.style.top = "10px";
+  closeBtn.style.right = "10px";
+  closeBtn.style.cursor = "pointer";
+  closeBtn.style.fontSize = "20px";
+  closeBtn.onclick = () => document.body.removeChild(overlay);
+
+  const title = document.createElement("h3");
+  title.textContent = listing.name;
+
+  const desc = document.createElement("p");
+  desc.textContent = listing.description || "No description available";
+
+  const img = document.createElement("img");
+  img.src = listing.image || "";
+  img.style.maxWidth = "100%";
+  img.style.borderRadius = "4px";
+  img.style.marginTop = "10px";
+
+  box.appendChild(closeBtn);
+  box.appendChild(title);
+  box.appendChild(desc);
+  box.appendChild(img);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
 // ---------- Auth & Dashboard ----------
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "create_account.html";
@@ -223,7 +276,8 @@ onAuthStateChanged(auth, async (user) => {
       bidEl.className = "bid-card";
 
       const listingDoc = await getDoc(doc(db, "listings", b.listingid));
-      const auctionEndTime = listingDoc.exists() ? listingDoc.data().auctionend?.toDate() : null;
+      const listingData = listingDoc.exists() ? listingDoc.data() : {};
+      const auctionEndTime = listingData?.auctionend?.toDate() || null;
 
       const userBidSpan = document.createElement("span");
       userBidSpan.className = "user-bid";
@@ -234,26 +288,36 @@ onAuthStateChanged(auth, async (user) => {
       winningSpan.style.fontWeight = "bold";
       winningSpan.textContent = "";
 
+      const outbidSpan = document.createElement("span");
+      outbidSpan.style.color = "red";
+      outbidSpan.style.fontWeight = "bold";
+      outbidSpan.style.display = "none";
+      outbidSpan.textContent = "Outbid";
+
       const livePriceSpan = document.createElement("span");
       livePriceSpan.textContent = formatPrice(b.livePrice);
 
-      bidEl.innerHTML = `
-        <p>
-          <strong><a href="item.html?id=${b.listingid}">${b.itemName}</a></strong><br>
-          Live Price: 
-        </p>
-      `;
-      bidEl.querySelector("p").appendChild(livePriceSpan);
-      bidEl.querySelector("p").appendChild(document.createElement("br"));
-      bidEl.querySelector("p").appendChild(userBidSpan);
-      bidEl.querySelector("p").appendChild(document.createElement("br"));
-      bidEl.querySelector("p").appendChild(winningSpan);
+      const nameLink = document.createElement("a");
+      nameLink.href = "#";
+      nameLink.textContent = b.itemName;
+      nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(listingData); };
+
+      bidEl.innerHTML = `<p><strong></strong><br>Live Price: </p>`;
+      const pTag = bidEl.querySelector("p");
+      pTag.querySelector("strong").appendChild(nameLink);
+      pTag.appendChild(livePriceSpan);
+      pTag.appendChild(document.createElement("br"));
+      pTag.appendChild(userBidSpan);
+      pTag.appendChild(document.createElement("br"));
+      pTag.appendChild(winningSpan);
+      pTag.appendChild(document.createElement("br"));
+      pTag.appendChild(outbidSpan);
 
       const countdownEl = document.createElement("span");
       countdownEl.className = "countdown-timer";
       countdownEl.textContent = "Loading timer…";
-      bidEl.querySelector("p").appendChild(document.createElement("br"));
-      bidEl.querySelector("p").appendChild(countdownEl);
+      pTag.appendChild(document.createElement("br"));
+      pTag.appendChild(countdownEl);
 
       if(auctionEndTime){
         const interval = setInterval(() => {
@@ -323,7 +387,9 @@ onAuthStateChanged(auth, async (user) => {
           if(data.userid === user.uid && data.bidamount > userHighest) userHighest = data.bidamount;
         });
         if(userHighest > 0) userBidSpan.textContent = `Your Bid: ${formatPrice(userHighest)}`;
-        winningSpan.textContent = userHighest >= highestBid ? "You're currently winning!" : "";
+        const winning = userHighest >= highestBid;
+        winningSpan.textContent = winning ? "You're currently winning!" : "";
+        outbidSpan.style.display = !winning && userHighest>0 ? "inline-block" : "none";
 
         // ---------- Notification: Outbid ----------
         if(userHighest > 0 && userHighest < highestBid){
