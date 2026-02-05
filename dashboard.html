@@ -34,6 +34,13 @@ const welcomeName = document.getElementById("welcome-name");
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
 const inputs = fields.map(f => document.getElementById(f));
 
+// ---------- Notifications State ----------
+const notificationState = {
+  auctionEndingSoon: {},
+  outbid: {},
+  auctionWon: {}
+};
+
 // ---------- Burger Menu & Light/Dark Mode ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
 if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
@@ -222,7 +229,7 @@ onAuthStateChanged(auth, async (user) => {
       winningSpan.textContent = "";
 
       const livePriceSpan = document.createElement("span");
-      livePriceSpan.textContent = formatPrice(b.livePrice); // NEW live price span
+      livePriceSpan.textContent = formatPrice(b.livePrice);
 
       bidEl.innerHTML = `
         <p>
@@ -230,7 +237,7 @@ onAuthStateChanged(auth, async (user) => {
           Live Price: 
         </p>
       `;
-      bidEl.querySelector("p").appendChild(livePriceSpan); // append live price span
+      bidEl.querySelector("p").appendChild(livePriceSpan);
       bidEl.querySelector("p").appendChild(document.createElement("br"));
       bidEl.querySelector("p").appendChild(userBidSpan);
       bidEl.querySelector("p").appendChild(document.createElement("br"));
@@ -254,6 +261,12 @@ onAuthStateChanged(auth, async (user) => {
             const minutes = Math.floor((diff/1000/60)%60);
             const seconds = Math.floor((diff/1000)%60);
             countdownEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
+
+            // ---------- Notification: 5 minutes remaining ----------
+            if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
+              showPopup(`Auction for "${b.itemName}" ends in 5 minutes!`);
+              notificationState.auctionEndingSoon[b.listingid] = true;
+            }
           }
         }, 1000);
       }
@@ -282,7 +295,7 @@ onAuthStateChanged(auth, async (user) => {
       bidContainer.appendChild(bidBtn);
       bidEl.appendChild(bidContainer);
 
-      // ---------- NEW: Live second-by-second price listener ----------
+      // ---------- Live second-by-second price listener ----------
       const listingRefLive = doc(db, "listings", b.listingid);
       onSnapshot(listingRefLive, snap => {
         if(snap.exists()){
@@ -304,6 +317,16 @@ onAuthStateChanged(auth, async (user) => {
         });
         if(userHighest > 0) userBidSpan.textContent = `Your Bid: ${formatPrice(userHighest)}`;
         winningSpan.textContent = userHighest >= highestBid ? "You're currently winning!" : "";
+
+        // ---------- Notification: Outbid ----------
+        if(userHighest > 0 && userHighest < highestBid){
+          if(!notificationState.outbid[b.listingid]){
+            showPopup(`You've been outbid on "${b.itemName}"! Place a higher bid.`);
+            notificationState.outbid[b.listingid] = true;
+          }
+        } else {
+          notificationState.outbid[b.listingid] = false;
+        }
       });
 
       liveBidsContainer.appendChild(bidEl);
@@ -431,6 +454,12 @@ onAuthStateChanged(auth, async (user) => {
         winneremail: d.winneremail || "You",
         id: docSnap.id
       });
+
+      // ---------- Notification: Auction Won ----------
+      if(!notificationState.auctionWon[docSnap.id]){
+        showPopup(`Congratulations! You won the auction for "${d.name}"!`);
+        notificationState.auctionWon[docSnap.id] = true;
+      }
     });
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
     wonPage = 1;
