@@ -34,12 +34,18 @@ const welcomeName = document.getElementById("welcome-name");
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
 const inputs = fields.map(f => document.getElementById(f));
 
-// ---------- Notifications State ----------
+// ---------- Notifications State (persistent) ----------
 const notificationState = {
-  auctionEndingSoon: {},
-  outbid: {},
-  auctionWon: {}
+  auctionEndingSoon: JSON.parse(localStorage.getItem("notification_auctionEndingSoon") || "{}"),
+  outbid: JSON.parse(localStorage.getItem("notification_outbid") || "{}"),
+  auctionWon: JSON.parse(localStorage.getItem("notification_auctionWon") || "{}")
 };
+
+function saveNotificationState() {
+  localStorage.setItem("notification_auctionEndingSoon", JSON.stringify(notificationState.auctionEndingSoon));
+  localStorage.setItem("notification_outbid", JSON.stringify(notificationState.outbid));
+  localStorage.setItem("notification_auctionWon", JSON.stringify(notificationState.auctionWon));
+}
 
 // ---------- Burger Menu & Light/Dark Mode ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
@@ -266,6 +272,7 @@ onAuthStateChanged(auth, async (user) => {
             if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
               showPopup(`Auction for "${b.itemName}" ends in 5 minutes!`);
               notificationState.auctionEndingSoon[b.listingid] = true;
+              saveNotificationState();
             }
           }
         }, 1000);
@@ -323,9 +330,11 @@ onAuthStateChanged(auth, async (user) => {
           if(!notificationState.outbid[b.listingid]){
             showPopup(`You've been outbid on "${b.itemName}"! Place a higher bid.`);
             notificationState.outbid[b.listingid] = true;
+            saveNotificationState();
           }
         } else {
           notificationState.outbid[b.listingid] = false;
+          saveNotificationState();
         }
       });
 
@@ -459,6 +468,7 @@ onAuthStateChanged(auth, async (user) => {
       if(!notificationState.auctionWon[docSnap.id]){
         showPopup(`Congratulations! You won the auction for "${d.name}"!`);
         notificationState.auctionWon[docSnap.id] = true;
+        saveNotificationState();
       }
     });
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
