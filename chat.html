@@ -8,17 +8,15 @@
 
 <style>
 .chat-card { max-width: 800px; }
-#activeUserCount { margin-bottom: 8px; font-weight: bold; }
+#activeUserCountContainer { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; }
 #chatWindow { height: 420px; overflow-y: auto; padding: 15px; margin-bottom: 15px; border-radius: 12px; background: rgba(0,0,0,0.35); }
 body.light-mode #chatWindow { background: rgba(240,240,240,0.8); }
 .chat-message { display: flex; align-items: flex-start; margin-bottom: 14px; }
-.chat-emoji { font-size: 22px; width: 36px; text-align: center; margin-right: 10px; flex-shrink: 0; }
 .chat-bubble { background: rgba(255,255,255,0.06); padding: 10px 14px; border-radius: 12px; text-align: left; width: 100%; }
 body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
 .chat-username { font-size: 12px; font-weight: 600; opacity: 0.75; margin-bottom: 4px; }
 .chat-timestamp { font-size: 10px; opacity: 0.6; margin-top: 2px; }
 .chat-reply { font-size: 11px; color: #ccc; margin-bottom: 2px; padding-left: 10px; border-left: 2px solid #888; cursor: pointer; }
-.chat-reactions span { font-size: 14px; cursor: pointer; margin-right: 4px; }
 .chat-input { display: flex; gap: 10px; }
 .chat-input input { flex: 1; }
 #pinnedInput { width: 100%; padding: 6px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #aaa; display: none; }
@@ -31,7 +29,10 @@ body.light-mode .chat-bubble { background: rgba(255,255,255,0.9); }
     <h1>Kollect Chat</h1>
     <p>Live community discussion for collectors</p>
 
-    <div id="activeUserCount">Active users: 0</div>
+    <div id="activeUserCountContainer">
+        <div id="activeUserCount">Online</div>
+        <a href="dashboard.html"><button>Dashboard</button></a>
+    </div>
 
     <div class="card chat-card">
         <input id="pinnedInput" placeholder="Pin a message…">
@@ -122,10 +123,6 @@ onSnapshot(messagesQuery, snapshot => {
     const message = document.createElement("div");
     message.className = "chat-message";
 
-    const emoji = document.createElement("div");
-    emoji.className = "chat-emoji";
-    emoji.textContent = data.emoji || "💬";
-
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
 
@@ -167,19 +164,7 @@ onSnapshot(messagesQuery, snapshot => {
     profileImg.style.borderRadius = "50%";
     profileImg.style.marginRight = "10px";
 
-    const reactionsDiv = document.createElement("div");
-    reactionsDiv.className = "chat-reactions";
-    ["👍","❤️","😂"].forEach(emojiChar => {
-      const span = document.createElement("span");
-      span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || ""}`;
-      span.onclick = async () => { const docRef = doc(db, "kollectchat", docSnap.id); const updatedReactions = {...(data.reactions||{})}; updatedReactions[emojiChar] = (updatedReactions[emojiChar]||0)+1; await updateDoc(docRef, { reactions: updatedReactions }); };
-      reactionsDiv.appendChild(span);
-    });
-
-    bubble.appendChild(reactionsDiv);
-
     message.appendChild(profileImg);
-    message.appendChild(emoji);
     message.appendChild(bubble);
     chatWindow.appendChild(message);
   });
@@ -198,7 +183,6 @@ async function sendMessage() {
     uid: currentUserUid,
     profilepicurl: userProfilePic,
     text,
-    emoji: "💬",
     timestamp: serverTimestamp()
   };
   if (replyToMessage) messageData.replyTo = replyToMessage;
@@ -211,11 +195,6 @@ async function sendMessage() {
 
 sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => { if (e.key==="Enter") sendMessage(); });
-
-// ---------------- Active users
-onSnapshot(activeUsersCol, snapshot => {
-  activeUserCountDiv.textContent = `Active users: ${snapshot.size}`;
-});
 
 // ---------------- Admin pinned message
 pinnedInput.addEventListener("keydown", async e => {
