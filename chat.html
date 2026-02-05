@@ -213,10 +213,18 @@ onSnapshot(messagesQuery, snapshot => {
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
 
+    /* ✅ RESTORED: highlight messages that mention the user */
+    if (currentUserUid && data.text?.includes(`@${userFirstName}`)) {
+      bubble.style.background = "rgba(255, 215, 0, 0.15)";
+      bubble.style.boxShadow = "0 0 12px rgba(255,215,0,0.7)";
+    }
+
     bubble.innerHTML = `
       <div class="chat-username">${data.username || "anonymous"}</div>
       <div>${data.text || ""}</div>
-      <div class="chat-timestamp">${data.timestamp?.toDate?.().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || ""}</div>
+      <div class="chat-timestamp">
+        ${data.timestamp?.toDate?.().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) || ""}
+      </div>
     `;
 
     message.appendChild(bubble);
@@ -242,7 +250,9 @@ async function sendMessage() {
 }
 
 sendButton.addEventListener("click", sendMessage);
-input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendMessage();
+});
 </script>
 
 </body>
