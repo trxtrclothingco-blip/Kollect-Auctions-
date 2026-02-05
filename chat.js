@@ -37,6 +37,11 @@ const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 const activeUserCountDiv = document.getElementById("activeUserCount"); // Will show "Online" instead
 const pinnedInput = document.getElementById("pinnedInput");
+const cooldownMessageDiv = document.createElement("div");
+cooldownMessageDiv.style.color = "#e74c3c";
+cooldownMessageDiv.style.fontSize = "12px";
+cooldownMessageDiv.style.marginTop = "4px";
+input.parentNode.appendChild(cooldownMessageDiv);
 
 // ------------------------
 // 4️⃣ firestore references
@@ -158,8 +163,6 @@ onSnapshot(messagesQuery, snapshot => {
     profileImg.style.borderRadius = "50%";
     profileImg.style.marginRight = "10px";
 
-    // ⚠️ Emojis removed, so no reactionsDiv appended
-
     message.appendChild(profileImg);
     message.appendChild(bubble);
 
@@ -170,12 +173,36 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 9️⃣ send message (ensure reactions Map still exists)
+// 9️⃣ send message with 30-second cooldown
 // ------------------------
+let lastMessageTime = 0;
+let cooldownInterval = null;
+
 async function sendMessage() {
+  const now = Date.now();
+
   if (!auth.currentUser) return;
   const text = input.value.trim();
   if (!text) return;
+
+  // Check cooldown
+  const timeSinceLast = now - lastMessageTime;
+  const cooldown = 30000; // 30 seconds in ms
+  if (timeSinceLast < cooldown) {
+    clearInterval(cooldownInterval);
+    let remaining = Math.ceil((cooldown - timeSinceLast) / 1000);
+    cooldownMessageDiv.textContent = `Please wait ${remaining} seconds before posting again.`;
+    cooldownInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(cooldownInterval);
+        cooldownMessageDiv.textContent = "";
+      } else {
+        cooldownMessageDiv.textContent = `Please wait ${remaining} seconds before posting again.`;
+      }
+    }, 1000);
+    return;
+  }
 
   const messageData = {
     username: userFirstName,
@@ -183,7 +210,7 @@ async function sendMessage() {
     profilepicurl: userProfilePic,
     text,
     timestamp: serverTimestamp(),
-    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // kept for Firestore schema
+    reactions: { "👍": 0, "❤️": 0, "😂": 0 }
   };
 
   if (replyToMessage) messageData.replyTo = replyToMessage;
@@ -192,6 +219,8 @@ async function sendMessage() {
 
   input.value = "";
   replyToMessage = null;
+  lastMessageTime = Date.now();
+  cooldownMessageDiv.textContent = "";
 }
 
 // ------------------------
