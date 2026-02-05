@@ -5,7 +5,7 @@
 // import firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
-import { getFirestore, collection, doc, getDoc, addDoc, setDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, addDoc, setDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
 // ------------------------
@@ -168,15 +168,14 @@ onSnapshot(messagesQuery, snapshot => {
     reactionsDiv.style.display = "flex";
     reactionsDiv.style.gap = "4px";
 
+    // ✅ Reactions increment in real-time using atomic increment
     ["👍","❤️","😂"].forEach(emojiChar => {
       const span = document.createElement("span");
       span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || 0}`;
       span.style.cursor = "pointer";
       span.onclick = async () => {
         const docRef = doc(db, "kollectchat", docSnap.id);
-        const updatedReactions = { ...(data.reactions || { "👍": 0, "❤️": 0, "😂": 0 }) };
-        updatedReactions[emojiChar] = (updatedReactions[emojiChar] || 0) + 1;
-        await updateDoc(docRef, { reactions: updatedReactions });
+        await updateDoc(docRef, { [`reactions.${emojiChar}`]: increment(1) });
       };
       reactionsDiv.appendChild(span);
     });
@@ -194,7 +193,7 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 9️⃣ send message (persistent reactions ensured)
+// 9️⃣ send message (ensure reactions Map always exists)
 // ------------------------
 async function sendMessage() {
   if (!auth.currentUser) return;
@@ -208,7 +207,8 @@ async function sendMessage() {
     text,
     emoji: "💬",
     timestamp: serverTimestamp(),
-    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // <-- every new message has reactions
+    // Always create reactions as numeric Map for Firestore
+    reactions: { "👍": 0, "❤️": 0, "😂": 0 }
   };
 
   if (replyToMessage) messageData.replyTo = replyToMessage;
