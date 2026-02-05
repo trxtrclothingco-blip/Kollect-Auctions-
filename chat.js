@@ -35,7 +35,7 @@ const auth = getAuth(app);
 const chatWindow = document.getElementById("chatWindow");
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
-const activeUserCountDiv = document.getElementById("activeUserCount");
+const activeUserCountDiv = document.getElementById("activeUserCount"); // Will show "Online" instead
 const pinnedInput = document.getElementById("pinnedInput");
 
 // ------------------------
@@ -76,7 +76,7 @@ onAuthStateChanged(auth, async user => {
 
     input.disabled = false;
     sendButton.disabled = false;
-    input.placeholder = "Type a message… 😎🔥💎";
+    input.placeholder = "Type a message…";
 
     if (currentUserUid === adminUid) pinnedInput.style.display = "block";
 
@@ -106,10 +106,6 @@ onSnapshot(messagesQuery, snapshot => {
     const data = docSnap.data();
     const message = document.createElement("div");
     message.className = "chat-message";
-
-    const emoji = document.createElement("div");
-    emoji.className = "chat-emoji";
-    emoji.textContent = data.emoji || "💬";
 
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
@@ -162,28 +158,9 @@ onSnapshot(messagesQuery, snapshot => {
     profileImg.style.borderRadius = "50%";
     profileImg.style.marginRight = "10px";
 
-    const reactionsDiv = document.createElement("div");
-    reactionsDiv.className = "chat-reactions";
-    reactionsDiv.style.marginTop = "4px";
-    reactionsDiv.style.display = "flex";
-    reactionsDiv.style.gap = "4px";
-
-    // ✅ Reactions increment in real-time using atomic increment
-    ["👍","❤️","😂"].forEach(emojiChar => {
-      const span = document.createElement("span");
-      span.textContent = `${emojiChar} ${data.reactions?.[emojiChar] || 0}`;
-      span.style.cursor = "pointer";
-      span.onclick = async () => {
-        const docRef = doc(db, "kollectchat", docSnap.id);
-        await updateDoc(docRef, { [`reactions.${emojiChar}`]: increment(1) });
-      };
-      reactionsDiv.appendChild(span);
-    });
-
-    bubble.appendChild(reactionsDiv);
+    // ⚠️ Emojis removed, so no reactionsDiv appended
 
     message.appendChild(profileImg);
-    message.appendChild(emoji);
     message.appendChild(bubble);
 
     chatWindow.appendChild(message);
@@ -193,7 +170,7 @@ onSnapshot(messagesQuery, snapshot => {
 });
 
 // ------------------------
-// 9️⃣ send message (ensure reactions Map always exists)
+// 9️⃣ send message (ensure reactions Map still exists)
 // ------------------------
 async function sendMessage() {
   if (!auth.currentUser) return;
@@ -205,10 +182,8 @@ async function sendMessage() {
     uid: currentUserUid,
     profilepicurl: userProfilePic,
     text,
-    emoji: "💬",
     timestamp: serverTimestamp(),
-    // Always create reactions as numeric Map for Firestore
-    reactions: { "👍": 0, "❤️": 0, "😂": 0 }
+    reactions: { "👍": 0, "❤️": 0, "😂": 0 } // kept for Firestore schema
   };
 
   if (replyToMessage) messageData.replyTo = replyToMessage;
@@ -226,10 +201,14 @@ sendButton.addEventListener("click", sendMessage);
 input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
 
 // ------------------------
-// 1️⃣1️⃣ active users presence
+// 1️⃣1️⃣ active users presence → “Online” message
 // ------------------------
 onSnapshot(activeUsersCol, snapshot => {
-  activeUserCountDiv.textContent = `Active users: ${snapshot.size}`;
+  if (snapshot.size > 0) {
+    activeUserCountDiv.innerHTML = `<span style="color:#4CAF50;font-weight:bold;">● Online</span>`;
+  } else {
+    activeUserCountDiv.innerHTML = `<span style="color:#888;">● Offline</span>`;
+  }
 });
 
 // ------------------------
