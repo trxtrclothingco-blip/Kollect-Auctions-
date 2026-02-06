@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   query,
   where,
-  orderBy
+  orderBy,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -70,8 +71,11 @@ const auctionFields = document.getElementById("auction-fields");
 
 if (saleTypeSelect && auctionFields) {
   saleTypeSelect.addEventListener("change", () => {
+    // Show auction fields for live_auctions or kollect_100
     auctionFields.style.display =
-      saleTypeSelect.value === "live_auctions" ? "block" : "none";
+      saleTypeSelect.value === "live_auctions" || saleTypeSelect.value === "kollect_100"
+        ? "block"
+        : "none";
   });
 }
 
@@ -143,7 +147,7 @@ itemForm.addEventListener("submit", async (e) => {
         "price:": Number(formData.get("item_price")) || null,
         "pricetype:": formData.get("price_type") || "",
         "saletype:": "kollect_100",
-        "status:": saleType === "live_auctions" ? "live" : "active",
+        "status:": "active",
         "createdat:": serverTimestamp(),
         "auctionstart:": formData.get("auctionstart") ? new Date(formData.get("auctionstart")) : null,
         "auctionend:": formData.get("auctionend") ? new Date(formData.get("auctionend")) : null,
@@ -212,7 +216,8 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
   document.getElementById("item_id").value = id;
 
-  if (d.saletype === "live_auctions") {
+  // --- Show auction fields for live_auctions or kollect_100 when editing ---
+  if (d.saletype === "live_auctions" || d.saletype === "kollect_100") {
     auctionFields.style.display = "block";
     if (d.auctionstart)
       document.querySelector('[name="auctionstart"]').value =
