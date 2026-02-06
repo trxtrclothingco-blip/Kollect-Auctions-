@@ -29,10 +29,16 @@ const liveBidsContainer = document.getElementById("live-bids-container");
 const wonBidsContainer = document.getElementById("won-bids-container");
 const salesContainer = document.getElementById("purchase-history-container");
 const welcomeName = document.getElementById("welcome-name");
+const notificationBell = document.getElementById("notification-bell");
+const notificationDropdown = document.getElementById("notification-dropdown");
 
 // Updated input IDs
 const fields = ["first-name-input","last-name-input","email-input","contact-input","address1-input","address2-input","city-input","postcode-input"];
 const inputs = fields.map(f => document.getElementById(f));
+
+// ---------- Notification Bell State ----------
+let notifications = JSON.parse(localStorage.getItem("user_notifications") || "[]");
+let notificationCount = 0;
 
 // ---------- Notifications State (persistent) ----------
 const notificationState = {
@@ -45,6 +51,104 @@ function saveNotificationState() {
   localStorage.setItem("notification_auctionEndingSoon", JSON.stringify(notificationState.auctionEndingSoon));
   localStorage.setItem("notification_outbid", JSON.stringify(notificationState.outbid));
   localStorage.setItem("notification_auctionWon", JSON.stringify(notificationState.auctionWon));
+}
+
+function saveNotifications() {
+  localStorage.setItem("user_notifications", JSON.stringify(notifications));
+  updateNotificationCount();
+}
+
+function updateNotificationCount() {
+  notificationCount = notifications.length;
+  if (notificationBell) {
+    notificationBell.style.position = "relative";
+    const badge = notificationBell.querySelector(".notification-badge");
+    if (notificationCount > 0) {
+      if (!badge) {
+        const newBadge = document.createElement("span");
+        newBadge.className = "notification-badge";
+        newBadge.textContent = notificationCount > 99 ? "99+" : notificationCount;
+        notificationBell.appendChild(newBadge);
+      } else {
+        badge.textContent = notificationCount > 99 ? "99+" : notificationCount;
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+}
+
+function addNotification(type, message, listingId = null) {
+  const id = Date.now() + Math.random();
+  notifications.unshift({
+    id,
+    type,
+    message,
+    listingId,
+    timestamp: new Date().toISOString(),
+    read: false
+  });
+  saveNotifications();
+  renderNotifications();
+}
+
+// ---------- Notification Bell Functions ----------
+function toggleNotificationDropdown() {
+  const dropdown = document.getElementById("notification-dropdown");
+  dropdown.classList.toggle("open");
+}
+
+function closeNotificationDropdown() {
+  document.getElementById("notification-dropdown").classList.remove("open");
+}
+
+function deleteNotification(notificationId) {
+  notifications = notifications.filter(n => n.id !== notificationId);
+  saveNotifications();
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const dropdown = document.getElementById("notification-dropdown");
+  if (!dropdown) return;
+  
+  dropdown.innerHTML = "";
+  
+  if (notifications.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.textContent = "No notifications";
+    emptyMsg.style.padding = "20px";
+    emptyMsg.style.textAlign = "center";
+    emptyMsg.style.color = "#888";
+    dropdown.appendChild(emptyMsg);
+    return;
+  }
+
+  notifications.forEach(notification => {
+    const notifEl = document.createElement("div");
+    notifEl.className = `notification-item ${notification.read ? 'read' : 'unread'}`;
+    notifEl.dataset.id = notification.id;
+    
+    notifEl.innerHTML = `
+      <div class="notification-content">
+        <strong>${notification.message}</strong>
+        <small>${new Date(notification.timestamp).toLocaleString()}</small>
+      </div>
+      <button class="delete-notif" onclick="deleteNotification('${notification.id}')">✕</button>
+    `;
+    
+    if (!notification.read) {
+      notifEl.onclick = (e) => {
+        if (!e.target.classList.contains('delete-notif')) {
+          notification.read = true;
+          saveNotifications();
+          renderNotifications();
+        }
+      };
+    }
+    
+    dropdown.appendChild(notifEl);
+  });
 }
 
 // ---------- Burger Menu & Light/Dark Mode ----------
@@ -69,27 +173,9 @@ const formatPrice = (price) => {
   return "£" + Number(price).toLocaleString();
 };
 
-// ---------- Custom alert ----------
-function showPopup(message) {
-  const popup = document.createElement("div");
-  popup.textContent = message;
-  popup.style.position = "fixed";
-  popup.style.top = "20px";
-  popup.style.right = "20px";
-  popup.style.padding = "10px 20px";
-  popup.style.backgroundColor = "#FFD700";
-  popup.style.color = "#1e1e1e";
-  popup.style.fontWeight = "bold";
-  popup.style.border = "2px solid #1e1e1e";
-  popup.style.borderRadius = "8px";
-  popup.style.zIndex = "9999";
-  popup.style.transition = "all 0.3s ease";
-  document.body.appendChild(popup);
-  setTimeout(() => {
-    popup.style.opacity = "0";
-    popup.style.transform = "scale(0.9)";
-    setTimeout(() => popup.remove(), 300);
-  }, 2000);
+// ---------- Custom alert (now adds to bell instead of popup) ----------
+function showPopup(message, type = "info", listingId = null) {
+  addNotification(type, message, listingId);
 }
 
 // ---------- Popup for item details ----------
@@ -278,6 +364,7 @@ onAuthStateChanged(auth, async (user) => {
       const listingDoc = await getDoc(doc(db, "listings", b.listingid));
       const listingData = listingDoc.exists() ? listingDoc.data() : {};
       const auctionEndTime = listingData?.auctionend?.toDate() || null;
+      const isKollect100 = listingData.kollect100 === true;
 
       const userBidSpan = document.createElement("span");
       userBidSpan.className = "user-bid";
@@ -300,6 +387,19 @@ onAuthStateChanged(auth, async (user) => {
       const nameLink = document.createElement("a");
       nameLink.href = "#";
       nameLink.textContent = b.itemName;
+      if (isKollect100) {
+        const badge = document.createElement("span");
+        badge.className = "kollect100-badge";
+        badge.textContent = "Kollect100";
+        badge.style.backgroundColor = "#FFD700";
+        badge.style.color = "#1e1e1e";
+        badge.style.fontSize = "10px";
+        badge.style.padding = "2px 6px";
+        badge.style.borderRadius = "10px";
+        badge.style.marginLeft = "5px";
+        badge.style.fontWeight = "bold";
+        nameLink.appendChild(badge);
+      }
       nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(listingData); };
 
       bidEl.innerHTML = `<p><strong></strong><br>Live Price: </p>`;
@@ -334,7 +434,7 @@ onAuthStateChanged(auth, async (user) => {
 
             // ---------- Notification: 5 minutes remaining ----------
             if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
-              showPopup(`Auction for "${b.itemName}" ends in 5 minutes!`);
+              showPopup(`Auction for "${b.itemName}" ends in 5 minutes!`, "auctionEndingSoon", b.listingid);
               notificationState.auctionEndingSoon[b.listingid] = true;
               saveNotificationState();
             }
@@ -394,7 +494,7 @@ onAuthStateChanged(auth, async (user) => {
         // ---------- Notification: Outbid ----------
         if(userHighest > 0 && userHighest < highestBid){
           if(!notificationState.outbid[b.listingid]){
-            showPopup(`You've been outbid on "${b.itemName}"! Place a higher bid.`);
+            showPopup(`You've been outbid on "${b.itemName}"! Place a higher bid.`, "outbid", b.listingid);
             notificationState.outbid[b.listingid] = true;
             saveNotificationState();
           }
@@ -461,7 +561,7 @@ onAuthStateChanged(auth, async (user) => {
     renderLiveBidsPage(livePage);
   });
 
-  // ---------- Won Bids & Purchase History (unchanged) ----------
+  // ---------- Won Bids & Purchase History ----------
   let allWonAuctions = [];
   let wonPage = 1;
   const auctionsPerPage = 3;
@@ -479,14 +579,41 @@ onAuthStateChanged(auth, async (user) => {
     pageAuctions.forEach(a => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
+      
+      const nameLink = document.createElement("a");
+      nameLink.href = "#";
+      nameLink.textContent = a.name;
+      if (a.kollect100 === true) {
+        const badge = document.createElement("span");
+        badge.className = "kollect100-badge";
+        badge.textContent = "Kollect100";
+        badge.style.backgroundColor = "#FFD700";
+        badge.style.color = "#1e1e1e";
+        badge.style.fontSize = "10px";
+        badge.style.padding = "2px 6px";
+        badge.style.borderRadius = "10px";
+        badge.style.marginLeft = "5px";
+        badge.style.fontWeight = "bold";
+        nameLink.appendChild(badge);
+      }
+      nameLink.onclick = (e) => { 
+        e.preventDefault(); 
+        showItemPopup(a); 
+      };
+      
+      const strong = document.createElement("strong");
+      strong.appendChild(nameLink);
+      
       bidEl.innerHTML = `
-        <p><strong><a href="item.html?id=${a.id}">${a.name}</a></strong></p>
+        <p></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: ${formatPrice(a.winningbid)}</p>
         <p>Highest Bidder: ${a.winneremail || "You"}</p>
         <p>Status: Auction Ended</p>
         <p>Ended At: ${a.endedat?.toDate ? a.endedat.toDate().toLocaleString() : "Unknown"}</p>
       `;
+      const pTag = bidEl.querySelector("p");
+      pTag.appendChild(strong);
       wonBidsContainer.appendChild(bidEl);
     });
     renderWonPagination();
@@ -532,7 +659,7 @@ onAuthStateChanged(auth, async (user) => {
 
       // ---------- Notification: Auction Won ----------
       if(!notificationState.auctionWon[docSnap.id]){
-        showPopup(`Congratulations! You won the auction for "${d.name}"!`);
+        showPopup(`Congratulations! You won the auction for "${d.name}"!`, "auctionWon", docSnap.id);
         notificationState.auctionWon[docSnap.id] = true;
         saveNotificationState();
       }
@@ -567,6 +694,10 @@ onAuthStateChanged(auth, async (user) => {
       salesContainer.appendChild(saleEl);
     });
   });
+
+  // Load existing notifications
+  updateNotificationCount();
+  renderNotifications();
 });
 </script>
 
@@ -668,9 +799,109 @@ onAuthStateChanged(auth, async (user) => {
   transform: scale(1.05);
 }
 
+/* Notification Bell Styles */
+#notification-bell {
+  position: relative;
+  cursor: pointer;
+  font-size: 24px;
+  margin-left: 15px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #FF4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#notification-dropdown {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  background: #2a2a2a;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  max-height: 400px;
+  width: 350px;
+  overflow-y: auto;
+  z-index: 10001;
+  display: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+#notification-dropdown.open {
+  display: block;
+}
+
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notification-item.unread {
+  background: #FFD70020;
+}
+
+.notification-item:hover {
+  background: #FFD70010;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-content strong {
+  display: block;
+  color: #FFD700;
+  margin-bottom: 4px;
+}
+
+.notification-content small {
+  color: #888;
+}
+
+.delete-notif {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #FF4444;
+  cursor: pointer;
+  padding: 0 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-notif:hover {
+  background: #FF444420;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .dashboard-cards {
     flex-direction: column;
+  }
+  
+  #notification-dropdown {
+    right: 10px;
+    width: 90vw;
+    left: 5vw;
   }
 }
 </style>
@@ -695,6 +926,8 @@ onAuthStateChanged(auth, async (user) => {
 
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
+<div id="notification-bell" onclick="toggleNotificationDropdown()">🔔</div>
+<div id="notification-dropdown"></div>
 
 <div class="container">
   <h1>Welcome, <span id="welcome-name">User</span></h1>
