@@ -99,9 +99,6 @@
 
 <body data-page="liveauctions">
 
-</head>
-<body>
-
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
@@ -247,7 +244,7 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
-// ✅ Load live auctions
+// ✅ Load live auctions with Kollect100 subheader
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -259,12 +256,19 @@ function loadLiveAuctions() {
       const data = docSnap.data();
       if (data.status !== 'live') return;
 
-      const { name, price = 0, image, description, auctionend } = data;
+      const { name, price = 0, image, description, auctionend, saletype } = data;
 
       const card = document.createElement('div');
       card.classList.add('card');
 
+      // ✅ Kollect100 subheader
+      let subheader = '';
+      if (saletype === 'kollect_100') {
+        subheader = '<h4>Kollect100</h4>';
+      }
+
       card.innerHTML = `
+        ${subheader}
         <img src="${image}" alt="${name}">
         <h3>${name}</h3>
         <p>${description || ''}</p>
