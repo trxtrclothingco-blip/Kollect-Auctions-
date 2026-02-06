@@ -96,10 +96,17 @@
   <button class="button" onclick="window.location='index.html'">Back to Home</button>
 </div>
 
+<script>
+function toggleMenu(){
+  document.getElementById("navMenu").classList.toggle("open");
+}
+</script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { 
-  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, where, doc, updateDoc 
+import {
+  getFirestore, collection, addDoc, serverTimestamp, onSnapshot,
+  query, orderBy, where, doc, updateDoc, getDocs, limit
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
@@ -111,65 +118,83 @@ const itemsContainer = document.getElementById("kollect-items");
 // --- Countdown Timer with auto-end logic ---
 function createCountdownTimer(item, endTime, displayEl, cardEl) {
   async function updateTimer() {
-    const now = new Date().getTime();
+    const now = Date.now();
     const distance = endTime - now;
 
-    if(distance <= 0){
+    if (distance <= 0) {
       displayEl.textContent = "Auction ended";
       clearInterval(timerInterval);
 
-      // Update Firestore status to "ended"
       try {
-        const itemRef = doc(db, "kollect100", item.id);
-        await updateDoc(itemRef, { "status:": "ended" });
+        const bidsQ = query(
+          collection(db, "bids"),
+          where("listingid:", "==", item.id),
+          orderBy("bidamount:", "desc"),
+          limit(1)
+        );
 
-        // Remove from UI
+        const bidSnap = await getDocs(bidsQ);
+
+        let winnerid = null;
+        let winneremail = null;
+        let winningbid = null;
+
+        if (!bidSnap.empty) {
+          const topBid = bidSnap.docs[0].data();
+          winnerid = topBid["userid:"];
+          winneremail = topBid["useremail:"];
+          winningbid = topBid["bidamount:"];
+        }
+
+        await updateDoc(doc(db, "kollect100", item.id), {
+          "status:": "ended",
+          "winnerid:": winnerid,
+          "winneremail:": winneremail,
+          "winningbid:": winningbid
+        });
+
         cardEl.remove();
-      } catch(e){
-        console.error("Failed to update item status:", e);
+      } catch (e) {
+        console.error("Failed to end auction:", e);
       }
-
       return;
     }
 
-    const hours = Math.floor(distance / (1000*60*60));
-    const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
-    const seconds = Math.floor((distance % (1000*60)) / 1000);
-    displayEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
+    const h = Math.floor(distance / 3600000);
+    const m = Math.floor((distance % 3600000) / 60000);
+    const s = Math.floor((distance % 60000) / 1000);
+    displayEl.textContent = `Ends in ${h}h ${m}m ${s}s`;
   }
 
   updateTimer();
   const timerInterval = setInterval(updateTimer, 1000);
-  return timerInterval;
 }
 
 // --- Place Bid ---
 async function placeBid(itemId, bidInput) {
   const bidAmount = parseFloat(bidInput.value);
-  if(isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
+  if (isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
 
   try {
     await addDoc(collection(db, "bids"), {
-      listingid: itemId,
-      bidamount: bidAmount,
-      useremail: "Anonymous",
-      userid: "Anonymous",
-      timestamp: serverTimestamp()
+      "listingid:": itemId,
+      "bidamount:": bidAmount,
+      "useremail:": "Anonymous",
+      "userid:": "Anonymous",
+      "timestamp:": serverTimestamp()
     });
     bidInput.value = "";
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     alert("Failed to place bid");
   }
 }
 
 // --- Load Kollect100 items live ---
-function loadKollectItemsLive(){
-  itemsContainer.innerHTML = "";
-  const colRef = collection(db, "kollect100");
-
-  onSnapshot(colRef, snapshot => {
+function loadKollectItemsLive() {
+  onSnapshot(collection(db, "kollect100"), snapshot => {
     itemsContainer.innerHTML = "";
+
     snapshot.forEach(docSnap => {
       const item = docSnap.data();
       item.id = docSnap.id;
@@ -187,30 +212,32 @@ function loadKollectItemsLive(){
       `;
       itemsContainer.appendChild(card);
 
-      // Auction timer with auto-end update
-      if(item["auctionend:"]){
-        const endTime = item["auctionend:"].toDate();
-        const timerEl = card.querySelector(".auction-timer");
-        createCountdownTimer(item, endTime, timerEl, card);
-      } else {
-        card.querySelector(".auction-timer").textContent = "No auction active";
+      if (item["auctionend:"]) {
+        createCountdownTimer(
+          item,
+          item["auctionend:"].toDate(),
+          card.querySelector(".auction-timer"),
+          card
+        );
       }
 
-      // --- Live Highest Bid ---
       const priceEl = card.querySelector(".current-price");
-      const bidsQuery = query(collection(db, "bids"), where("listingid", "==", item.id), orderBy("bidamount", "desc"));
+      const bidsQuery = query(
+        collection(db, "bids"),
+        where("listingid:", "==", item.id),
+        orderBy("bidamount:", "desc")
+      );
+
       onSnapshot(bidsQuery, bidSnap => {
-        if(!bidSnap.empty){
-          const highestBid = bidSnap.docs[0].data().bidamount;
-          priceEl.textContent = highestBid.toLocaleString();
-        } else {
-          priceEl.textContent = item["price:"]?.toLocaleString() || "0";
+        if (!bidSnap.empty) {
+          priceEl.textContent = bidSnap.docs[0].data()["bidamount:"].toLocaleString();
         }
       });
 
-      // Place bid button
-      const bidInput = card.querySelector(".bid-input");
-      card.querySelector(".place-bid-btn").addEventListener("click", () => placeBid(item.id, bidInput));
+      card.querySelector(".place-bid-btn")
+        .addEventListener("click", () =>
+          placeBid(item.id, card.querySelector(".bid-input"))
+        );
     });
   });
 }
