@@ -155,6 +155,8 @@ onAuthStateChanged(auth, async (user) => {
 
   let userLiveAuctions = [];
   let listingWinningState = {};
+  let listingPreviousHighest = {};
+  let listingInitialized = {};
   let bidListeners = {};
   let liveUnsubs = [];
   let countdownInterval = setInterval(() => {
@@ -483,6 +485,8 @@ onAuthStateChanged(auth, async (user) => {
       if (!currentListingIds.has(id)) {
         bidListeners[id]();
         delete bidListeners[id];
+        delete listingPreviousHighest[id];
+        delete listingInitialized[id];
       }
     });
 
@@ -497,20 +501,27 @@ onAuthStateChanged(auth, async (user) => {
             if (data.bidamount > highestBid) highestBid = data.bidamount;
             if (data.userid === user.uid && data.bidamount > userHighest) userHighest = data.bidamount;
           });
-          const isWinning = userHighest >= highestBid;
-          if (typeof listingWinningState[auction.id] === 'undefined') listingWinningState[auction.id] = isWinning;
-          if (listingWinningState[auction.id] && !isWinning) {
-            const type = "outbid";
-            const id = auction.id;
-            const key = `${type}-${id}`;
-            if (!deletedState.includes(key)) {
-              const message = `You've been outbid on "${itemName}"! Place a higher bid.`;
-              showPopup(message);
-              notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
-              saveNotificationState();
-              renderNotifications();
+          if (userHighest > 0 && highestBid > userHighest) {
+            if (listingInitialized[auction.id]) {
+              const prevHighest = listingPreviousHighest[auction.id] || 0;
+              if (highestBid > prevHighest) {
+                const type = "outbid";
+                const id = auction.id;
+                const key = `${type}-${id}`;
+                if (!deletedState.includes(key)) {
+                  const message = `You've been outbid on "${itemName}"! Place a higher bid.`;
+                  showPopup(message);
+                  notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
+                  saveNotificationState();
+                  renderNotifications();
+                }
+              }
+            } else {
+              listingInitialized[auction.id] = true;
             }
           }
+          listingPreviousHighest[auction.id] = highestBid;
+          const isWinning = userHighest >= highestBid;
           listingWinningState[auction.id] = isWinning;
         });
         bidListeners[auction.id] = unsub;
