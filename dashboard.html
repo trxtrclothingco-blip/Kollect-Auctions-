@@ -35,17 +35,11 @@ const fields = ["first-name-input","last-name-input","email-input","contact-inpu
 const inputs = fields.map(f => document.getElementById(f));
 
 // ---------- Notifications State (persistent) ----------
-const notificationState = {
-  auctionEndingSoon: JSON.parse(localStorage.getItem("notification_auctionEndingSoon") || "{}"),
-  outbid: JSON.parse(localStorage.getItem("notification_outbid") || "{}"),
-  auctionWon: JSON.parse(localStorage.getItem("notification_auctionWon") || "{}")
-};
+const notificationState = JSON.parse(localStorage.getItem("notifications") || "[]");
 const deletedState = JSON.parse(localStorage.getItem("deletedNotifications") || "[]");
 
 function saveNotificationState() {
-  localStorage.setItem("notification_auctionEndingSoon", JSON.stringify(notificationState.auctionEndingSoon));
-  localStorage.setItem("notification_outbid", JSON.stringify(notificationState.outbid));
-  localStorage.setItem("notification_auctionWon", JSON.stringify(notificationState.auctionWon));
+  localStorage.setItem("notifications", JSON.stringify(notificationState));
 }
 
 function saveDeletedState() {
@@ -154,14 +148,33 @@ function showItemPopup(listing) {
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = "create_account.html";
 
-  // Clear outbid state on load
-  notificationState.outbid = {};
-  saveNotificationState();
-
   userStatus.textContent = `Logged in as ${user.email}`;
   logoutButton.style.display = "inline-block";
 
   const docRef = doc(db, "users", user.uid);
+
+  let userLiveAuctions = [];
+  let listingWinningState = {};
+  let bidListeners = {};
+  let liveUnsubs = [];
+  let countdownInterval = setInterval(() => {
+    const now = new Date();
+    userLiveAuctions.forEach(auction => {
+      const diff = auction.endTime - now;
+      if (diff > 0 && diff <= 300000) {
+        const type = "auctionEndingSoon";
+        const id = auction.id;
+        const key = `${type}-${id}`;
+        if (!deletedState.includes(key) && !notificationState.some(n => n.type === type && n.id === id)) {
+          const message = `Auction for "${auction.name}" ends in 5 minutes!`;
+          showPopup(message);
+          notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
+          saveNotificationState();
+          renderNotifications();
+        }
+      }
+    });
+  }, 1000);
 
   // ---------- Load profile info ----------
   onSnapshot(docRef, (docSnap) => {
@@ -276,6 +289,8 @@ onAuthStateChanged(auth, async (user) => {
       liveBidsContainer.innerHTML += "<p>No live bids yet.</p>";
       return;
     }
+    liveUnsubs.forEach(u => u());
+    liveUnsubs = [];
     const start = (page - 1) * bidsPerPage;
     const end = start + bidsPerPage;
     const pageBids = allLiveBids.slice(start, end);
@@ -308,7 +323,7 @@ onAuthStateChanged(auth, async (user) => {
 
       const nameLink = document.createElement("a");
       nameLink.href = "#";
-      nameLink.innerHTML = b.itemName + (listingData.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : '');
+      nameLink.innerHTML = b.itemName + (b.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : '');
       nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(listingData); };
 
       bidEl.innerHTML = `<p><strong></strong><br>Live Price: </p>`;
@@ -340,20 +355,6 @@ onAuthStateChanged(auth, async (user) => {
             const minutes = Math.floor((diff/1000/60)%60);
             const seconds = Math.floor((diff/1000)%60);
             countdownEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
-
-            // ---------- Notification: 5 minutes remaining ----------
-            const type = "auctionEndingSoon";
-            const id = b.listingid;
-            const key = type + '-' + id;
-            const message = `Auction for "${b.itemName}" ends in 5 minutes!`;
-            if(diff <= 5*60*1000 && !deletedState.includes(key)){
-              if(!notificationState[type][id]){
-                showPopup(message);
-                notificationState[type][id] = { message, timestamp: new Date().toISOString() };
-                saveNotificationState();
-                renderNotifications();
-              }
-            }
           }
         }, 1000);
       }
@@ -384,17 +385,18 @@ onAuthStateChanged(auth, async (user) => {
 
       // ---------- Live second-by-second price listener ----------
       const listingRefLive = doc(db, "listings", b.listingid);
-      onSnapshot(listingRefLive, snap => {
+      const unsubPrice = onSnapshot(listingRefLive, snap => {
         if(snap.exists()){
           const latestPrice = snap.data().price || 0;
           livePriceSpan.textContent = formatPrice(latestPrice);
           bidInput.min = latestPrice + 1;
         }
       });
+      liveUnsubs.push(unsubPrice);
 
       // Real-time updates for this user's bid & winning message
       const bidsQuery = query(collection(db, "bids"), where("listingid","==",b.listingid));
-      onSnapshot(bidsQuery, snapshot => {
+      const unsubBids = onSnapshot(bidsQuery, snapshot => {
         let highestBid = 0;
         let userHighest = 0;
         snapshot.forEach(doc => {
@@ -406,26 +408,8 @@ onAuthStateChanged(auth, async (user) => {
         const winning = userHighest >= highestBid;
         winningSpan.textContent = winning ? "You're currently winning!" : "";
         outbidSpan.style.display = !winning && userHighest>0 ? "inline-block" : "none";
-
-        // ---------- Notification: Outbid ----------
-        if(userHighest > 0 && userHighest < highestBid){
-          const type = "outbid";
-          const id = b.listingid;
-          const key = type + '-' + id;
-          const message = `You've been outbid on "${b.itemName}"! Place a higher bid.`;
-          if(!deletedState.includes(key)){
-            if(!notificationState[type][id]){
-              showPopup(message);
-              notificationState[type][id] = { message, timestamp: new Date().toISOString() };
-              saveNotificationState();
-              renderNotifications();
-            }
-          }
-        } else {
-          notificationState.outbid[b.listingid] = false;
-          saveNotificationState();
-        }
       });
+      liveUnsubs.push(unsubBids);
 
       liveBidsContainer.appendChild(bidEl);
     });
@@ -458,28 +442,81 @@ onAuthStateChanged(auth, async (user) => {
 
   // ---------- Only user's live bids ----------
   onSnapshot(query(collection(db, "bids"), where("userid","==",user.uid)), async snapshot => {
-    const tempBids = [];
-    for (const d of snapshot.docs) {
+    const listingIdSet = new Set();
+    const bidMap = {};
+    snapshot.forEach(d => {
       const b = d.data();
-      if (!b.listingid) continue;
-      const listingSnap = await getDoc(doc(db, "listings", b.listingid));
-      if (!listingSnap.exists()) continue;
-      const listing = listingSnap.data();
-      if (listing.status !== "live") continue;
-      tempBids.push({
-        itemName: listing.name,
-        livePrice: listing.price,
-        bidAmount: b.bidamount,
-        listingid: b.listingid
-      });
-    }
-    const highestBidsMap = {};
-    tempBids.forEach(bid => {
-      if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
-        highestBidsMap[bid.listingid] = bid;
+      if (b.listingid) {
+        listingIdSet.add(b.listingid);
+        if (!bidMap[b.listingid] || b.bidamount > bidMap[b.listingid]) {
+          bidMap[b.listingid] = b.bidamount;
+        }
       }
     });
-    allLiveBids = Object.values(highestBidsMap);
+    userLiveAuctions = await Promise.all(Array.from(listingIdSet).map(async id => {
+      const listingDoc = await getDoc(doc(db, "listings", id));
+      if (listingDoc.exists()) {
+        const data = listingDoc.data();
+        if (data.status === "live" && data.auctionend) {
+          return {
+            id,
+            name: data.name,
+            endTime: data.auctionend.toDate(),
+            price: data.price,
+            kollect100: data.kollect100 || false
+          };
+        }
+      }
+      return null;
+    })).then(arr => arr.filter(a => a));
+
+    allLiveBids = userLiveAuctions.map(a => ({
+      itemName: a.name,
+      livePrice: a.price,
+      listingid: a.id,
+      kollect100: a.kollect100
+    }));
+
+    const currentListingIds = new Set(userLiveAuctions.map(a => a.id));
+
+    Object.keys(bidListeners).forEach(id => {
+      if (!currentListingIds.has(id)) {
+        bidListeners[id]();
+        delete bidListeners[id];
+      }
+    });
+
+    userLiveAuctions.forEach(auction => {
+      if (!bidListeners[auction.id]) {
+        const itemName = auction.name;
+        const unsub = onSnapshot(query(collection(db, "bids"), where("listingid", "==", auction.id)), snapshot => {
+          let highestBid = 0;
+          let userHighest = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.bidamount > highestBid) highestBid = data.bidamount;
+            if (data.userid === user.uid && data.bidamount > userHighest) userHighest = data.bidamount;
+          });
+          const isWinning = userHighest >= highestBid;
+          if (typeof listingWinningState[auction.id] === 'undefined') listingWinningState[auction.id] = isWinning;
+          if (listingWinningState[auction.id] && !isWinning) {
+            const type = "outbid";
+            const id = auction.id;
+            const key = `${type}-${id}`;
+            if (!deletedState.includes(key)) {
+              const message = `You've been outbid on "${itemName}"! Place a higher bid.`;
+              showPopup(message);
+              notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
+              saveNotificationState();
+              renderNotifications();
+            }
+          }
+          listingWinningState[auction.id] = isWinning;
+        });
+        bidListeners[auction.id] = unsub;
+      }
+    });
+
     livePage = 1;
     renderLiveBidsPage(livePage);
   });
@@ -564,15 +601,13 @@ onAuthStateChanged(auth, async (user) => {
       // ---------- Notification: Auction Won ----------
       const type = "auctionWon";
       const id = docSnap.id;
-      const key = type + '-' + id;
-      const message = `Congratulations! You won the auction for "${d.name}"!`;
-      if(!deletedState.includes(key)){
-        if(!notificationState[type][id]){
-          showPopup(message);
-          notificationState[type][id] = { message, timestamp: new Date().toISOString() };
-          saveNotificationState();
-          renderNotifications();
-        }
+      const key = `${type}-${id}`;
+      if (!deletedState.includes(key) && !notificationState.some(n => n.type === type && n.id === id)) {
+        const message = `Congratulations! You won the auction for "${d.name}"!`;
+        showPopup(message);
+        notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
+        saveNotificationState();
+        renderNotifications();
       }
     });
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
@@ -618,14 +653,8 @@ function renderNotifications() {
   const dropdown = document.getElementById("notification-dropdown");
   if (!dropdown) return;
   dropdown.innerHTML = "";
-  let allNotifs = [];
-  for (const type in notificationState) {
-    for (const id in notificationState[type]) {
-      allNotifs.push({ type, id, ...notificationState[type][id] });
-    }
-  }
-  allNotifs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  allNotifs.forEach(n => {
+  const allNotifs = [...notificationState].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  allNotifs.forEach((n, index) => {
     const notifEl = document.createElement("div");
     notifEl.style.padding = "8px";
     notifEl.style.borderBottom = "1px solid #FFD700";
@@ -634,19 +663,19 @@ function renderNotifications() {
     removeBtn.textContent = "Remove";
     removeBtn.style.marginLeft = "10px";
     removeBtn.onclick = () => {
-      const key = n.type + '-' + n.id;
-      delete notificationState[n.type][n.id];
-      if(!deletedState.includes(key)) deletedState.push(key);
-      saveNotificationState();
+      const key = `${n.type}-${n.id}`;
+      if (!deletedState.includes(key)) deletedState.push(key);
       saveDeletedState();
+      notificationState = notificationState.filter((_, i) => i !== index);
+      saveNotificationState();
       renderNotifications();
     };
     notifEl.appendChild(removeBtn);
     dropdown.appendChild(notifEl);
   });
   const countEl = document.getElementById("notification-count");
-  countEl.textContent = allNotifs.length || "";
-  countEl.style.display = allNotifs.length ? "inline" : "none";
+  countEl.textContent = notificationState.length || "";
+  countEl.style.display = notificationState.length ? "inline" : "none";
 }
 </script>
 
