@@ -40,11 +40,16 @@ const notificationState = {
   outbid: JSON.parse(localStorage.getItem("notification_outbid") || "{}"),
   auctionWon: JSON.parse(localStorage.getItem("notification_auctionWon") || "{}")
 };
+const deletedState = JSON.parse(localStorage.getItem("deletedNotifications") || "[]");
 
 function saveNotificationState() {
   localStorage.setItem("notification_auctionEndingSoon", JSON.stringify(notificationState.auctionEndingSoon));
   localStorage.setItem("notification_outbid", JSON.stringify(notificationState.outbid));
   localStorage.setItem("notification_auctionWon", JSON.stringify(notificationState.auctionWon));
+}
+
+function saveDeletedState() {
+  localStorage.setItem("deletedNotifications", JSON.stringify(deletedState));
 }
 
 // ---------- Burger Menu & Light/Dark Mode ----------
@@ -333,8 +338,17 @@ onAuthStateChanged(auth, async (user) => {
             countdownEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
 
             // ---------- Notification: 5 minutes remaining ----------
-            if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
-              addNotification("auctionEndingSoon", b.listingid, `Auction for "${b.itemName}" ends in 5 minutes!`);
+            const type = "auctionEndingSoon";
+            const id = b.listingid;
+            const key = type + '-' + id;
+            const message = `Auction for "${b.itemName}" ends in 5 minutes!`;
+            if(diff <= 5*60*1000 && !deletedState.includes(key)){
+              if(!notificationState[type][id]){
+                showPopup(message);
+                notificationState[type][id] = { message, timestamp: new Date().toISOString() };
+                saveNotificationState();
+                renderNotifications();
+              }
             }
           }
         }, 1000);
@@ -391,12 +405,18 @@ onAuthStateChanged(auth, async (user) => {
 
         // ---------- Notification: Outbid ----------
         if(userHighest > 0 && userHighest < highestBid){
-          if(!notificationState.outbid[b.listingid]){
-            addNotification("outbid", b.listingid, `You've been outbid on "${b.itemName}"! Place a higher bid.`);
+          const type = "outbid";
+          const id = b.listingid;
+          const key = type + '-' + id;
+          const message = `You've been outbid on "${b.itemName}"! Place a higher bid.`;
+          if(!deletedState.includes(key)){
+            showPopup(message);
+            if(!notificationState[type][id]){
+              notificationState[type][id] = { message, timestamp: new Date().toISOString() };
+              saveNotificationState();
+              renderNotifications();
+            }
           }
-        } else {
-          notificationState.outbid[b.listingid] = false;
-          saveNotificationState();
         }
       });
 
@@ -535,8 +555,17 @@ onAuthStateChanged(auth, async (user) => {
       });
 
       // ---------- Notification: Auction Won ----------
-      if(!notificationState.auctionWon[docSnap.id]){
-        addNotification("auctionWon", docSnap.id, `Congratulations! You won the auction for "${d.name}"!`);
+      const type = "auctionWon";
+      const id = docSnap.id;
+      const key = type + '-' + id;
+      const message = `Congratulations! You won the auction for "${d.name}"!`;
+      if(!deletedState.includes(key)){
+        if(!notificationState[type][id]){
+          showPopup(message);
+          notificationState[type][id] = { message, timestamp: new Date().toISOString() };
+          saveNotificationState();
+          renderNotifications();
+        }
       }
     });
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
@@ -578,15 +607,6 @@ window.toggleNotifications = () => {
   dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
 };
 
-function addNotification(type, id, message) {
-  if (!notificationState[type]) notificationState[type] = {};
-  if (!notificationState[type][id]) {
-    notificationState[type][id] = { message, timestamp: new Date().toISOString() };
-    saveNotificationState();
-    renderNotifications();
-  }
-}
-
 function renderNotifications() {
   const dropdown = document.getElementById("notification-dropdown");
   if (!dropdown) return;
@@ -607,8 +627,11 @@ function renderNotifications() {
     removeBtn.textContent = "Remove";
     removeBtn.style.marginLeft = "10px";
     removeBtn.onclick = () => {
+      const key = n.type + '-' + n.id;
       delete notificationState[n.type][n.id];
+      if(!deletedState.includes(key)) deletedState.push(key);
       saveNotificationState();
+      saveDeletedState();
       renderNotifications();
     };
     notifEl.appendChild(removeBtn);
@@ -799,4 +822,3 @@ function renderNotifications() {
   
 </body>
 </html>
-```:
