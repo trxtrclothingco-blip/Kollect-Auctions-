@@ -94,7 +94,8 @@ itemForm.addEventListener("submit", async (e) => {
       price: Number(formData.get("item_price")),
       pricetype: formData.get("price_type"),
       saletype: saleType,
-      createdat: serverTimestamp()
+      createdat: serverTimestamp(),
+      kollect100: formData.get("kollect100") === "on" // ✅ store as boolean
     };
 
     if (saleType === "live_auctions") {
@@ -167,8 +168,11 @@ function loadItems() {
 
         if (col === "listings" && item.status === "ended") return;
 
+        // ✅ Add Kollect100 badge if true
+        const kollectBadge = item.kollect100 ? `<span class="kollect100-badge">🌟 Kollect100</span>` : "";
+
         section.innerHTML += `
-          <p>${item.name} – £${item.price}</p>
+          <p>${item.name} ${kollectBadge} – £${item.price}</p>
           <button onclick="editItem('${d.id}','${col}')">Edit</button>
           <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
         `;
@@ -188,6 +192,7 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_price"]').value = d.price || "";
   document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
+  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false; // ✅ checkbox synced
   document.getElementById("item_id").value = id;
 
   if (d.saletype === "live_auctions") {
