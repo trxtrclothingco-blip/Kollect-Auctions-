@@ -93,6 +93,18 @@
   90% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* ✅ Kollect100 gold badge */
+.kollect-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #FFD700, #e6c200);
+  color: #1a1a1a;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 4px;
+}
 </style>
 
 </head>
@@ -244,7 +256,7 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
-// ✅ Load live auctions with Kollect100 subheader
+// ✅ Load live auctions with Kollect100 gold badge
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -256,21 +268,17 @@ function loadLiveAuctions() {
       const data = docSnap.data();
       if (data.status !== 'live') return;
 
-      const { name, price = 0, image, description, auctionend, saletype } = data;
+      const { name, price = 0, image, description, auctionend, kollect100 } = data;
 
       const card = document.createElement('div');
       card.classList.add('card');
 
-      // ✅ Kollect100 subheader
-      let subheader = '';
-      if (saletype === 'kollect_100') {
-        subheader = '<h4>Kollect100</h4>';
-      }
+      // ✅ Kollect100 gold badge next to item name
+      const badgeHTML = kollect100 ? '<span class="kollect-badge">Kollect100</span>' : '';
 
       card.innerHTML = `
-        ${subheader}
         <img src="${image}" alt="${name}">
-        <h3>${name}</h3>
+        <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
         <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
         <p class="auction-length"></p>
@@ -312,7 +320,6 @@ function toggleMenu() {
   nav.classList.toggle("open");
 }
 </script>
-
 
 </body>
 </html>
