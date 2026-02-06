@@ -3,48 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kollect 100</title>
+<title>Watchlist – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-
-<style>
-.bid-card {
-  background:#2a2a2a;
-  border:1px solid #FFD700;
-  padding:10px;
-  margin:10px;
-  border-radius:6px;
-  width: 300px;
-  display: inline-block;
-  vertical-align: top;
-  text-align: center;
-}
-.bid-card img {
-  display:block;
-  margin:10px auto;
-  width:100%;
-  height:200px;
-  object-fit:cover;
-  border-radius:6px;
-}
-.button, .consign-btn {
-  background-color: #FFD700;
-  color: #1e1e1e;
-  font-weight: bold;
-  border-radius: 8px;
-  border: 2px solid #1e1e1e;
-  padding: 10px 20px;
-  cursor:pointer;
-  transition: all 0.3s ease;
-  margin: 5px 0;
-}
-.button:hover, .consign-btn:hover {
-  background-color:#fff;
-  color:#FFD700;
-  transform: scale(1.05);
-}
-</style>
-
+<script type="module" src="script.js"></script>
 </head>
 <body>
 
@@ -68,238 +30,20 @@
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
-<div class="container">
+<div class="container coming-soon">
   <img src="IMG_1685.jpeg" alt="Kollect Auctions Logo" class="hero-image">
-  <h1>Kollect 100 – High Ticket Exclusive Items</h1>
+
+  <h1>Watchlist Coming Soon</h1>
 
   <p>
-    Welcome to Kollect 100! High-value items on this page can be purchased via standard fiat currency.
+    Soon you’ll be able to save auctions, track items you’re watching,
+    and receive alerts before listings end.
   </p>
 
-  <div id="kollect-items">
-    <p>Loading high-ticket items…</p>
-  </div>
-
-  <button class="button" onclick="window.location='index.html'">Back to Home</button>
+  <button class="button" onclick="window.location='dashboard.html'">
+    Back to Dashboard
+  </button>
 </div>
-
-<script>
-function toggleMenu(){
-  document.getElementById("navMenu").classList.toggle("open");
-}
-</script>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getFirestore, collection, serverTimestamp, onSnapshot,
-  query, orderBy, where, doc, runTransaction, getDocs, updateDoc, limit, getDocs as getDocsOnce
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { firebaseConfig } from "./firebase.js";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const itemsContainer = document.getElementById("kollect-items");
-
-// --- Auto-fix stale auctions on page load ---
-async function fixStaleAuctions() {
-  const now = new Date();
-  const staleQuery = query(
-    collection(db, "kollect100"),
-    where("status:", "==", "active"),
-    where("endedat:", "==", null)
-  );
-
-  const staleSnap = await getDocsOnce(staleQuery);
-
-  staleSnap.forEach(async (docSnap) => {
-    const item = docSnap.data();
-    if (item["auctionend:"] && item["auctionend:"].toDate() < now) {
-      try {
-        const bidsQ = query(
-          collection(db, "bids"),
-          where("listingid:", "==", docSnap.id),
-          orderBy("bidamount:", "desc"),
-          limit(1)
-        );
-        const bidSnap = await getDocsOnce(bidsQ);
-
-        let winnerid = null;
-        let winneremail = null;
-        let winningbid = null;
-
-        if (!bidSnap.empty) {
-          const topBid = bidSnap.docs[0].data();
-          winnerid = topBid["userid:"];
-          winneremail = topBid["useremail:"];
-          winningbid = topBid["bidamount:"];
-        }
-
-        await updateDoc(doc(db, "kollect100", docSnap.id), {
-          "status:": "ended",
-          "endedat:": serverTimestamp(),
-          "winnerid:": winnerid,
-          "winneremail:": winneremail,
-          "winningbid:": winningbid
-        });
-
-      } catch (e) {
-        console.error("Failed to auto-end stale auction:", e);
-      }
-    }
-  });
-}
-
-// --- Countdown Timer with auto-end logic ---
-function createCountdownTimer(item, endTime, displayEl, cardEl) {
-  async function updateTimer() {
-    const now = Date.now();
-    const distance = endTime - now;
-
-    if (distance <= 0) {
-      displayEl.textContent = "Auction ended";
-      clearInterval(timerInterval);
-
-      try {
-        const bidsQ = query(
-          collection(db, "bids"),
-          where("listingid:", "==", item.id),
-          orderBy("bidamount:", "desc"),
-          limit(1)
-        );
-        const bidSnap = await getDocsOnce(bidsQ);
-
-        let winnerid = null;
-        let winneremail = null;
-        let winningbid = null;
-
-        if (!bidSnap.empty) {
-          const topBid = bidSnap.docs[0].data();
-          winnerid = topBid["userid:"];
-          winneremail = topBid["useremail:"];
-          winningbid = topBid["bidamount:"];
-        }
-
-        await updateDoc(doc(db, "kollect100", item.id), {
-          "status:": "ended",
-          "endedat:": serverTimestamp(),
-          "winnerid:": winnerid,
-          "winneremail:": winneremail,
-          "winningbid:": winningbid
-        });
-
-        cardEl.remove();
-      } catch (e) {
-        console.error("Failed to end auction:", e);
-      }
-      return;
-    }
-
-    const h = Math.floor(distance / 3600000);
-    const m = Math.floor((distance % 3600000) / 60000);
-    const s = Math.floor((distance % 60000) / 1000);
-    displayEl.textContent = `Ends in ${h}h ${m}m ${s}s`;
-  }
-
-  updateTimer();
-  const timerInterval = setInterval(updateTimer, 1000);
-}
-
-// --- Place Bid using Transaction ---
-async function placeBid(itemId, bidInput) {
-  const bidAmount = parseFloat(bidInput.value);
-  if (isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
-
-  const itemRef = doc(db, "kollect100", itemId);
-  const bidsRef = collection(db, "bids");
-
-  try {
-    await runTransaction(db, async (transaction) => {
-      const itemSnap = await transaction.get(itemRef);
-      if (!itemSnap.exists()) throw "Item does not exist";
-
-      const itemData = itemSnap.data();
-      const currentPrice = itemData["price:"] || 0;
-
-      if (bidAmount <= currentPrice) throw "Bid must be higher than current price";
-
-      const newBidRef = doc(bidsRef);
-      transaction.set(newBidRef, {
-        "listingid:": itemId,
-        "bidamount:": bidAmount,
-        "useremail:": "Anonymous",
-        "userid:": "Anonymous",
-        "timestamp:": serverTimestamp()
-      });
-
-      transaction.update(itemRef, {
-        "price:": bidAmount
-      });
-    });
-
-    bidInput.value = "";
-  } catch (e) {
-    alert(e);
-    console.error("Bid transaction failed:", e);
-  }
-}
-
-// --- Load only active Kollect100 items ---
-function loadKollectItemsLive() {
-  const q = query(collection(db, "kollect100"), where("status:", "==", "active"));
-  onSnapshot(q, snapshot => {
-    itemsContainer.innerHTML = "";
-
-    snapshot.forEach(docSnap => {
-      const item = docSnap.data();
-      item.id = docSnap.id;
-
-      const card = document.createElement("div");
-      card.className = "bid-card";
-      card.innerHTML = `
-        <h3>${item["name:"]}</h3>
-        ${item["image:"] ? `<img src="${item["image:"]}">` : ""}
-        <p>${item["description:"]}</p>
-        <p>Current Price: £<span class="current-price">${item["price:"]?.toLocaleString() || "0"}</span></p>
-        <p class="auction-timer">Loading timer...</p>
-        <input type="number" placeholder="Enter bid amount" class="bid-input">
-        <button class="consign-btn place-bid-btn">Place Bid</button>
-      `;
-      itemsContainer.appendChild(card);
-
-      if (item["auctionend:"]) {
-        createCountdownTimer(
-          item,
-          item["auctionend:"].toDate(),
-          card.querySelector(".auction-timer"),
-          card
-        );
-      }
-
-      const priceEl = card.querySelector(".current-price");
-      const bidsQuery = query(
-        collection(db, "bids"),
-        where("listingid:", "==", item.id),
-        orderBy("bidamount:", "desc")
-      );
-
-      onSnapshot(bidsQuery, bidSnap => {
-        if (!bidSnap.empty) {
-          priceEl.textContent = bidSnap.docs[0].data()["bidamount:"].toLocaleString();
-        }
-      });
-
-      card.querySelector(".place-bid-btn")
-        .addEventListener("click", () =>
-          placeBid(item.id, card.querySelector(".bid-input"))
-        );
-    });
-  });
-}
-
-// --- Run stale auctions fix first, then load live items ---
-fixStaleAuctions().then(loadKollectItemsLive);
-</script>
 
 </body>
 </html>
