@@ -57,6 +57,17 @@
   cursor: pointer;
 }
 
+.kollect100-badge {
+  display: inline-block;
+  background: gold;
+  color: black;
+  font-weight: bold;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
 #auction-pagination-controls {
   text-align: center;
   margin-top: 15px;
@@ -120,14 +131,17 @@ async function loadEndedAuctions() {
 
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      const { name, price, image, description } = data;
+      const { name, price, image, description, kollect100 } = data;
 
       const card = document.createElement('div');
       card.classList.add('ended-auction');
 
       card.innerHTML = `
         <img src="${image}" alt="${name}">
-        <h3>${name}</h3>
+        <h3>
+          ${name}
+          ${kollect100 ? '<span class="kollect100-badge">Kollect 100</span>' : ''}
+        </h3>
         <p>${description || ''}</p>
         <p><strong>Final Price:</strong> £${price?.toLocaleString() || '0.00'}</p>
       `;
