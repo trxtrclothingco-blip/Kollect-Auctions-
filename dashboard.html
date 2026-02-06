@@ -475,14 +475,22 @@ onAuthStateChanged(auth, async (user) => {
     pageAuctions.forEach(a => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
+
+      const nameLink = document.createElement("a");
+      nameLink.href = "#";
+      nameLink.innerHTML = a.name + (a.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : '');
+      nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(a); };
+
       bidEl.innerHTML = `
-        <p><strong><a href="item.html?id=${a.id}">${a.name}${a.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : ''}</a></strong></p>
+        <p><strong></strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: ${formatPrice(a.winningbid)}</p>
         <p>Highest Bidder: ${a.winneremail || "You"}</p>
         <p>Status: Auction Ended</p>
         <p>Ended At: ${a.endedat?.toDate ? a.endedat.toDate().toLocaleString() : "Unknown"}</p>
       `;
+      const pTag = bidEl.querySelector("p");
+      pTag.querySelector("strong").appendChild(nameLink);
       wonBidsContainer.appendChild(bidEl);
     });
     renderWonPagination();
@@ -791,3 +799,4 @@ function renderNotifications() {
   
 </body>
 </html>
+```:
