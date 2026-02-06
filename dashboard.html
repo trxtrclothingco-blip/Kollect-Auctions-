@@ -35,15 +35,16 @@ const fields = ["first-name-input","last-name-input","email-input","contact-inpu
 const inputs = fields.map(f => document.getElementById(f));
 
 // ---------- Notifications State (persistent) ----------
-const notificationState = JSON.parse(localStorage.getItem("notifications") || "[]");
-const deletedState = JSON.parse(localStorage.getItem("deletedNotifications") || "[]");
+const notificationState = {
+  auctionEndingSoon: JSON.parse(localStorage.getItem("notification_auctionEndingSoon") || "{}"),
+  outbid: JSON.parse(localStorage.getItem("notification_outbid") || "{}"),
+  auctionWon: JSON.parse(localStorage.getItem("notification_auctionWon") || "{}")
+};
 
 function saveNotificationState() {
-  localStorage.setItem("notifications", JSON.stringify(notificationState));
-}
-
-function saveDeletedState() {
-  localStorage.setItem("deletedNotifications", JSON.stringify(deletedState));
+  localStorage.setItem("notification_auctionEndingSoon", JSON.stringify(notificationState.auctionEndingSoon));
+  localStorage.setItem("notification_outbid", JSON.stringify(notificationState.outbid));
+  localStorage.setItem("notification_auctionWon", JSON.stringify(notificationState.auctionWon));
 }
 
 // ---------- Burger Menu & Light/Dark Mode ----------
@@ -152,31 +153,6 @@ onAuthStateChanged(auth, async (user) => {
   logoutButton.style.display = "inline-block";
 
   const docRef = doc(db, "users", user.uid);
-
-  let userLiveAuctions = [];
-  let listingWinningState = {};
-  let listingPreviousHighest = {};
-  let listingInitialized = {};
-  let bidListeners = {};
-  let liveUnsubs = [];
-  let countdownInterval = setInterval(() => {
-    const now = new Date();
-    userLiveAuctions.forEach(auction => {
-      const diff = auction.endTime - now;
-      if (diff > 0 && diff <= 300000) {
-        const type = "auctionEndingSoon";
-        const id = auction.id;
-        const key = `${type}-${id}`;
-        if (!deletedState.includes(key) && !notificationState.some(n => n.type === type && n.id === id)) {
-          const message = `Auction for "${auction.name}" ends in 5 minutes!`;
-          showPopup(message);
-          notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
-          saveNotificationState();
-          renderNotifications();
-        }
-      }
-    });
-  }, 1000);
 
   // ---------- Load profile info ----------
   onSnapshot(docRef, (docSnap) => {
@@ -291,8 +267,6 @@ onAuthStateChanged(auth, async (user) => {
       liveBidsContainer.innerHTML += "<p>No live bids yet.</p>";
       return;
     }
-    liveUnsubs.forEach(u => u());
-    liveUnsubs = [];
     const start = (page - 1) * bidsPerPage;
     const end = start + bidsPerPage;
     const pageBids = allLiveBids.slice(start, end);
@@ -325,7 +299,7 @@ onAuthStateChanged(auth, async (user) => {
 
       const nameLink = document.createElement("a");
       nameLink.href = "#";
-      nameLink.innerHTML = b.itemName + (b.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : '');
+      nameLink.textContent = b.itemName;
       nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(listingData); };
 
       bidEl.innerHTML = `<p><strong></strong><br>Live Price: </p>`;
@@ -357,6 +331,13 @@ onAuthStateChanged(auth, async (user) => {
             const minutes = Math.floor((diff/1000/60)%60);
             const seconds = Math.floor((diff/1000)%60);
             countdownEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
+
+            // ---------- Notification: 5 minutes remaining ----------
+            if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
+              showPopup(`Auction for "${b.itemName}" ends in 5 minutes!`);
+              notificationState.auctionEndingSoon[b.listingid] = true;
+              saveNotificationState();
+            }
           }
         }, 1000);
       }
@@ -387,18 +368,17 @@ onAuthStateChanged(auth, async (user) => {
 
       // ---------- Live second-by-second price listener ----------
       const listingRefLive = doc(db, "listings", b.listingid);
-      const unsubPrice = onSnapshot(listingRefLive, snap => {
+      onSnapshot(listingRefLive, snap => {
         if(snap.exists()){
           const latestPrice = snap.data().price || 0;
           livePriceSpan.textContent = formatPrice(latestPrice);
           bidInput.min = latestPrice + 1;
         }
       });
-      liveUnsubs.push(unsubPrice);
 
       // Real-time updates for this user's bid & winning message
       const bidsQuery = query(collection(db, "bids"), where("listingid","==",b.listingid));
-      const unsubBids = onSnapshot(bidsQuery, snapshot => {
+      onSnapshot(bidsQuery, snapshot => {
         let highestBid = 0;
         let userHighest = 0;
         snapshot.forEach(doc => {
@@ -410,8 +390,19 @@ onAuthStateChanged(auth, async (user) => {
         const winning = userHighest >= highestBid;
         winningSpan.textContent = winning ? "You're currently winning!" : "";
         outbidSpan.style.display = !winning && userHighest>0 ? "inline-block" : "none";
+
+        // ---------- Notification: Outbid ----------
+        if(userHighest > 0 && userHighest < highestBid){
+          if(!notificationState.outbid[b.listingid]){
+            showPopup(`You've been outbid on "${b.itemName}"! Place a higher bid.`);
+            notificationState.outbid[b.listingid] = true;
+            saveNotificationState();
+          }
+        } else {
+          notificationState.outbid[b.listingid] = false;
+          saveNotificationState();
+        }
       });
-      liveUnsubs.push(unsubBids);
 
       liveBidsContainer.appendChild(bidEl);
     });
@@ -444,90 +435,28 @@ onAuthStateChanged(auth, async (user) => {
 
   // ---------- Only user's live bids ----------
   onSnapshot(query(collection(db, "bids"), where("userid","==",user.uid)), async snapshot => {
-    const listingIdSet = new Set();
-    const bidMap = {};
-    snapshot.forEach(d => {
+    const tempBids = [];
+    for (const d of snapshot.docs) {
       const b = d.data();
-      if (b.listingid) {
-        listingIdSet.add(b.listingid);
-        if (!bidMap[b.listingid] || b.bidamount > bidMap[b.listingid]) {
-          bidMap[b.listingid] = b.bidamount;
-        }
+      if (!b.listingid) continue;
+      const listingSnap = await getDoc(doc(db, "listings", b.listingid));
+      if (!listingSnap.exists()) continue;
+      const listing = listingSnap.data();
+      if (listing.status !== "live") continue;
+      tempBids.push({
+        itemName: listing.name,
+        livePrice: listing.price,
+        bidAmount: b.bidamount,
+        listingid: b.listingid
+      });
+    }
+    const highestBidsMap = {};
+    tempBids.forEach(bid => {
+      if (!highestBidsMap[bid.listingid] || bid.bidAmount > highestBidsMap[bid.listingid].bidAmount) {
+        highestBidsMap[bid.listingid] = bid;
       }
     });
-    userLiveAuctions = await Promise.all(Array.from(listingIdSet).map(async id => {
-      const listingDoc = await getDoc(doc(db, "listings", id));
-      if (listingDoc.exists()) {
-        const data = listingDoc.data();
-        if (data.status === "live" && data.auctionend) {
-          return {
-            id,
-            name: data.name,
-            endTime: data.auctionend.toDate(),
-            price: data.price,
-            kollect100: data.kollect100 || false
-          };
-        }
-      }
-      return null;
-    })).then(arr => arr.filter(a => a));
-
-    allLiveBids = userLiveAuctions.map(a => ({
-      itemName: a.name,
-      livePrice: a.price,
-      listingid: a.id,
-      kollect100: a.kollect100
-    }));
-
-    const currentListingIds = new Set(userLiveAuctions.map(a => a.id));
-
-    Object.keys(bidListeners).forEach(id => {
-      if (!currentListingIds.has(id)) {
-        bidListeners[id]();
-        delete bidListeners[id];
-        delete listingPreviousHighest[id];
-        delete listingInitialized[id];
-      }
-    });
-
-    userLiveAuctions.forEach(auction => {
-      if (!bidListeners[auction.id]) {
-        const itemName = auction.name;
-        const unsub = onSnapshot(query(collection(db, "bids"), where("listingid", "==", auction.id)), snapshot => {
-          let highestBid = 0;
-          let userHighest = 0;
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.bidamount > highestBid) highestBid = data.bidamount;
-            if (data.userid === user.uid && data.bidamount > userHighest) userHighest = data.bidamount;
-          });
-          if (userHighest > 0 && highestBid > userHighest) {
-            if (listingInitialized[auction.id]) {
-              const prevHighest = listingPreviousHighest[auction.id] || 0;
-              if (highestBid > prevHighest) {
-                const type = "outbid";
-                const id = auction.id;
-                const key = `${type}-${id}`;
-                if (!deletedState.includes(key)) {
-                  const message = `You've been outbid on "${itemName}"! Place a higher bid.`;
-                  showPopup(message);
-                  notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
-                  saveNotificationState();
-                  renderNotifications();
-                }
-              }
-            } else {
-              listingInitialized[auction.id] = true;
-            }
-          }
-          listingPreviousHighest[auction.id] = highestBid;
-          const isWinning = userHighest >= highestBid;
-          listingWinningState[auction.id] = isWinning;
-        });
-        bidListeners[auction.id] = unsub;
-      }
-    });
-
+    allLiveBids = Object.values(highestBidsMap);
     livePage = 1;
     renderLiveBidsPage(livePage);
   });
@@ -550,22 +479,14 @@ onAuthStateChanged(auth, async (user) => {
     pageAuctions.forEach(a => {
       const bidEl = document.createElement("div");
       bidEl.className = "bid-card";
-
-      const nameLink = document.createElement("a");
-      nameLink.href = "#";
-      nameLink.innerHTML = a.name + (a.kollect100 ? ' <span style="background-color:gold; color:black; padding:2px 4px; border-radius:3px; font-size:0.8em;">Kollect100</span>' : '');
-      nameLink.onclick = (e) => { e.preventDefault(); showItemPopup(a); };
-
       bidEl.innerHTML = `
-        <p><strong></strong></p>
+        <p><strong><a href="item.html?id=${a.id}">${a.name}</a></strong></p>
         ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
         <p>Current Price: ${formatPrice(a.winningbid)}</p>
         <p>Highest Bidder: ${a.winneremail || "You"}</p>
         <p>Status: Auction Ended</p>
         <p>Ended At: ${a.endedat?.toDate ? a.endedat.toDate().toLocaleString() : "Unknown"}</p>
       `;
-      const pTag = bidEl.querySelector("p");
-      pTag.querySelector("strong").appendChild(nameLink);
       wonBidsContainer.appendChild(bidEl);
     });
     renderWonPagination();
@@ -610,15 +531,10 @@ onAuthStateChanged(auth, async (user) => {
       });
 
       // ---------- Notification: Auction Won ----------
-      const type = "auctionWon";
-      const id = docSnap.id;
-      const key = `${type}-${id}`;
-      if (!deletedState.includes(key) && !notificationState.some(n => n.type === type && n.id === id)) {
-        const message = `Congratulations! You won the auction for "${d.name}"!`;
-        showPopup(message);
-        notificationState.push({ type, id, message, timestamp: new Date().toISOString() });
+      if(!notificationState.auctionWon[docSnap.id]){
+        showPopup(`Congratulations! You won the auction for "${d.name}"!`);
+        notificationState.auctionWon[docSnap.id] = true;
         saveNotificationState();
-        renderNotifications();
       }
     });
     allWonAuctions.sort((a, b) => (a.endedat?.toDate?.() || 0) - (b.endedat?.toDate?.() || 0));
@@ -651,43 +567,7 @@ onAuthStateChanged(auth, async (user) => {
       salesContainer.appendChild(saleEl);
     });
   });
-  renderNotifications();
 });
-
-// ---------- Notification Functions ----------
-window.toggleNotifications = () => {
-  const dropdown = document.getElementById("notification-dropdown");
-  dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-};
-
-function renderNotifications() {
-  const dropdown = document.getElementById("notification-dropdown");
-  if (!dropdown) return;
-  dropdown.innerHTML = "";
-  const allNotifs = [...notificationState].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  allNotifs.forEach((n, index) => {
-    const notifEl = document.createElement("div");
-    notifEl.style.padding = "8px";
-    notifEl.style.borderBottom = "1px solid #FFD700";
-    notifEl.innerHTML = `${n.message} <small>${new Date(n.timestamp).toLocaleString()}</small>`;
-    const removeBtn = document.createElement("button");
-    removeBtn.textContent = "Remove";
-    removeBtn.style.marginLeft = "10px";
-    removeBtn.onclick = () => {
-      const key = `${n.type}-${n.id}`;
-      if (!deletedState.includes(key)) deletedState.push(key);
-      saveDeletedState();
-      notificationState = notificationState.filter((_, i) => i !== index);
-      saveNotificationState();
-      renderNotifications();
-    };
-    notifEl.appendChild(removeBtn);
-    dropdown.appendChild(notifEl);
-  });
-  const countEl = document.getElementById("notification-count");
-  countEl.textContent = notificationState.length || "";
-  countEl.style.display = notificationState.length ? "inline" : "none";
-}
 </script>
 
 <style>
@@ -861,9 +741,6 @@ function renderNotifications() {
     </div>
   </div>
 </div>
-
-<div id="notification-bell" onclick="toggleNotifications()" style="display:inline-block; cursor:pointer; position:fixed; top:10px; right:10px; padding:10px; font-size:24px;">🔔<span id="notification-count" style="position:absolute; top:-5px; right:-10px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:12px; display:none;"></span></div>
-<div id="notification-dropdown" style="display:none; position:fixed; top:50px; right:20px; background:#1e1e1e; border:2px solid #FFD700; border-radius:8px; width:350px; max-height:400px; overflow-y:auto; z-index:9999; padding:10px; box-shadow:0 4px 8px rgba(0,0,0,0.5);"></div>
 
 <script src="/js/notification.js"></script>
   
