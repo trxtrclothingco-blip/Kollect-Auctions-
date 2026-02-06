@@ -133,6 +133,28 @@ itemForm.addEventListener("submit", async (e) => {
       await addDoc(collection(db, collectionName), data);
     }
 
+    // --- NEW: If saletype is kollect_100, also push to kollect100 collection ---
+    if (saleType === "kollect_100") {
+      const kollectRef = doc(collection(db, "kollect100")); // auto ID
+      await setDoc(kollectRef, {
+        "name:": formData.get("item_name") || "",
+        "description:": formData.get("item_description") || "",
+        "image:": data.image || "",
+        "price:": Number(formData.get("item_price")) || null,
+        "pricetype:": formData.get("price_type") || "",
+        "saletype:": "kollect_100",
+        "status:": saleType === "live_auctions" ? "live" : "active",
+        "createdat:": serverTimestamp(),
+        "auctionstart:": formData.get("auctionstart") ? new Date(formData.get("auctionstart")) : null,
+        "auctionend:": formData.get("auctionend") ? new Date(formData.get("auctionend")) : null,
+        "endedat:": null,
+        "winnerid:": "",
+        "winneremail:": "",
+        "winningbid:": null
+      });
+      console.log("Kollect100 item added ✅");
+    }
+
     itemForm.reset();
     document.getElementById("item_id").value = "";
     auctionFields.style.display = "none";
