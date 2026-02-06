@@ -6,13 +6,51 @@
 <title>Kollect 100</title>
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
-<script type="module" src="script.js"></script>
 
 <!-- Solana & Wallet Adapter -->
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.0/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@0.10.9/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@0.10.10/lib/index.iife.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@0.10.10/lib/index.iife.min.js"></script>
+
+<style>
+.bid-card {
+  background:#2a2a2a;
+  border:1px solid #FFD700;
+  padding:10px;
+  margin:10px;
+  border-radius:6px;
+  width: 300px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+}
+.bid-card img {
+  display:block;
+  margin:10px auto;
+  width:100%;
+  height:200px;
+  object-fit:cover;
+  border-radius:6px;
+}
+.button, .consign-btn {
+  background-color: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  border-radius: 8px;
+  border: 2px solid #1e1e1e;
+  padding: 10px 20px;
+  cursor:pointer;
+  transition: all 0.3s ease;
+  margin: 5px 0;
+}
+.button:hover, .consign-btn:hover {
+  background-color:#fff;
+  color:#FFD700;
+  transform: scale(1.05);
+}
+</style>
+
 </head>
 <body>
 
@@ -51,7 +89,7 @@
     <span id="ktc-balance" style="margin-left:10px; font-weight:bold;">Balance: 0 $KCT</span>
   </div>
 
-  <div id="kollect-items" class="coming-soon">
+  <div id="kollect-items">
     <p>Loading high-ticket items…</p>
   </div>
 
@@ -59,209 +97,126 @@
 </div>
 
 <script type="module">
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, where, doc, updateDoc 
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const itemsContainer = document.getElementById("kollect-items");
-const connectButton = document.getElementById("connect-wallet-btn");
-const balanceDisplay = document.getElementById("ktc-balance");
 
-let walletPublicKey = null;
-let kctRate = 1; // Default GBP → $KCT rate
+// --- Countdown Timer with auto-end logic ---
+function createCountdownTimer(item, endTime, displayEl, cardEl) {
+  async function updateTimer() {
+    const now = new Date().getTime();
+    const distance = endTime - now;
 
-// --- Phantom Wallet Adapter ---
-const { PhantomWalletAdapter } = window.walletAdapterWallets;
-const wallet = new PhantomWalletAdapter();
+    if(distance <= 0){
+      displayEl.textContent = "Auction ended";
+      clearInterval(timerInterval);
 
-// Fetch live $KCT rate from Firestore
-async function fetchKCTRate() {
-  try {
-    const rateDoc = await getDoc(doc(db, "settings", "kct_rate"));
-    if(rateDoc.exists()) kctRate = rateDoc.data().rate;
-  } catch(e) {
-    console.error("Failed to fetch $KCT rate:", e);
-  }
-}
+      // Update Firestore status to "ended"
+      try {
+        const itemRef = doc(db, "kollect100", item.id);
+        await updateDoc(itemRef, { "status:": "ended" });
 
-connectButton.addEventListener("click", async () => {
-  try {
-    if(navigator.userAgent.includes("Mobile") && !window.solana?.isPhantom){
-      // Mobile deep link for Phantom app
-      window.open("https://phantom.app/ul/browse?url=" + encodeURIComponent(window.location.href), "_blank");
+        // Remove from UI
+        cardEl.remove();
+      } catch(e){
+        console.error("Failed to update item status:", e);
+      }
+
       return;
     }
 
-    if (!wallet.connected) await wallet.connect();
-    walletPublicKey = wallet.publicKey.toString();
-    showPopup(`Wallet connected: ${walletPublicKey}`);
-    updateBalance();
-    wallet.on("disconnect", () => {
-      walletPublicKey = null;
-      balanceDisplay.textContent = "Balance: 0 $KCT";
-      showPopup("Wallet disconnected");
-    });
-  } catch (err) {
-    console.error(err);
-    showPopup("Failed to connect wallet. Open Phantom app or desktop extension.");
+    const hours = Math.floor(distance / (1000*60*60));
+    const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+    const seconds = Math.floor((distance % (1000*60)) / 1000);
+    displayEl.textContent = `Ends in ${hours}h ${minutes}m ${seconds}s`;
   }
-});
 
-async function updateBalance() {
-  if (!walletPublicKey) return;
-  try {
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-    const publicKey = new solanaWeb3.PublicKey(walletPublicKey);
-
-    const KCT_MINT = new solanaWeb3.PublicKey("YOUR_KCT_MINT_ADDRESS_HERE");
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: KCT_MINT });
-
-    let balance = 0;
-    if(tokenAccounts.value.length) {
-      balance = tokenAccounts.value.reduce((sum, acc) => sum + Number(acc.account.data.parsed.info.tokenAmount.uiAmount), 0);
-    }
-    balanceDisplay.textContent = `Balance: ${balance.toFixed(2)} $KCT`;
-  } catch(e) {
-    console.error(e);
-    balanceDisplay.textContent = "Balance: 0 $KCT";
-  }
+  updateTimer();
+  const timerInterval = setInterval(updateTimer, 1000);
+  return timerInterval;
 }
 
-function showPopup(message){
-  const popup = document.createElement("div");
-  popup.textContent = message;
-  popup.style.position = "fixed";
-  popup.style.top = "20px";
-  popup.style.right = "20px";
-  popup.style.padding = "10px 20px";
-  popup.style.backgroundColor = "#FFD700";
-  popup.style.color = "#1e1e1e";
-  popup.style.fontWeight = "bold";
-  popup.style.border = "2px solid #1e1e1e";
-  popup.style.borderRadius = "8px";
-  popup.style.zIndex = "9999";
-  document.body.appendChild(popup);
-  setTimeout(() => popup.remove(), 3000);
-}
-
-async function buyWithKCT(item){
-  if(!walletPublicKey) return showPopup("Connect your wallet first.");
+// --- Place Bid ---
+async function placeBid(itemId, bidInput) {
+  const bidAmount = parseFloat(bidInput.value);
+  if(isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
 
   try {
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
-    const fromPubkey = new solanaWeb3.PublicKey(walletPublicKey);
-    const KCT_MINT = new solanaWeb3.PublicKey("YOUR_KCT_MINT_ADDRESS_HERE");
-    const KCT_RECEIVER = new solanaWeb3.PublicKey("YOUR_TREASURY_WALLET_HERE");
-
-    const amountKCT = Math.ceil((item.price * 0.95) / kctRate);
-
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(fromPubkey, { mint: KCT_MINT });
-    if(tokenAccounts.value.length === 0) return showPopup("No $KCT found in wallet.");
-
-    const senderToken = tokenAccounts.value[0].pubkey;
-    const senderAccount = new solanaWeb3.PublicKey(senderToken);
-
-    const transaction = new solanaWeb3.Transaction().add(
-      solanaWeb3.Token.createTransferInstruction(
-        solanaWeb3.TOKEN_PROGRAM_ID,
-        senderAccount,
-        KCT_RECEIVER,
-        fromPubkey,
-        [],
-        amountKCT * (10 ** 9)
-      )
-    );
-
-    transaction.feePayer = fromPubkey;
-    transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
-
-    const { signature } = await wallet.sendTransaction(transaction, connection);
-    await connection.confirmTransaction(signature);
-
-    showPopup(`Payment successful! Sent ${amountKCT} $KCT for ${item.name}`);
-
-    const saleRef = doc(collection(db, "kollect100_sales"));
-    await setDoc(saleRef, {
-      itemId: item.id,
-      itemName: item.name,
-      priceGBP: item.price,
-      priceKCT: amountKCT,
-      buyerWallet: walletPublicKey,
+    await addDoc(collection(db, "bids"), {
+      listingid: itemId,
+      bidamount: bidAmount,
+      useremail: "Anonymous",
+      userid: "Anonymous",
       timestamp: serverTimestamp()
     });
-
-    updateBalance();
+    bidInput.value = "";
   } catch(e) {
     console.error(e);
-    showPopup("Transaction failed. Check balance and try again.");
+    alert("Failed to place bid");
   }
 }
 
-async function loadKollectItems(){
-  await fetchKCTRate();
+// --- Load Kollect100 items live ---
+function loadKollectItemsLive(){
   itemsContainer.innerHTML = "";
   const colRef = collection(db, "kollect100");
-  const snapshot = await getDocs(colRef);
-  if(snapshot.empty){
-    itemsContainer.innerHTML = "<p>No items yet.</p>";
-    return;
-  }
 
-  snapshot.forEach(docSnap => {
-    const item = docSnap.data();
-    item.id = docSnap.id;
+  onSnapshot(colRef, snapshot => {
+    itemsContainer.innerHTML = "";
+    snapshot.forEach(docSnap => {
+      const item = docSnap.data();
+      item.id = docSnap.id;
 
-    const card = document.createElement("div");
-    card.className = "bid-card";
-    card.innerHTML = `
-      <h3>${item.name}</h3>
-      ${item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : ""}
-      <p>Price: £${item.price.toLocaleString()} (${(item.price*0.95/kctRate).toFixed(2)} $KCT if paid in $KCT)</p>
-      <button class="consign-btn fiat-btn">Buy Now (£)</button>
-      <button class="consign-btn kct-btn">Buy Now ($KCT)</button>
-    `;
+      const card = document.createElement("div");
+      card.className = "bid-card";
+      card.innerHTML = `
+        <h3>${item["name:"]}</h3>
+        ${item["image:"] ? `<img src="${item["image:"]}">` : ""}
+        <p>${item["description:"]}</p>
+        <p>Current Price: £<span class="current-price">${item["price:"]?.toLocaleString() || "0"}</span></p>
+        <p class="auction-timer">Loading timer...</p>
+        <input type="number" placeholder="Enter bid amount" class="bid-input">
+        <button class="consign-btn place-bid-btn">Place Bid</button>
+      `;
+      itemsContainer.appendChild(card);
 
-    card.querySelector(".kct-btn").addEventListener("click", () => buyWithKCT(item));
-    card.querySelector(".fiat-btn").addEventListener("click", () => showPopup("Buy in GBP coming soon"));
+      // Auction timer with auto-end update
+      if(item["auctionend:"]){
+        const endTime = item["auctionend:"].toDate();
+        const timerEl = card.querySelector(".auction-timer");
+        createCountdownTimer(item, endTime, timerEl, card);
+      } else {
+        card.querySelector(".auction-timer").textContent = "No auction active";
+      }
 
-    itemsContainer.appendChild(card);
+      // --- Live Highest Bid ---
+      const priceEl = card.querySelector(".current-price");
+      const bidsQuery = query(collection(db, "bids"), where("listingid", "==", item.id), orderBy("bidamount", "desc"));
+      onSnapshot(bidsQuery, bidSnap => {
+        if(!bidSnap.empty){
+          const highestBid = bidSnap.docs[0].data().bidamount;
+          priceEl.textContent = highestBid.toLocaleString();
+        } else {
+          priceEl.textContent = item["price:"]?.toLocaleString() || "0";
+        }
+      });
+
+      // Place bid button
+      const bidInput = card.querySelector(".bid-input");
+      card.querySelector(".place-bid-btn").addEventListener("click", () => placeBid(item.id, bidInput));
+    });
   });
 }
 
-loadKollectItems();
+loadKollectItemsLive();
 </script>
-
-<style>
-.bid-card {
-  background:#2a2a2a;
-  border:1px solid #FFD700;
-  padding:10px;
-  margin-bottom:10px;
-  border-radius:6px;
-}
-.bid-card img {
-  display:block;
-  margin:10px auto;
-}
-.button, .consign-btn {
-  background-color: #FFD700;
-  color: #1e1e1e;
-  font-weight: bold;
-  border-radius: 8px;
-  border: 2px solid #1e1e1e;
-  padding: 10px 20px;
-  cursor:pointer;
-  transition: all 0.3s ease;
-}
-.button:hover, .consign-btn:hover {
-  background-color:#fff;
-  color:#FFD700;
-  transform: scale(1.05);
-}
-</style>
 
 </body>
 </html>
