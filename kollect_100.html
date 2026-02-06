@@ -7,8 +7,12 @@
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
-<!-- Phantom Wallet Integration -->
+
+<!-- Solana & Wallet Adapter -->
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.0/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@0.10.9/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@0.10.10/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@0.10.10/lib/index.iife.min.js"></script>
 </head>
 <body>
 
@@ -39,11 +43,11 @@
   <p>
     Welcome to Kollect 100! High-value items on this page can now be purchased using our native Kollect Coin ($KCT). 
     Paying in $KCT grants you a <strong>5% discount</strong> on the total auction price compared to standard fiat currency. 
-    Connect your Phantom Wallet to view your live $KCT balance and start bidding on premium collectibles seamlessly.
+    Connect your Phantom Wallet (desktop or mobile) to view your live $KCT balance and start bidding on premium collectibles seamlessly.
   </p>
 
   <div style="margin:15px 0;">
-    <button id="connect-wallet-btn" class="button">Connect Phantom Wallet</button>
+    <button id="connect-wallet-btn" class="button">Connect Wallet</button>
     <span id="ktc-balance" style="margin-left:10px; font-weight:bold;">Balance: 0 $KCT</span>
   </div>
 
@@ -55,7 +59,7 @@
 </div>
 
 <script type="module">
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { firebaseConfig } from "./firebase.js";
 
@@ -67,39 +71,60 @@ const connectButton = document.getElementById("connect-wallet-btn");
 const balanceDisplay = document.getElementById("ktc-balance");
 
 let walletPublicKey = null;
+let kctRate = 1; // Default GBP → $KCT rate
+
+// --- Phantom Wallet Adapter ---
+const { PhantomWalletAdapter } = window.walletAdapterWallets;
+const wallet = new PhantomWalletAdapter();
+
+// Fetch live $KCT rate from Firestore
+async function fetchKCTRate() {
+  try {
+    const rateDoc = await getDoc(doc(db, "settings", "kct_rate"));
+    if(rateDoc.exists()) kctRate = rateDoc.data().rate;
+  } catch(e) {
+    console.error("Failed to fetch $KCT rate:", e);
+  }
+}
 
 connectButton.addEventListener("click", async () => {
-  if(window.solana && window.solana.isPhantom){
-    try {
-      const resp = await window.solana.connect();
-      walletPublicKey = resp.publicKey.toString();
-      showPopup(`Wallet connected: ${walletPublicKey}`);
-      updateBalance();
-    } catch (err) {
-      console.error(err);
-      showPopup("Failed to connect Phantom Wallet.");
+  try {
+    if(navigator.userAgent.includes("Mobile") && !window.solana?.isPhantom){
+      // Mobile deep link for Phantom app
+      window.open("https://phantom.app/ul/browse?url=" + encodeURIComponent(window.location.href), "_blank");
+      return;
     }
-  } else {
-    showPopup("Phantom Wallet not found. Please install Phantom.");
+
+    if (!wallet.connected) await wallet.connect();
+    walletPublicKey = wallet.publicKey.toString();
+    showPopup(`Wallet connected: ${walletPublicKey}`);
+    updateBalance();
+    wallet.on("disconnect", () => {
+      walletPublicKey = null;
+      balanceDisplay.textContent = "Balance: 0 $KCT";
+      showPopup("Wallet disconnected");
+    });
+  } catch (err) {
+    console.error(err);
+    showPopup("Failed to connect wallet. Open Phantom app or desktop extension.");
   }
 });
 
-async function updateBalance(){
-  if(!walletPublicKey) return;
+async function updateBalance() {
+  if (!walletPublicKey) return;
   try {
     const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
     const publicKey = new solanaWeb3.PublicKey(walletPublicKey);
 
-    // Replace with your $KCT mint address
     const KCT_MINT = new solanaWeb3.PublicKey("YOUR_KCT_MINT_ADDRESS_HERE");
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {mint: KCT_MINT});
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: KCT_MINT });
 
     let balance = 0;
-    if(tokenAccounts.value.length){
+    if(tokenAccounts.value.length) {
       balance = tokenAccounts.value.reduce((sum, acc) => sum + Number(acc.account.data.parsed.info.tokenAmount.uiAmount), 0);
     }
-    balanceDisplay.textContent = `Balance: ${balance} $KCT`;
-  } catch(e){
+    balanceDisplay.textContent = `Balance: ${balance.toFixed(2)} $KCT`;
+  } catch(e) {
     console.error(e);
     balanceDisplay.textContent = "Balance: 0 $KCT";
   }
@@ -123,7 +148,7 @@ function showPopup(message){
 }
 
 async function buyWithKCT(item){
-  if(!walletPublicKey) return showPopup("Connect your Phantom Wallet first.");
+  if(!walletPublicKey) return showPopup("Connect your wallet first.");
 
   try {
     const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("mainnet-beta"));
@@ -131,18 +156,14 @@ async function buyWithKCT(item){
     const KCT_MINT = new solanaWeb3.PublicKey("YOUR_KCT_MINT_ADDRESS_HERE");
     const KCT_RECEIVER = new solanaWeb3.PublicKey("YOUR_TREASURY_WALLET_HERE");
 
-    // Convert GBP to $KCT (5% discount applied)
-    const KCT_PRICE = 1; // 1 $KCT = £1 placeholder
-    const amountKCT = Math.ceil((item.price * 0.95) / KCT_PRICE);
+    const amountKCT = Math.ceil((item.price * 0.95) / kctRate);
 
-    // Find sender token account
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(fromPubkey, {mint: KCT_MINT});
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(fromPubkey, { mint: KCT_MINT });
     if(tokenAccounts.value.length === 0) return showPopup("No $KCT found in wallet.");
 
     const senderToken = tokenAccounts.value[0].pubkey;
     const senderAccount = new solanaWeb3.PublicKey(senderToken);
 
-    // Create transfer transaction
     const transaction = new solanaWeb3.Transaction().add(
       solanaWeb3.Token.createTransferInstruction(
         solanaWeb3.TOKEN_PROGRAM_ID,
@@ -150,19 +171,18 @@ async function buyWithKCT(item){
         KCT_RECEIVER,
         fromPubkey,
         [],
-        amountKCT * (10 ** 9) // Assuming 9 decimals
+        amountKCT * (10 ** 9)
       )
     );
 
     transaction.feePayer = fromPubkey;
     transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
 
-    const { signature } = await window.solana.signAndSendTransaction(transaction);
+    const { signature } = await wallet.sendTransaction(transaction, connection);
     await connection.confirmTransaction(signature);
 
     showPopup(`Payment successful! Sent ${amountKCT} $KCT for ${item.name}`);
 
-    // Record sale in Firestore
     const saleRef = doc(collection(db, "kollect100_sales"));
     await setDoc(saleRef, {
       itemId: item.id,
@@ -174,13 +194,14 @@ async function buyWithKCT(item){
     });
 
     updateBalance();
-  } catch(e){
+  } catch(e) {
     console.error(e);
     showPopup("Transaction failed. Check balance and try again.");
   }
 }
 
 async function loadKollectItems(){
+  await fetchKCTRate();
   itemsContainer.innerHTML = "";
   const colRef = collection(db, "kollect100");
   const snapshot = await getDocs(colRef);
@@ -198,7 +219,7 @@ async function loadKollectItems(){
     card.innerHTML = `
       <h3>${item.name}</h3>
       ${item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : ""}
-      <p>Price: £${item.price.toLocaleString()} (${(item.price*0.95).toFixed(2)} $KCT if paid in $KCT)</p>
+      <p>Price: £${item.price.toLocaleString()} (${(item.price*0.95/kctRate).toFixed(2)} $KCT if paid in $KCT)</p>
       <button class="consign-btn fiat-btn">Buy Now (£)</button>
       <button class="consign-btn kct-btn">Buy Now ($KCT)</button>
     `;
@@ -214,32 +235,32 @@ loadKollectItems();
 </script>
 
 <style>
-  .bid-card {
-    background:#2a2a2a;
-    border:1px solid #FFD700;
-    padding:10px;
-    margin-bottom:10px;
-    border-radius:6px;
-  }
-  .bid-card img {
-    display:block;
-    margin:10px auto;
-  }
-  .button, .consign-btn {
-    background-color: #FFD700;
-    color: #1e1e1e;
-    font-weight: bold;
-    border-radius: 8px;
-    border: 2px solid #1e1e1e;
-    padding: 10px 20px;
-    cursor:pointer;
-    transition: all 0.3s ease;
-  }
-  .button:hover, .consign-btn:hover {
-    background-color:#fff;
-    color:#FFD700;
-    transform: scale(1.05);
-  }
+.bid-card {
+  background:#2a2a2a;
+  border:1px solid #FFD700;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:6px;
+}
+.bid-card img {
+  display:block;
+  margin:10px auto;
+}
+.button, .consign-btn {
+  background-color: #FFD700;
+  color: #1e1e1e;
+  font-weight: bold;
+  border-radius: 8px;
+  border: 2px solid #1e1e1e;
+  padding: 10px 20px;
+  cursor:pointer;
+  transition: all 0.3s ease;
+}
+.button:hover, .consign-btn:hover {
+  background-color:#fff;
+  color:#FFD700;
+  transform: scale(1.05);
+}
 </style>
 
 </body>
