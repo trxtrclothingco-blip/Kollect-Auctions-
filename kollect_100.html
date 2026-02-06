@@ -7,12 +7,6 @@
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
 
-<!-- Solana & Wallet Adapter -->
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.91.0/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-base@0.10.9/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-wallets@0.10.10/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@solana/wallet-adapter-react-ui@0.10.10/lib/index.iife.min.js"></script>
-
 <style>
 .bid-card {
   background:#2a2a2a;
@@ -79,15 +73,8 @@
   <h1>Kollect 100 – High Ticket Exclusive Items</h1>
 
   <p>
-    Welcome to Kollect 100! High-value items on this page can now be purchased using our native Kollect Coin ($KCT). 
-    Paying in $KCT grants you a <strong>5% discount</strong> on the total auction price compared to standard fiat currency. 
-    Connect your Phantom Wallet (desktop or mobile) to view your live $KCT balance and start bidding on premium collectibles seamlessly.
+    Welcome to Kollect 100! High-value items on this page can be purchased via standard fiat currency.
   </p>
-
-  <div style="margin:15px 0;">
-    <button id="connect-wallet-btn" class="button">Connect Wallet</button>
-    <span id="ktc-balance" style="margin-left:10px; font-weight:bold;">Balance: 0 $KCT</span>
-  </div>
 
   <div id="kollect-items">
     <p>Loading high-ticket items…</p>
@@ -106,13 +93,62 @@ function toggleMenu(){
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
   getFirestore, collection, serverTimestamp, onSnapshot,
-  query, orderBy, where, doc, runTransaction, getDocs, updateDoc, limit
+  query, orderBy, where, doc, runTransaction, getDocs, updateDoc, limit, getDocs as getDocsOnce
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const itemsContainer = document.getElementById("kollect-items");
+
+// --- Auto-fix stale auctions on page load ---
+async function fixStaleAuctions() {
+  const now = new Date();
+  const staleQuery = query(
+    collection(db, "kollect100"),
+    where("status:", "==", "active"),
+    where("endedat:", "==", null)
+  );
+
+  const staleSnap = await getDocsOnce(staleQuery);
+
+  staleSnap.forEach(async (docSnap) => {
+    const item = docSnap.data();
+    if (item["auctionend:"] && item["auctionend:"].toDate() < now) {
+      try {
+        const bidsQ = query(
+          collection(db, "bids"),
+          where("listingid:", "==", docSnap.id),
+          orderBy("bidamount:", "desc"),
+          limit(1)
+        );
+        const bidSnap = await getDocsOnce(bidsQ);
+
+        let winnerid = null;
+        let winneremail = null;
+        let winningbid = null;
+
+        if (!bidSnap.empty) {
+          const topBid = bidSnap.docs[0].data();
+          winnerid = topBid["userid:"];
+          winneremail = topBid["useremail:"];
+          winningbid = topBid["bidamount:"];
+        }
+
+        await updateDoc(doc(db, "kollect100", docSnap.id), {
+          "status:": "ended",
+          "endedat:": serverTimestamp(),
+          "winnerid:": winnerid,
+          "winneremail:": winneremail,
+          "winningbid:": winningbid
+        });
+
+      } catch (e) {
+        console.error("Failed to auto-end stale auction:", e);
+      }
+    }
+  });
+}
 
 // --- Countdown Timer with auto-end logic ---
 function createCountdownTimer(item, endTime, displayEl, cardEl) {
@@ -131,8 +167,7 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
           orderBy("bidamount:", "desc"),
           limit(1)
         );
-
-        const bidSnap = await getDocs(bidsQ);
+        const bidSnap = await getDocsOnce(bidsQ);
 
         let winnerid = null;
         let winneremail = null;
@@ -147,6 +182,7 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
 
         await updateDoc(doc(db, "kollect100", item.id), {
           "status:": "ended",
+          "endedat:": serverTimestamp(),
           "winnerid:": winnerid,
           "winneremail:": winneremail,
           "winningbid:": winningbid
@@ -169,7 +205,7 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
   const timerInterval = setInterval(updateTimer, 1000);
 }
 
-// --- Place Bid using Transaction (unchanged) ---
+// --- Place Bid using Transaction ---
 async function placeBid(itemId, bidInput) {
   const bidAmount = parseFloat(bidInput.value);
   if (isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
@@ -187,7 +223,6 @@ async function placeBid(itemId, bidInput) {
 
       if (bidAmount <= currentPrice) throw "Bid must be higher than current price";
 
-      // --- Add new bid ---
       const newBidRef = doc(bidsRef);
       transaction.set(newBidRef, {
         "listingid:": itemId,
@@ -197,7 +232,6 @@ async function placeBid(itemId, bidInput) {
         "timestamp:": serverTimestamp()
       });
 
-      // --- Update item price ---
       transaction.update(itemRef, {
         "price:": bidAmount
       });
@@ -210,7 +244,7 @@ async function placeBid(itemId, bidInput) {
   }
 }
 
-// --- Load only active Kollect100 items live ---
+// --- Load only active Kollect100 items ---
 function loadKollectItemsLive() {
   const q = query(collection(db, "kollect100"), where("status:", "==", "active"));
   onSnapshot(q, snapshot => {
@@ -263,7 +297,8 @@ function loadKollectItemsLive() {
   });
 }
 
-loadKollectItemsLive();
+// --- Run stale auctions fix first, then load live items ---
+fixStaleAuctions().then(loadKollectItemsLive);
 </script>
 
 </body>
