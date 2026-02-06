@@ -105,8 +105,8 @@ function toggleMenu(){
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, serverTimestamp, onSnapshot,
-  query, orderBy, where, doc, updateDoc, getDocs, limit
+  getFirestore, collection, serverTimestamp, onSnapshot,
+  query, orderBy, where, doc, runTransaction, limit
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import { firebaseConfig } from "./firebase.js";
 
@@ -128,8 +128,8 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
       try {
         const bidsQ = query(
           collection(db, "bids"),
-          where("listingid:", "==", item.id),
-          orderBy("bidamount:", "desc"),
+          where("listingid", "==", item.id),
+          orderBy("bidamount", "desc"),
           limit(1)
         );
 
@@ -141,16 +141,16 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
 
         if (!bidSnap.empty) {
           const topBid = bidSnap.docs[0].data();
-          winnerid = topBid["userid:"];
-          winneremail = topBid["useremail:"];
-          winningbid = topBid["bidamount:"];
+          winnerid = topBid.userid;
+          winneremail = topBid.useremail;
+          winningbid = topBid.bidamount;
         }
 
         await updateDoc(doc(db, "kollect100", item.id), {
-          "status:": "ended",
-          "winnerid:": winnerid,
-          "winneremail:": winneremail,
-          "winningbid:": winningbid
+          status: "ended",
+          winnerid: winnerid,
+          winneremail: winneremail,
+          winningbid: winningbid
         });
 
         cardEl.remove();
@@ -170,23 +170,44 @@ function createCountdownTimer(item, endTime, displayEl, cardEl) {
   const timerInterval = setInterval(updateTimer, 1000);
 }
 
-// --- Place Bid ---
+// --- Place Bid using Transaction ---
 async function placeBid(itemId, bidInput) {
   const bidAmount = parseFloat(bidInput.value);
   if (isNaN(bidAmount) || bidAmount <= 0) return alert("Enter a valid bid amount");
 
+  const itemRef = doc(db, "kollect100", itemId);
+  const bidsRef = collection(db, "bids");
+
   try {
-    await addDoc(collection(db, "bids"), {
-      "listingid:": itemId,
-      "bidamount:": bidAmount,
-      "useremail:": "Anonymous",
-      "userid:": "Anonymous",
-      "timestamp:": serverTimestamp()
+    await runTransaction(db, async (transaction) => {
+      const itemSnap = await transaction.get(itemRef);
+      if (!itemSnap.exists()) throw "Item does not exist";
+
+      const itemData = itemSnap.data();
+      const currentPrice = itemData.price || 0;
+
+      if (bidAmount <= currentPrice) throw "Bid must be higher than current price";
+
+      // --- Add new bid ---
+      const newBidRef = doc(bidsRef); // automatically generate id
+      transaction.set(newBidRef, {
+        listingid: itemId,
+        bidamount: bidAmount,
+        useremail: "Anonymous",
+        userid: "Anonymous",
+        timestamp: serverTimestamp()
+      });
+
+      // --- Update item price ---
+      transaction.update(itemRef, {
+        price: bidAmount
+      });
     });
+
     bidInput.value = "";
   } catch (e) {
-    console.error(e);
-    alert("Failed to place bid");
+    alert(e);
+    console.error("Bid transaction failed:", e);
   }
 }
 
@@ -202,20 +223,20 @@ function loadKollectItemsLive() {
       const card = document.createElement("div");
       card.className = "bid-card";
       card.innerHTML = `
-        <h3>${item["name:"]}</h3>
-        ${item["image:"] ? `<img src="${item["image:"]}">` : ""}
-        <p>${item["description:"]}</p>
-        <p>Current Price: £<span class="current-price">${item["price:"]?.toLocaleString() || "0"}</span></p>
+        <h3>${item.name}</h3>
+        ${item.image ? `<img src="${item.image}">` : ""}
+        <p>${item.description}</p>
+        <p>Current Price: £<span class="current-price">${item.price?.toLocaleString() || "0"}</span></p>
         <p class="auction-timer">Loading timer...</p>
         <input type="number" placeholder="Enter bid amount" class="bid-input">
         <button class="consign-btn place-bid-btn">Place Bid</button>
       `;
       itemsContainer.appendChild(card);
 
-      if (item["auctionend:"]) {
+      if (item.auctionend) {
         createCountdownTimer(
           item,
-          item["auctionend:"].toDate(),
+          item.auctionend.toDate(),
           card.querySelector(".auction-timer"),
           card
         );
@@ -224,13 +245,13 @@ function loadKollectItemsLive() {
       const priceEl = card.querySelector(".current-price");
       const bidsQuery = query(
         collection(db, "bids"),
-        where("listingid:", "==", item.id),
-        orderBy("bidamount:", "desc")
+        where("listingid", "==", item.id),
+        orderBy("bidamount", "desc")
       );
 
       onSnapshot(bidsQuery, bidSnap => {
         if (!bidSnap.empty) {
-          priceEl.textContent = bidSnap.docs[0].data()["bidamount:"].toLocaleString();
+          priceEl.textContent = bidSnap.docs[0].data().bidamount.toLocaleString();
         }
       });
 
