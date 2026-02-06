@@ -88,6 +88,7 @@ itemForm.addEventListener("submit", async (e) => {
   try {
     const formData = new FormData(itemForm);
     const saleType = formData.get("sale_type");
+    const kollect100Ticked = formData.get("kollect100") === "on"; // NEW: read tickbox
 
     let collectionName =
       saleType === "private_sales" ? "privatesales" : "listings";
@@ -98,6 +99,7 @@ itemForm.addEventListener("submit", async (e) => {
       price: Number(formData.get("item_price")),
       pricetype: formData.get("price_type"),
       saletype: saleType,
+      kollect100: kollect100Ticked, // NEW: store tick status
       createdat: serverTimestamp()
     };
 
@@ -193,7 +195,12 @@ function loadItems() {
 
         if (col === "listings" && item.status === "ended") return;
 
+        // NEW: show Kollect 100 subheader if ticked
+        let kollectHeader = "";
+        if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
+
         section.innerHTML += `
+          ${kollectHeader}
           <p>${item.name} – £${item.price}</p>
           <button onclick="editItem('${d.id}','${col}')">Edit</button>
           <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
@@ -214,6 +221,7 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_price"]').value = d.price || "";
   document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
+  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false; // NEW: edit tickbox
   document.getElementById("item_id").value = id;
 
   // --- Show auction fields for live_auctions or kollect_100 when editing ---
