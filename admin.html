@@ -13,9 +13,24 @@
   margin-top: 10px;
 }
 
-.bid-item {
-  border-bottom: 1px solid #ccc;
-  padding: 8px 0;
+/* New: Individual bid card style */
+.bid-card {
+  background: #2a2a2a;
+  border: 1px solid rgba(43,176,237,0.6);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* New: Individual manage item card style */
+.item-card {
+  background: #2a2a2a;
+  border: 1px solid rgba(43,176,237,0.6);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 #pagination-controls {
@@ -27,7 +42,7 @@
   margin: 0 5px;
 }
 
-/* Ended Auctions Styling */
+/* Ended Auctions Styling (unchanged) */
 .ended-auction {
   background: #2a2a2a;
   border: 2px solid #FFD700;
@@ -89,7 +104,7 @@
         Showing live price from listings (10 per page)
       </p>
       <div id="bids-list">
-        <!-- admin.js injects bid items -->
+        <!-- admin.js injects bid items – each will now be a .bid-card -->
       </div>
     </div>
 
@@ -154,7 +169,9 @@
     <!-- Manage Items -->
     <div class="card">
       <h3>Manage Items</h3>
-      <div id="items-list"></div>
+      <div id="items-list">
+        <!-- admin.js injects items – each will now be a .item-card -->
+      </div>
     </div>
 
   </div>
