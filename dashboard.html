@@ -678,7 +678,7 @@ onAuthStateChanged(auth, async (user) => {
 /* === same styles as your original file === */
 .container input {
   background-color: #1e1e1e;
-  border: 2px solid #FFD700;
+  border: 2px solid rgba(43,176,237,0.6);
   color: #fff;
   padding: 8px;
   border-radius: 4px;
@@ -707,20 +707,20 @@ onAuthStateChanged(auth, async (user) => {
 #bids-container, #purchase-history-container {
   padding:15px;
   background:#1e1e1e;
-  border:2px solid #FFD700;
+  border:2px solid rgba(43,176,237,0.6);
   border-radius:5px;
 }
 
 .bid-card {
   background:#2a2a2a;
-  border:1px solid #FFD700;
+  border:1px solid rgba(43,176,237,0.6);
   padding:8px;
   margin-bottom:5px;
   border-radius:4px;
 }
 
 .bid-card a {
-  color:#FFD700;
+  color:#fff;
   text-decoration:none;
   display:block;
 }
@@ -736,39 +736,38 @@ onAuthStateChanged(auth, async (user) => {
 }
 
 #logout-button {
-  background-color: #007BFF;
-  color: #fff;
-  font-weight: bold;
-  border: 2px solid #1e1e1e;
+  padding: 12px 26px;
+  background: linear-gradient(135deg, #2bb0ed, #4fd1ff);
+  color: #0f1117;
   border-radius: 8px;
-  padding: 8px 16px;
+  border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 16px rgba(43,176,237,0.45);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 #logout-button:hover {
-  background-color: #fff;
-  color: #007BFF;
-  border: 2px solid #007BFF;
   transform: scale(1.05);
 }
 
 .consign-btn {
   display: inline-block;
-  background-color: #007BFF;
-  color: #fff;
-  font-weight: bold;
-  text-decoration: none;
-  padding: 10px 20px;
+  padding: 12px 26px;
+  background: linear-gradient(135deg, #2bb0ed, #4fd1ff);
+  color: #0f1117;
   border-radius: 8px;
-  border: 2px solid #1e1e1e;
-  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 16px rgba(43,176,237,0.45);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-decoration: none;
 }
 
 .consign-btn:hover {
-  background-color: #fff;
-  color: #007BFF;
-  border: 2px solid #007BFF;
   transform: scale(1.05);
 }
 
@@ -872,6 +871,10 @@ onAuthStateChanged(auth, async (user) => {
       <p>Loading your won bids…</p>
     </div>
 
+    <div id="purchase-history-container" class="card">
+      <h2>Purchase History</h2>
+      <p>Loading your purchase history…</p>
+    </div>
   </div>
 </div>
 
