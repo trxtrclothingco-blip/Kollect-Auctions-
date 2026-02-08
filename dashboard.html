@@ -372,6 +372,14 @@ onAuthStateChanged(auth, async (user) => {
       pTag.appendChild(document.createElement("br"));
       pTag.appendChild(countdownEl);
 
+      if (listingData.image) {
+        const img = document.createElement("img");
+        img.src = listingData.image;
+        img.style.width = "100%";
+        img.style.maxWidth = "200px";
+        bidEl.appendChild(img);
+      }
+
       if(auctionEndTime){
         const interval = setInterval(() => {
           const now = new Date();
@@ -850,3 +858,4 @@ onAuthStateChanged(auth, async (user) => {
   
 </body>
 </html>
+```);
