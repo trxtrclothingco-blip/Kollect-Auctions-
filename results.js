@@ -1,131 +1,180 @@
-import { db, auth } from "./firebase.js";
-import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auction Results – Kollect</title>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
 
-// ---------- DOM Elements ----------
-const userStatus = document.getElementById("user-status");
-const logoutBtn = document.getElementById("logout-button");
+<!-- ✅ DASHBOARD STYLE THEME -->
+<script>
+(function () {
+  const isLight = localStorage.getItem("lightMode") === "true";
 
-// ---------- Firebase Auth Check ----------
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // Logged in
-    userStatus.textContent = `Logged in as ${user.email}`;
-    logoutBtn.style.display = "inline-block";
-  } else {
-    // Not logged in
-    userStatus.textContent = "";
-    logoutBtn.style.display = "none";
+  if (isLight) {
+    document.documentElement.classList.add("light-mode");
   }
-});
+})();
+</script>
 
-// Logout function
-window.logoutUser = async () => {
-  await signOut(auth);
-  userStatus.textContent = "";
-  logoutBtn.style.display = "none";
-};
-
-// ---------- Pagination Settings ----------
-let auctionsAll = [];
-let auctionsPage = 1;
-const auctionsPerPage = 10; // 10 per page
-
-// ---------- Render Auctions ----------
-function renderAuctionsPage(page) {
-  const container = document.getElementById("ended-auctions-list");
-  container.innerHTML = "";
-
-  const start = (page - 1) * auctionsPerPage;
-  const end = start + auctionsPerPage;
-  const pageAuctions = auctionsAll.slice(start, end);
-
-  pageAuctions.forEach((a, index) => {
-    container.innerHTML += `
-      <div class="ended-auction" data-index="${start + index}">
-        <p><strong>${a.name}</strong></p>
-        ${a.image ? `<img src="${a.image}" style="width:100%;max-width:200px;">` : ""}
-        <p>Current Price: £${(a.winningbid || a.price).toLocaleString()}</p>
-        <p>Highest Bidder: ${a.winneremail || "No bids"}</p>
-        <p class="auction-timer">Time Left: </p>
-        <p>Ends At: ${a.auctionend.toLocaleString()}</p>
-      </div>
-    `;
-  });
-
-  renderAuctionPagination();
+<style>
+.ended-auction {
+  background: #2a2a2a;
+  border: 2px solid #2bb0ed; /* updated to match live card blue */
+  border-radius: 8px;
+  padding: 12px;
+  width: 300px; /* fixed width */
+  height: 400px; /* fixed height */
+  margin: 15px;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  overflow: hidden; /* prevent overflow if text is long */
 }
 
-// ---------- Countdown Timer ----------
-setInterval(() => {
-  const timerElems = document.querySelectorAll(".ended-auction");
-  timerElems.forEach(elem => {
-    const index = Number(elem.getAttribute("data-index"));
-    const a = auctionsAll[index];
-    if (!a) return;
-
-    const remainingTime = a.auctionend - new Date();
-    const timerText = remainingTime > 0
-      ? formatCountdown(remainingTime)
-      : "Auction Ended";
-
-    const timerP = elem.querySelector(".auction-timer");
-    if (timerP) timerP.textContent = "Status: " + timerText;
-  });
-}, 1000);
-
-function formatCountdown(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return `${h}h ${m}m ${s}s`;
+.ended-auction img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
 }
 
-// ---------- Pagination ----------
-function renderAuctionPagination() {
-  const controls = document.getElementById("auction-pagination-controls");
-  controls.innerHTML = "";
-
-  const totalPages = Math.ceil(auctionsAll.length / auctionsPerPage);
-
-  if (auctionsPage > 1) {
-    const prevBtn = document.createElement("button");
-    prevBtn.textContent = "Previous";
-    prevBtn.onclick = () => { auctionsPage--; renderAuctionsPage(auctionsPage); };
-    controls.appendChild(prevBtn);
-  }
-
-  if (auctionsPage < totalPages) {
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Next";
-    nextBtn.onclick = () => { auctionsPage++; renderAuctionsPage(auctionsPage); };
-    controls.appendChild(nextBtn);
-  }
+.ended-auction h3,
+.ended-auction p {
+  margin: 5px 0;
+  color: #ffffff; /* updated to white */
 }
 
-// ---------- Load Live Auctions ----------
-function loadLiveAuctions() {
-  const q = query(collection(db, "listings"), orderBy("auctionend", "asc"));
-  onSnapshot(q, snapshot => {
-    auctionsAll = [];
+.ended-auction .button {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #2a2a2a;
+  color: #ffffff; /* updated to white */
+  border: 1px solid #2bb0ed; /* updated to blue */
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    snapshot.forEach(docSnap => {
-      const d = docSnap.data();
-      if (d.pricetype !== "auction") return; // only auctions
+.kollect100-badge {
+  display: inline-block;
+  background: gold;
+  color: black;
+  font-weight: bold;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
 
-      auctionsAll.push({
-        ...d,
-        auctionend: d.auctionend?.toDate(),
-        winningbid: d.winningbid || d.price,
-        winneremail: d.winneremail || "No bids"
-      });
+#auction-pagination-controls {
+  text-align: center;
+  margin-top: 15px;
+}
+
+#auction-pagination-controls button {
+  margin: 0 5px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="burger" id="burgerMenu">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Watchlist ⭐️</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+</nav>
+
+<div id="user-status"></div>
+
+<div class="container">
+  <img src="IMG_1729.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <h1>Past Auction Results</h1>
+
+  <div id="ended-auctions-list"></div>
+  <div id="auction-pagination-controls"></div>
+
+  <button class="button" onclick="window.location='index.html'">Back to Home</button>
+</div>
+
+<script type="module">
+import { db } from './firebase.js';
+import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+async function loadEndedAuctions() {
+  const endedList = document.getElementById('ended-auctions-list');
+  endedList.innerHTML = '';
+
+  try {
+    const endedQuery = query(collection(db, 'listings'), where('status', '==', 'ended'));
+    const querySnapshot = await getDocs(endedQuery);
+
+    if (querySnapshot.empty) {
+      endedList.innerHTML = '<p>No ended auctions available.</p>';
+      return;
+    }
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const { name, price, image, description, kollect100 } = data;
+
+      const card = document.createElement('div');
+      card.classList.add('ended-auction');
+
+      card.innerHTML = `
+        <img src="${image}" alt="${name}">
+        <h3>
+          ${name}
+          ${kollect100 ? '<span class="kollect100-badge">Kollect 100</span>' : ''}
+        </h3>
+        <p>${description || ''}</p>
+        <p><strong>Final Price:</strong> £${price?.toLocaleString() || '0.00'}</p>
+      `;
+
+      endedList.appendChild(card);
     });
-
-    auctionsAll.sort((a, b) => a.auctionend - b.auctionend);
-    auctionsPage = 1;
-    renderAuctionsPage(auctionsPage);
-  });
+  } catch (error) {
+    console.error('Error loading auctions:', error);
+    endedList.innerHTML = '<p>Error loading auctions. Please try again later.</p>';
+  }
 }
 
-loadLiveAuctions();
+document.addEventListener('DOMContentLoaded', loadEndedAuctions);
+</script>
+
+<script>
+/* Burger Menu */
+document.getElementById("burgerMenu")
+  .addEventListener("click", () =>
+    document.getElementById("navMenu").classList.toggle("open")
+  );
+
+/* ✅ DASHBOARD MATCHING TOGGLE */
+const toggleBtn = document.getElementById("modeToggle");
+
+toggleBtn.addEventListener("click", () => {
+  const root = document.documentElement;
+  root.classList.toggle("light-mode");
+  const isLight = root.classList.contains("light-mode");
+  localStorage.setItem("lightMode", isLight);
+});
+</script>
+
+<script src="/js/notification.js"></script>
+  
+</body>
+</html>
