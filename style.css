@@ -11,8 +11,8 @@
 }
 
 body {
-    background-color: #0b0b0f;
-    color: #ffffff;
+    background-color: #0f1117;
+    color: #e6e8ee;
     font-family: 'Space Grotesk', sans-serif;
     transition: background 0.4s ease, color 0.4s ease;
     text-align: center;
@@ -20,8 +20,8 @@ body {
 
 /* Light mode */
 body.light-mode {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #f6f7fb;
+    color: #111111;
 }
 
 /* =====================
@@ -37,7 +37,7 @@ body.light-mode {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 20px 40px; /* extra top padding for burger */
+    padding: 80px 20px 40px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -83,13 +83,13 @@ a {
 .burger div {
     width: 32px;
     height: 4px;
-    background-color: #ffffff;
+    background-color: #e6e8ee;
     border-radius: 2px;
     transition: all 0.3s ease;
 }
 
 body.light-mode .burger div {
-    background-color: #00bfff;
+    background-color: #2bb0ed;
 }
 
 /* =====================
@@ -102,8 +102,8 @@ body.light-mode .burger div {
     right: -100%;
     width: 260px;
     height: 100%;
-    background: rgba(20, 20, 30, 0.9);
-    backdrop-filter: blur(12px);
+    background: rgba(18, 20, 30, 0.92);
+    backdrop-filter: blur(14px);
     display: flex;
     flex-direction: column;
     padding: 80px 20px;
@@ -114,7 +114,7 @@ body.light-mode .burger div {
 }
 
 body.light-mode .nav-menu {
-    background: rgba(245, 245, 245, 0.95);
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .nav-menu.open {
@@ -124,7 +124,7 @@ body.light-mode .nav-menu {
 .nav-menu a {
     padding: 12px 0;
     font-weight: 600;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 1px solid rgba(230,232,238,0.15);
 }
 
 body.light-mode .nav-menu a {
@@ -142,13 +142,13 @@ body.light-mode .nav-menu a {
     font-weight: 600;
     border: none;
     cursor: pointer;
-    background: #222;
-    color: #fff;
+    background: #1c1f2a;
+    color: #e6e8ee;
 }
 
 body.light-mode #modeToggle {
-    background: #00bfff;
-    color: #fff;
+    background: #2bb0ed;
+    color: #ffffff;
 }
 
 /* =====================
@@ -160,36 +160,35 @@ body.light-mode #modeToggle {
     max-width: 600px;
     border-radius: 20px;
     backdrop-filter: blur(8px);
-    box-shadow: 0 0 30px rgba(0,191,255,0.4);
+    box-shadow: 0 0 30px rgba(43,176,237,0.35);
     background: linear-gradient(
         180deg,
-        rgba(0,191,255,0.4) 0%,
-        rgba(11,11,15,0.6) 100%
+        rgba(43,176,237,0.35) 0%,
+        rgba(15,17,23,0.7) 100%
     );
     display: block;
-    margin: 0 auto 40px; /* space between image and button */
-    transition: all 0.5s ease; /* smooth transition when JS swaps src */
+    margin: 0 auto 40px;
+    transition: all 0.5s ease;
     border: none;
     outline: none;
 }
 
 /* =====================
-   CARDS (NEON GLOW)
+   CARDS
 ===================== */
 
 .card {
     width: 100%;
     max-width: 500px;
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(14px);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
     border-radius: 18px;
     padding: 25px;
     margin: 25px auto;
-    border: 2px solid gold;
+    border: 1px solid rgba(43,176,237,0.6);
     box-shadow:
-        0 0 10px rgba(255, 215, 0, 0.6),
-        0 0 25px rgba(255, 215, 0, 0.4),
-        inset 0 0 15px rgba(255, 215, 0, 0.2);
+        0 0 12px rgba(43,176,237,0.25),
+        inset 0 0 18px rgba(43,176,237,0.08);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -198,12 +197,11 @@ body.light-mode #modeToggle {
 }
 
 body.light-mode .card {
-    background: rgba(255, 255, 255, 0.85);
-    border-color: #00bfff;
+    background: #ffffff;
+    border-color: rgba(43,176,237,0.6);
     box-shadow:
-        0 0 10px rgba(0, 191, 255, 0.7),
-        0 0 25px rgba(0, 191, 255, 0.5),
-        inset 0 0 15px rgba(0, 191, 255, 0.2);
+        0 0 14px rgba(43,176,237,0.3),
+        inset 0 0 18px rgba(43,176,237,0.1);
 }
 
 .card img {
@@ -224,7 +222,7 @@ body.light-mode .card {
     gap: 10px;
     justify-content: center;
     margin: 30px auto;
-    flex-wrap: wrap; /* prevents overflow */
+    flex-wrap: wrap;
 }
 
 .search-bar input,
@@ -233,17 +231,17 @@ body.light-mode .card {
     min-width: 0;
     padding: 12px;
     border-radius: 8px;
-    border: 2px solid gold;
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    border: 1px solid rgba(43,176,237,0.6);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e6e8ee;
     flex: 1;
 }
 
 body.light-mode .search-bar input,
 body.light-mode .search-bar select {
-    border-color: #00bfff;
+    border-color: rgba(43,176,237,0.6);
     background: #ffffff;
-    color: #000;
+    color: #111111;
 }
 
 /* =====================
@@ -252,14 +250,14 @@ body.light-mode .search-bar select {
 
 .button {
     padding: 12px 26px;
-    background: gold;
-    color: #000;
+    background: linear-gradient(135deg, #2bb0ed, #4fd1ff);
+    color: #0f1117;
     border-radius: 8px;
     border: none;
     cursor: pointer;
     font-weight: 600;
     letter-spacing: 0.5px;
-    box-shadow: 0 0 15px rgba(255,215,0,0.6);
+    box-shadow: 0 0 16px rgba(43,176,237,0.45);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -268,9 +266,7 @@ body.light-mode .search-bar select {
 }
 
 body.light-mode .button {
-    background: #00bfff;
-    color: #fff;
-    box-shadow: 0 0 15px rgba(0,191,255,0.6);
+    color: #ffffff;
 }
 
 /* =====================
@@ -304,17 +300,17 @@ form textarea,
 form select {
     padding: 12px;
     border-radius: 8px;
-    border: 2px solid gold;
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    border: 1px solid rgba(43,176,237,0.6);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e6e8ee;
 }
 
 body.light-mode form input,
 body.light-mode form textarea,
 body.light-mode form select {
-    border-color: #00bfff;
+    border-color: rgba(43,176,237,0.6);
     background: #ffffff;
-    color: #000;
+    color: #111111;
 }
 
 /* =====================
