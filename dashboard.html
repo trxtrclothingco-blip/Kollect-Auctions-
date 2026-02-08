@@ -27,7 +27,6 @@ const profilePicEl = document.getElementById("profile-pic");
 const profileUpload = document.getElementById("profile-upload");
 const liveBidsContainer = document.getElementById("live-bids-container");
 const wonBidsContainer = document.getElementById("won-bids-container");
-const salesContainer = document.getElementById("purchase-history-container");
 const welcomeName = document.getElementById("welcome-name");
 
 // Updated input IDs
@@ -409,7 +408,7 @@ onAuthStateChanged(auth, async (user) => {
       bidInput.style.flex = "1";
       bidInput.style.backgroundColor = "#1e1e1e";
       bidInput.style.color = "#fff";
-      bidInput.style.border = "2px solid #FFD700";
+      bidInput.style.border = "2px solid rgba(43,176,237,0.6)";
       bidInput.style.borderRadius = "4px";
       bidInput.style.padding = "6px";
 
@@ -519,7 +518,7 @@ onAuthStateChanged(auth, async (user) => {
     renderLiveBidsPage(livePage);
   });
 
-  // ---------- Won Bids & Purchase History (unchanged) ----------
+  // ---------- Won Bids ----------
   let allWonAuctions = [];
   let wonPage = 1;
   const auctionsPerPage = 3;
@@ -639,32 +638,6 @@ onAuthStateChanged(auth, async (user) => {
     renderWonPage(wonPage);
   });
 
-  const purchaseQuery = query(
-    collection(db, "successfulsales"),
-    where("buyerId", "==", user.uid),
-    orderBy("date", "desc")
-  );
-
-  onSnapshot(purchaseQuery, (snapshot) => {
-    if (!salesContainer) return;
-    salesContainer.innerHTML = "<h2>Purchase History</h2>";
-    if(snapshot.empty){
-      salesContainer.innerHTML += "<p>No purchases yet.</p>";
-      return;
-    }
-    snapshot.forEach(doc => {
-      const sale = doc.data();
-      const dateStr = sale.date?.seconds ? new Date(sale.date.seconds * 1000).toLocaleDateString() : "Unknown date";
-      const saleEl = document.createElement("div");
-      saleEl.className = "bid-card";
-      const link = document.createElement("a");
-      link.href = `item.html?id=${sale.itemId}`;
-      link.textContent = `${sale.itemName} – ${formatPrice(sale.price)} (${sale.purchaseType}) on ${dateStr}`;
-      saleEl.appendChild(link);
-      salesContainer.appendChild(saleEl);
-    });
-  });
-
   const bell = document.getElementById("notification-bell");
   const dropdown = document.getElementById("notification-dropdown");
   bell.addEventListener("click", () => {
@@ -704,7 +677,7 @@ onAuthStateChanged(auth, async (user) => {
   min-width: 280px;
 }
 
-#bids-container, #purchase-history-container {
+#bids-container {
   padding:15px;
   background:#1e1e1e;
   border:2px solid rgba(43,176,237,0.6);
@@ -869,11 +842,6 @@ onAuthStateChanged(auth, async (user) => {
     <div id="won-bids-container" class="card">
       <h2>Won Bids</h2>
       <p>Loading your won bids…</p>
-    </div>
-
-    <div id="purchase-history-container" class="card">
-      <h2>Purchase History</h2>
-      <p>Loading your purchase history…</p>
     </div>
   </div>
 </div>
