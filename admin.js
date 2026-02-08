@@ -199,11 +199,14 @@ function loadItems() {
         let kollectHeader = "";
         if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
 
+        // NEW: Wrap each item in item-card div
         section.innerHTML += `
-          ${kollectHeader}
-          <p>${item.name} – £${item.price}</p>
-          <button onclick="editItem('${d.id}','${col}')">Edit</button>
-          <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
+          <div class="item-card">
+            ${kollectHeader}
+            <p>${item.name} – £${item.price}</p>
+            <button onclick="editItem('${d.id}','${col}')">Edit</button>
+            <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
+          </div>
         `;
       });
     });
@@ -256,13 +259,16 @@ function renderBidsPage(page) {
   const pageBids = allBids.slice(startIndex, endIndex);
 
   pageBids.forEach(b => {
+    // NEW: Wrap each bid in bid-card div
     bidsList.innerHTML += `
-      <p>
-        <strong>${b.itemName}</strong><br>
-        Live Price: £${b.livePrice}<br>
-        Bid: £${b.bidAmount}<br>
-        User: ${b.userEmail || "Unknown"}
-      </p>
+      <div class="bid-card">
+        <p>
+          <strong>${b.itemName}</strong><br>
+          Live Price: £${b.livePrice}<br>
+          Bid: £${b.bidAmount}<br>
+          User: ${b.userEmail || "Unknown"}
+        </p>
+      </div>
     `;
   });
 
@@ -381,3 +387,4 @@ function loadEndedAuctions() {
     renderEndedPage();
   });
 }
+``` d.data
