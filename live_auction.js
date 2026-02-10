@@ -10,7 +10,9 @@ import {
   serverTimestamp,
   query,
   where,
-  orderBy
+  orderBy,
+  runTransaction,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 import {
   signInWithEmailAndPassword,
@@ -29,7 +31,6 @@ passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const passwordInput = document.getElementById("admin-password").value;
 
-  // --- FIX: Only attempt admin sign-in if the current user is intended admin ---
   const currentUser = auth.currentUser;
   if (currentUser && currentUser.uid !== ADMIN_UID) {
     alert("You are already signed in with another account. Sign out first.");
@@ -95,7 +96,7 @@ itemForm.addEventListener("submit", async (e) => {
       pricetype: formData.get("price_type"),
       saletype: saleType,
       createdat: serverTimestamp(),
-      kollect100: formData.get("kollect100") === "on" // ✅ store as boolean
+      kollect100: formData.get("kollect100") === "on"
     };
 
     if (saleType === "live_auctions") {
@@ -168,7 +169,6 @@ function loadItems() {
 
         if (col === "listings" && item.status === "ended") return;
 
-        // ✅ Add Kollect100 badge if true
         const kollectBadge = item.kollect100 ? `<span class="kollect100-badge">🌟 Kollect100</span>` : "";
 
         section.innerHTML += `
@@ -192,7 +192,7 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_price"]').value = d.price || "";
   document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
-  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false; // ✅ checkbox synced
+  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false;
   document.getElementById("item_id").value = id;
 
   if (d.saletype === "live_auctions") {
@@ -212,7 +212,7 @@ window.deleteItem = async (id, col) => {
   alert("Deleted");
 };
 
-/* ---------- Load Bids (Most Recent First) ---------- */
+/* ---------- Load Bids (Admin) ---------- */
 let allBids = [];
 let currentPage = 1;
 const bidsPerPage = 10;
@@ -295,7 +295,7 @@ function loadBids() {
   });
 }
 
-/* ---------- Ended Auctions Pagination (3 per page) ---------- */
+/* ---------- Ended Auctions Pagination ---------- */
 const endedAuctionsContainer = document.getElementById("ended-auctions-container");
 let endedAuctions = [];
 let endedPage = 1;
@@ -351,3 +351,52 @@ function loadEndedAuctions() {
     renderEndedPage();
   });
 }
+
+/* ---------- FRONT-END BID HISTORY FUNCTION ---------- */
+export async function showBidHistory(listingId) {
+  const modal = document.getElementById("bid-history-modal");
+  const list = document.getElementById("bid-history-list");
+  if (!modal || !list) return;
+
+  list.innerHTML = "Loading bids…";
+
+  const q = query(
+    collection(db, "bids"),
+    where("listingid", "==", listingId),
+    orderBy("timestamp", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+  list.innerHTML = "";
+
+  if (snapshot.empty) {
+    list.innerHTML = "<p>No bids yet.</p>";
+  }
+
+  for (const bidDoc of snapshot.docs) {
+    const bid = bidDoc.data();
+    let firstName = "Unknown";
+
+    if (bid.userid) {
+      const userSnap = await getDoc(doc(db, "users", bid.userid));
+      if (userSnap.exists()) {
+        firstName = userSnap.data().firstName || "Unknown";
+      }
+    }
+
+    const time = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : "N/A";
+
+    const div = document.createElement("div");
+    div.classList.add("bid-item");
+    div.innerHTML = `${firstName} bid £${Number(bid.bidamount).toLocaleString()} on ${time}`;
+    list.appendChild(div);
+  }
+
+  modal.style.display = "block";
+}
+
+// ✅ Modal close
+const bidModal = document.getElementById("bid-history-modal");
+const closeSpan = bidModal?.querySelector(".close");
+if (closeSpan) closeSpan.onclick = () => { bidModal.style.display = "none"; };
+window.onclick = (event) => { if (event.target === bidModal) bidModal.style.display = "none"; };
