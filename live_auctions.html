@@ -301,23 +301,20 @@ async function showBidHistory(listingId) {
 
   if (snapshot.empty) {
     list.innerHTML = '<p>No bids yet.</p>';
-    document.getElementById('bid-history-modal').style.display = 'block';
-    return;
-  }
-
-  const bidItems = [];
-  for (const bidDoc of snapshot.docs) {
-    const bid = bidDoc.data();
-    let firstName = 'Unknown';
-    if (bid.userid) {
-      const userSnap = await getDoc(doc(db, 'users', bid.userid));
-      if (userSnap.exists()) firstName = userSnap.data().firstName || 'Unknown';
+  } else {
+    const bidItems = [];
+    for (const bidDoc of snapshot.docs) {
+      const bid = bidDoc.data();
+      let firstName = 'Unknown';
+      if (bid.userid) {
+        const userSnap = await getDoc(doc(db, 'users', bid.userid));
+        if (userSnap.exists()) firstName = userSnap.data().firstName || 'Unknown';
+      }
+      const time = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : 'N/A';
+      bidItems.push(`<div class="bid-item">${firstName} bid £${Number(bid.bidamount).toLocaleString()} on ${time}</div>`);
     }
-    const time = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : 'N/A';
-    bidItems.push(`<div class="bid-item">${firstName} bid £${Number(bid.bidamount).toLocaleString()} on ${time}</div>`);
+    list.innerHTML = bidItems.join('');
   }
-
-  list.innerHTML = bidItems.join('') || '<p>No bids yet.</p>';
 
   // ✅ Show the modal AFTER loading the content
   const modal = document.getElementById('bid-history-modal');
@@ -357,9 +354,12 @@ function loadLiveAuctions() {
       const bidInput = card.querySelector('.bid-input');
       bidBtn.onclick = () => placeBid(docSnap.id, bidInput);
 
-      // ✅ Bid History click
+      // ✅ Updated Bid History click
       const historyLink = card.querySelector('.bid-history-link');
-      historyLink.onclick = (e) => { e.preventDefault(); showBidHistory(docSnap.id); };
+      historyLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await showBidHistory(docSnap.id);
+      });
 
       if (auctionend && auctionend.toDate) {
         const endTime = auctionend.toDate();
