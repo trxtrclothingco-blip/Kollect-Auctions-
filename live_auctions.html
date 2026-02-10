@@ -318,7 +318,10 @@ async function showBidHistory(listingId) {
   }
 
   list.innerHTML = bidItems.join('') || '<p>No bids yet.</p>';
-  document.getElementById('bid-history-modal').style.display = 'block';
+
+  // ✅ Show the modal AFTER loading the content
+  const modal = document.getElementById('bid-history-modal');
+  modal.style.display = 'block';
 }
 
 // ✅ Load live auctions
