@@ -104,6 +104,66 @@
   margin-left: 6px;
   border-radius: 4px;
 }
+
+/* ✅ Bid history link */
+.bid-history-link {
+  color: #2bb0ed;
+  text-decoration: none;
+  font-weight: bold;
+  display: block;
+  margin-top: 8px;
+}
+
+.bid-history-link:hover {
+  text-decoration: underline;
+}
+
+/* ✅ Bid history modal */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 600px;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.scrollable {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.bid-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
 </style>
 
 </head>
@@ -138,6 +198,14 @@
   <p>Bid placed successfully!</p>
 </div>
 
+<div id="bid-history-modal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Bid History</h2>
+    <div id="bid-history-list" class="scrollable"></div>
+  </div>
+</div>
+
 <script type="module">
 import { db, auth } from './firebase.js';
 import {
@@ -149,7 +217,9 @@ import {
   serverTimestamp,
   runTransaction,
   getDocs,
-  updateDoc
+  updateDoc,
+  where,
+  getDoc
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
@@ -254,6 +324,30 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
+// ✅ Show bid history
+async function showBidHistory(listingId) {
+  const q = query(collection(db, 'bids'), where('listingid', '==', listingId), orderBy('timestamp', 'desc'));
+  const snapshot = await getDocs(q);
+  const list = document.getElementById('bid-history-list');
+  list.innerHTML = '';
+
+  const promises = [];
+  snapshot.forEach((bidDoc) => {
+    const bid = bidDoc.data();
+    const userRef = doc(db, 'users', bid.userid);
+    promises.push(getDoc(userRef).then((userSnap) => {
+      const user = userSnap.data();
+      const firstName = user ? user.firstName : 'Unknown';
+      const timestamp = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : 'N/A';
+      return `<div class="bid-item">${firstName} bid £${Number(bid.bidamount).toLocaleString()} on ${timestamp}</div>`;
+    }));
+  });
+
+  const items = await Promise.all(promises);
+  list.innerHTML = items.length > 0 ? items.join('') : '<p>No bids yet.</p>';
+  document.getElementById('bid-history-modal').style.display = 'block';
+}
+
 // ✅ Load live auctions with Kollect100 gold badge
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
@@ -279,6 +373,7 @@ function loadLiveAuctions() {
         <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
         <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
+        <a href="#" class="bid-history-link">Bid History</a>
         <p class="auction-length"></p>
         <input type="number" class="bid-input" placeholder="Your bid">
         <button class="bid-button">Place Bid</button>
@@ -287,6 +382,12 @@ function loadLiveAuctions() {
       const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
       bidBtn.onclick = () => placeBid(docSnap.id, bidInput);
+
+      const historyLink = card.querySelector('.bid-history-link');
+      historyLink.onclick = (e) => {
+        e.preventDefault();
+        showBidHistory(docSnap.id);
+      };
 
       if (auctionend && auctionend.toDate) {
         const endTime = auctionend.toDate();
@@ -311,6 +412,16 @@ function loadLiveAuctions() {
   });
 }
 
+// ✅ Modal close functionality
+const modal = document.getElementById('bid-history-modal');
+const closeSpan = document.querySelector('.close');
+closeSpan.onclick = () => { modal.style.display = 'none'; };
+window.onclick = (event) => {
+  if (event.target === modal) {
+    modal.style.display = 'none';
+  }
+};
+
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 
 function toggleMenu() {
@@ -321,3 +432,4 @@ function toggleMenu() {
 
 </body>
 </html>
+```: none
