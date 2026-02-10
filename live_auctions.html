@@ -24,9 +24,19 @@
   width: 100%;
 }
 
-.bid-button:hover { transform: translateY(-1px); }
-.bid-button:active { transform: translateY(0); }
-.bid-button:disabled { background: #555; color: #999; cursor: not-allowed; }
+.bid-button:hover {
+  transform: translateY(-1px);
+}
+
+.bid-button:active {
+  transform: translateY(0);
+}
+
+.bid-button:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}
 
 /* ✅ Bid input styling — UPDATED BORDER BLUE + WHITE TEXT ON INPUT */
 .bid-input {
@@ -34,17 +44,28 @@
   padding: 10px 12px;
   margin-top: 10px;
   background: #1a1a1a;
-  color: #ffffff;
-  border: 1px solid #2bb0ed;
+  color: #ffffff; /* text is white when typing */
+  border: 1px solid #2bb0ed; /* matches card blue */
   border-radius: 6px;
   font-size: 14px;
   outline: none;
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
-.bid-input::placeholder { color: #999; }
-.bid-input:focus { border-color: #4fd1ff; box-shadow: 0 0 6px rgba(43,176,237,0.4); }
-.bid-input:disabled { background: #111; color: #666; border-color: #555; }
+.bid-input::placeholder {
+  color: #999;
+}
+
+.bid-input:focus {
+  border-color: #4fd1ff;
+  box-shadow: 0 0 6px rgba(43,176,237,0.4);
+}
+
+.bid-input:disabled {
+  background: #111;
+  color: #666;
+  border-color: #555;
+}
 
 /* ✅ Bid success popup */
 #bid-success-msg {
@@ -83,67 +104,6 @@
   margin-left: 6px;
   border-radius: 4px;
 }
-
-/* ✅ Bid history link */
-.bid-history-link {
-  color: #2bb0ed;
-  text-decoration: none;
-  font-weight: bold;
-  display: block;
-  margin-top: 8px;
-}
-
-.bid-history-link:hover { text-decoration: underline; }
-
-/* ✅ Bid history modal */
-.modal {
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-  display: none;
-}
-
-.modal-content {
-  background-color: #1a1a1a;
-  margin: 10% auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%;
-  max-width: 600px;
-  border-radius: 8px;
-  color: #ffffff;
-  position: relative;
-}
-
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.close:hover,
-.close:focus {
-  color: white;
-  text-decoration: none;
-}
-
-.scrollable {
-  max-height: 300px;
-  overflow-y: auto;
-  margin-top: 10px;
-}
-
-.bid-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #333;
-}
 </style>
 
 </head>
@@ -178,15 +138,6 @@
   <p>Bid placed successfully!</p>
 </div>
 
-<!-- ✅ Bid history modal -->
-<div id="bid-history-modal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <h2>Bid History</h2>
-    <div id="bid-history-list" class="scrollable"></div>
-  </div>
-</div>
-
 <script type="module">
 import { db, auth } from './firebase.js';
 import {
@@ -198,9 +149,7 @@ import {
   serverTimestamp,
   runTransaction,
   getDocs,
-  updateDoc,
-  where,
-  getDoc
+  updateDoc
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
@@ -209,22 +158,28 @@ let currentUser = null;
 // ✅ Check auth like admin panel
 onAuthStateChanged(auth, (user) => {
   const status = document.getElementById('user-status');
+  const logoutBtn = document.getElementById('logout-button');
   if (user) {
     currentUser = user;
     status.textContent = `Signed in as ${user.email}`;
+    if(logoutBtn) logoutBtn.style.display = 'inline-block';
   } else {
     currentUser = null;
     status.textContent = 'You are not signed in';
+    if(logoutBtn) logoutBtn.style.display = 'none';
   }
 });
 
-function logoutUser() { signOut(auth); }
+function logoutUser() {
+  signOut(auth);
+}
 
-// ✅ Place a bid
+// ✅ Place a bid (transaction-based, ONLY updates price)
 async function placeBid(listingId, bidInput) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
   const bidAmount = Number(bidInput.value);
   if (!bidAmount) return alert('Invalid bid.');
+
   bidInput.disabled = true;
 
   try {
@@ -234,10 +189,19 @@ async function placeBid(listingId, bidInput) {
     await runTransaction(db, async (transaction) => {
       const listingSnap = await transaction.get(listingRef);
       if (!listingSnap.exists()) throw 'Listing not found';
+
       const listing = listingSnap.data();
-      if (bidAmount <= Number(listing.price || 0))
-        throw `Bid must be higher than £${Number(listing.price || 0)}`;
-      transaction.update(listingRef, { price: bidAmount });
+      const currentPrice = Number(listing.price || 0);
+
+      if (bidAmount <= currentPrice)
+        throw `Bid must be higher than £${currentPrice}`;
+
+      // ✅ ONLY update price
+      transaction.update(listingRef, {
+        price: bidAmount
+      });
+
+      // Record bid in bids collection
       const bidRef = doc(bidsRef);
       transaction.set(bidRef, {
         listingid: listingId,
@@ -290,38 +254,7 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
-// ✅ Show bid history
-async function showBidHistory(listingId) {
-  const list = document.getElementById('bid-history-list');
-  list.innerHTML = 'Loading bids…';
-
-  const q = query(collection(db, 'bids'), where('listingid', '==', listingId), orderBy('timestamp', 'desc'));
-  const snapshot = await getDocs(q);
-  list.innerHTML = '';
-
-  if (snapshot.empty) {
-    list.innerHTML = '<p>No bids yet.</p>';
-  } else {
-    const bidItems = [];
-    for (const bidDoc of snapshot.docs) {
-      const bid = bidDoc.data();
-      let firstName = 'Unknown';
-      if (bid.userid) {
-        const userSnap = await getDoc(doc(db, 'users', bid.userid));
-        if (userSnap.exists()) firstName = userSnap.data().firstName || 'Unknown';
-      }
-      const time = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : 'N/A';
-      bidItems.push(`<div class="bid-item">${firstName} bid £${Number(bid.bidamount).toLocaleString()} on ${time}</div>`);
-    }
-    list.innerHTML = bidItems.join('');
-  }
-
-  // ✅ Show the modal AFTER loading the content
-  const modal = document.getElementById('bid-history-modal');
-  modal.style.display = 'block';
-}
-
-// ✅ Load live auctions
+// ✅ Load live auctions with Kollect100 gold badge
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -334,9 +267,11 @@ function loadLiveAuctions() {
       if (data.status !== 'live') return;
 
       const { name, price = 0, image, description, auctionend, kollect100 } = data;
+
       const card = document.createElement('div');
       card.classList.add('card');
 
+      // ✅ Kollect100 gold badge next to item name
       const badgeHTML = kollect100 ? '<span class="kollect-badge">Kollect100</span>' : '';
 
       card.innerHTML = `
@@ -344,7 +279,6 @@ function loadLiveAuctions() {
         <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
         <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
-        <a href="#" class="bid-history-link">Bid History</a>
         <p class="auction-length"></p>
         <input type="number" class="bid-input" placeholder="Your bid">
         <button class="bid-button">Place Bid</button>
@@ -353,13 +287,6 @@ function loadLiveAuctions() {
       const bidBtn = card.querySelector('.bid-button');
       const bidInput = card.querySelector('.bid-input');
       bidBtn.onclick = () => placeBid(docSnap.id, bidInput);
-
-      // ✅ Updated Bid History click
-      const historyLink = card.querySelector('.bid-history-link');
-      historyLink.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await showBidHistory(docSnap.id);
-      });
 
       if (auctionend && auctionend.toDate) {
         const endTime = auctionend.toDate();
@@ -383,11 +310,6 @@ function loadLiveAuctions() {
     });
   });
 }
-
-// ✅ Modal close functionality
-const modal = document.getElementById('bid-history-modal');
-document.querySelector('.close').onclick = () => { modal.style.display = 'none'; };
-window.onclick = (event) => { if (event.target === modal) modal.style.display = 'none'; };
 
 document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 
