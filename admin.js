@@ -345,18 +345,30 @@ winnerModal.innerHTML = `
 document.body.appendChild(winnerModal);
 document.getElementById("close-winner-modal").onclick = () => winnerModal.style.display = "none";
 
+// ---------- UPDATED FUNCTION ----------
 async function showWinnerInfo(winnerId) {
-  if (!winnerId) return alert("No winner info available");
-  const snap = await getDoc(doc(db, "users", winnerId));
-  if (!snap.exists()) return alert("Winner profile not found");
+  if (!winnerId || winnerId.trim() === "") return alert("No winner info available");
 
-  const winner = snap.data();
-  document.getElementById("winner-modal-content").innerHTML = `
-    <h3>Winner Info</h3>
-    <p><strong>Name:</strong> ${winner.firstName || ""} ${winner.lastName || ""}</p>
-    <p><strong>Contact:</strong> ${winner.contact || ""}</p>
-  `;
-  winnerModal.style.display = "block";
+  try {
+    const snap = await getDoc(doc(db, "users", winnerId.trim()));
+    if (!snap.exists()) return alert("Winner profile not found");
+
+    const winner = snap.data();
+
+    document.getElementById("winner-modal-content").innerHTML = `
+      <h3>Winner Info</h3>
+      <p><strong>UID:</strong> ${winner.uid || ""}</p>
+      <p><strong>Name:</strong> ${winner.firstName || ""} ${winner.lastName || ""}</p>
+      <p><strong>Phone:</strong> ${winner.contact || ""}</p>
+      <p><strong>Email:</strong> ${winner.email || ""}</p>
+      <p><strong>Address:</strong> ${winner.address1 || ""} ${winner.address2 || ""}, ${winner.city || ""} ${winner.postcode || ""}</p>
+    `;
+    winnerModal.style.display = "block";
+
+  } catch (err) {
+    console.error(err);
+    alert("Error fetching winner info");
+  }
 }
 
 function renderEndedPage() {
