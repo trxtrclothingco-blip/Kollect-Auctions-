@@ -331,40 +331,24 @@ let endedAuctions = [];
 let endedPage = 1;
 const endedPerPage = 3;
 
-async function renderEndedPage() {
+function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
 
   const start = (endedPage - 1) * endedPerPage;
   const pageItems = endedAuctions.slice(start, start + endedPerPage);
 
-  for (const item of pageItems) {
-    let winnerName = "No winner";
-    let winnerPhone = "—";
-
-    if (item.winnerid) {
-      const userSnap = await getDoc(doc(db, "users", item.winnerid));
-      if (userSnap.exists()) {
-        const u = userSnap.data();
-        const first = u.firstName || u.firstname || "";
-        const last = u.lastName || u.lastname || "";
-        winnerName = (first + " " + last).trim() || "Unknown Name";
-        winnerPhone = u.contact || u.phone || "—";
-      } else {
-        winnerName = "User not found";
-      }
-    }
-
+  pageItems.forEach(item => {
     endedAuctionsContainer.innerHTML += `
       <div class="ended-auction-item">
         <h5>${item.name}</h5>
         <img src="${item.image || ''}" width="100">
         <p>${item.description || ''}</p>
-        <p>Winner: ${winnerName} (${item.winneremail || "No email"})</p>
-        <p>Phone: ${winnerPhone}</p>
+        <p>Winner: ${item.winneremail || "No winner"}</p>
         <p>Winning Bid: £${item.winningbid || "N/A"}</p>
+
       </div>
     `;
-  }
+  });
 
   const controls = document.createElement("div");
   if (endedPage > 1) {
