@@ -30,6 +30,7 @@ passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const passwordInput = document.getElementById("admin-password").value;
 
+  // --- FIX: Only attempt admin sign-in if the current user is intended admin ---
   const currentUser = auth.currentUser;
   if (currentUser && currentUser.uid !== ADMIN_UID) {
     alert("You are already signed in with another account. Sign out first.");
@@ -70,6 +71,7 @@ const auctionFields = document.getElementById("auction-fields");
 
 if (saleTypeSelect && auctionFields) {
   saleTypeSelect.addEventListener("change", () => {
+    // Show auction fields for live_auctions or kollect_100
     auctionFields.style.display =
       saleTypeSelect.value === "live_auctions" || saleTypeSelect.value === "kollect_100"
         ? "block"
@@ -86,7 +88,7 @@ itemForm.addEventListener("submit", async (e) => {
   try {
     const formData = new FormData(itemForm);
     const saleType = formData.get("sale_type");
-    const kollect100Ticked = formData.get("kollect100") === "on";
+    const kollect100Ticked = formData.get("kollect100") === "on"; // NEW: read tickbox
 
     let collectionName =
       saleType === "private_sales" ? "privatesales" : "listings";
@@ -97,7 +99,7 @@ itemForm.addEventListener("submit", async (e) => {
       price: Number(formData.get("item_price")),
       pricetype: formData.get("price_type"),
       saletype: saleType,
-      kollect100: kollect100Ticked,
+      kollect100: kollect100Ticked, // NEW: store tick status
       createdat: serverTimestamp()
     };
 
@@ -137,8 +139,9 @@ itemForm.addEventListener("submit", async (e) => {
       await addDoc(collection(db, collectionName), data);
     }
 
+    // --- NEW: If saletype is kollect_100, also push to kollect100 collection ---
     if (saleType === "kollect_100") {
-      const kollectRef = doc(collection(db, "kollect100"));
+      const kollectRef = doc(collection(db, "kollect100")); // auto ID
       await setDoc(kollectRef, {
         "name:": formData.get("item_name") || "",
         "description:": formData.get("item_description") || "",
@@ -192,6 +195,7 @@ function loadItems() {
 
         if (col === "listings" && item.status === "ended") return;
 
+        // NEW: show Kollect 100 subheader if ticked
         let kollectHeader = "";
         if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
 
@@ -204,6 +208,130 @@ function loadItems() {
       });
     });
   });
+}
+
+/* ---------- Edit / Delete ---------- */
+window.editItem = async (id, col) => {
+  const snap = await getDoc(doc(db, col, id));
+  if (!snap.exists()) return;
+
+  const d = snap.data();
+  document.querySelector('[name="item_name"]').value = d.name || "";
+  document.querySelector('[name="item_description"]').value = d.description || "";
+  document.querySelector('[name="item_price"]').value = d.price || "";
+  document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
+  document.querySelector('[name="sale_type"]').value = d.saletype || "";
+  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false; // NEW: edit tickbox
+  document.getElementById("item_id").value = id;
+
+  // --- Show auction fields for live_auctions or kollect_100 when editing ---
+  if (d.saletype === "live_auctions" || d.saletype === "kollect_100") {
+    auctionFields.style.display = "block";
+    if (d.auctionstart)
+      document.querySelector('[name="auctionstart"]').value =
+        d.auctionstart.toDate().toISOString().slice(0, 16);
+    if (d.auctionend)
+      document.querySelector('[name="auctionend"]').value =
+        d.auctionend.toDate().toISOString().slice(0, 16);
+  }
+};
+
+window.deleteItem = async (id, col) => {
+  if (!confirm("Delete this item?")) return;
+  await deleteDoc(doc(db, col, id));
+  alert("Deleted");
+};
+
+/* ---------- Load Bids (Most Recent First) ---------- */
+let allBids = [];
+let currentPage = 1;
+const bidsPerPage = 10;
+
+function renderBidsPage(page) {
+  const bidsList = document.getElementById("bids-list");
+  bidsList.innerHTML = "";
+
+  const startIndex = (page - 1) * bidsPerPage;
+  const endIndex = startIndex + bidsPerPage;
+  const pageBids = allBids.slice(startIndex, endIndex);
+
+  pageBids.forEach(b => {
+    bidsList.innerHTML += `
+      <p>
+        <strong>${b.itemName}</strong><br>
+        Live Price: £${b.livePrice}<br>
+        Bid: £${b.bidAmount}<br>
+        User: ${b.userEmail || "Unknown"}
+      </p>
+    `;
+  });
+
+  renderPaginationControls();
+}
+
+function renderPaginationControls() {
+  let controls = document.getElementById("pagination-controls");
+  if (!controls) {
+    controls = document.createElement("div");
+    controls.id = "pagination-controls";
+    document.getElementById("bids-list").after(controls);
+  }
+  controls.innerHTML = "";
+
+  const totalPages = Math.ceil(allBids.length / bidsPerPage);
+
+  if (currentPage > 1) {
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Previous";
+    prevBtn.onclick = () => { currentPage--; renderBidsPage(currentPage); };
+    controls.appendChild(prevBtn);
+  }
+
+  if (currentPage < totalPages) {
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.onclick = () => { currentPage++; renderBidsPage(currentPage); };
+    controls.appendChild(nextBtn);
+  }
+}
+
+function loadBids() {
+  allBids = [];
+
+  onSnapshot(collection(db, "bids"), async snapshot => {
+    allBids = [];
+
+    for (const d of snapshot.docs) {
+      const b = d.data();
+      if (!b.listingid) continue;
+
+      const listingSnap = await getDoc(doc(db, "listings", b.listingid));
+      if (!listingSnap.exists()) continue;
+
+      const listing = listingSnap.data();
+
+      allBids.push({
+        itemName: listing.name,
+        livePrice: listing.price,
+        bidAmount: b.bidamount,
+        userEmail: b.useremail || "Unknown",
+        createdat: b.createdat?.seconds || 0
+      });
+    }
+
+    allBids.sort((a, b) => b.createdat - a.createdat);
+    currentPage = 1;
+    renderBidsPage(currentPage);
+  });
+}
+
+/* ---------- Winner Info Link ---------- */
+async function viewWinner(uid) {
+  if (!uid) return alert("No winner UID");
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return alert("Winner info not found");
+  const u = snap.data();
+  alert(`Winner: ${u.firstName || ""} ${u.lastName || ""}\nPhone: ${u.contact || ""}\nEmail: ${u.email || ""}`);
 }
 
 /* ---------- Ended Auctions Pagination (3 per page) ---------- */
@@ -224,13 +352,10 @@ function renderEndedPage() {
         <h5>${item.name}</h5>
         <img src="${item.image || ''}" width="100">
         <p>${item.description || ''}</p>
-        <p>Winner: ${item.winneremail || "No winner"}</p>
+        <p>Winner: ${item.winneremail || "No winner"} 
+           ${item.winnerid ? `<a href="javascript:viewWinner('${item.winnerid}')">[Info]</a>` : ''}
+        </p>
         <p>Winning Bid: £${item.winningbid || "N/A"}</p>
-        ${
-          item.winnerid
-            ? `<p><a href="#" class="winner-info-link" data-uid="${item.winnerid}">View Info</a></p>`
-            : ""
-        }
       </div>
     `;
   });
@@ -267,35 +392,3 @@ function loadEndedAuctions() {
     renderEndedPage();
   });
 }
-
-/* ---------- Winner Info Click Handler (ADDED) ---------- */
-document.addEventListener("click", async (e) => {
-  if (e.target.classList.contains("winner-info-link")) {
-    e.preventDefault();
-
-    const uid = e.target.getAttribute("data-uid");
-
-    try {
-      const userSnap = await getDoc(doc(db, "users", uid));
-
-      if (!userSnap.exists()) {
-        alert("User not found.");
-        return;
-      }
-
-      const user = userSnap.data();
-
-      alert(
-`Winner Information:
-
-Name: ${user.firstName || ""} ${user.lastName || ""}
-Phone: ${user.contact || "N/A"}
-Email: ${user.email || "N/A"}`
-      );
-
-    } catch (err) {
-      console.error(err);
-      alert("Error fetching winner info.");
-    }
-  }
-});
