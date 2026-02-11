@@ -340,7 +340,7 @@ winnerModal.style.border = "2px solid #000";
 winnerModal.style.zIndex = "1000";
 winnerModal.innerHTML = `
   <span id="close-winner-modal" style="cursor:pointer; float:right;">&times;</span>
-  <div id="winner-modal-content"></div>
+  <div id="winner-modal-content" style="color: black;"></div>
 `;
 document.body.appendChild(winnerModal);
 document.getElementById("close-winner-modal").onclick = () => winnerModal.style.display = "none";
