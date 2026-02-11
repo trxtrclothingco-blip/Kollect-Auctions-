@@ -30,7 +30,6 @@ passwordForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const passwordInput = document.getElementById("admin-password").value;
 
-  // --- FIX: Only attempt admin sign-in if the current user is intended admin ---
   const currentUser = auth.currentUser;
   if (currentUser && currentUser.uid !== ADMIN_UID) {
     alert("You are already signed in with another account. Sign out first.");
@@ -71,7 +70,6 @@ const auctionFields = document.getElementById("auction-fields");
 
 if (saleTypeSelect && auctionFields) {
   saleTypeSelect.addEventListener("change", () => {
-    // Show auction fields for live_auctions or kollect_100
     auctionFields.style.display =
       saleTypeSelect.value === "live_auctions" || saleTypeSelect.value === "kollect_100"
         ? "block"
@@ -88,7 +86,7 @@ itemForm.addEventListener("submit", async (e) => {
   try {
     const formData = new FormData(itemForm);
     const saleType = formData.get("sale_type");
-    const kollect100Ticked = formData.get("kollect100") === "on"; // NEW: read tickbox
+    const kollect100Ticked = formData.get("kollect100") === "on";
 
     let collectionName =
       saleType === "private_sales" ? "privatesales" : "listings";
@@ -99,7 +97,7 @@ itemForm.addEventListener("submit", async (e) => {
       price: Number(formData.get("item_price")),
       pricetype: formData.get("price_type"),
       saletype: saleType,
-      kollect100: kollect100Ticked, // NEW: store tick status
+      kollect100: kollect100Ticked,
       createdat: serverTimestamp()
     };
 
@@ -139,9 +137,8 @@ itemForm.addEventListener("submit", async (e) => {
       await addDoc(collection(db, collectionName), data);
     }
 
-    // --- NEW: If saletype is kollect_100, also push to kollect100 collection ---
     if (saleType === "kollect_100") {
-      const kollectRef = doc(collection(db, "kollect100")); // auto ID
+      const kollectRef = doc(collection(db, "kollect100"));
       await setDoc(kollectRef, {
         "name:": formData.get("item_name") || "",
         "description:": formData.get("item_description") || "",
@@ -195,7 +192,6 @@ function loadItems() {
 
         if (col === "listings" && item.status === "ended") return;
 
-        // NEW: show Kollect 100 subheader if ticked
         let kollectHeader = "";
         if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
 
@@ -221,10 +217,9 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="item_price"]').value = d.price || "";
   document.querySelector('[name="price_type"]').value = d.pricetype || "fixed";
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
-  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false; // NEW: edit tickbox
+  document.querySelector('[name="kollect100"]').checked = d.kollect100 || false;
   document.getElementById("item_id").value = id;
 
-  // --- Show auction fields for live_auctions or kollect_100 when editing ---
   if (d.saletype === "live_auctions" || d.saletype === "kollect_100") {
     auctionFields.style.display = "block";
     if (d.auctionstart)
@@ -325,20 +320,44 @@ function loadBids() {
   });
 }
 
-/* ---------- Winner Info Link ---------- */
-async function viewWinner(uid) {
-  if (!uid) return alert("No winner UID");
-  const snap = await getDoc(doc(db, "users", uid));
-  if (!snap.exists()) return alert("Winner info not found");
-  const u = snap.data();
-  alert(`Winner: ${u.firstName || ""} ${u.lastName || ""}\nPhone: ${u.contact || ""}\nEmail: ${u.email || ""}`);
-}
-
-/* ---------- Ended Auctions Pagination (3 per page) ---------- */
+/* ---------- Ended Auctions Pagination with Winner Modal ---------- */
 const endedAuctionsContainer = document.getElementById("ended-auctions-container");
 let endedAuctions = [];
 let endedPage = 1;
 const endedPerPage = 3;
+
+// Modal setup
+const winnerModal = document.createElement("div");
+winnerModal.id = "winner-modal";
+winnerModal.style.display = "none";
+winnerModal.style.position = "fixed";
+winnerModal.style.top = "50%";
+winnerModal.style.left = "50%";
+winnerModal.style.transform = "translate(-50%, -50%)";
+winnerModal.style.background = "#fff";
+winnerModal.style.padding = "20px";
+winnerModal.style.border = "2px solid #000";
+winnerModal.style.zIndex = "1000";
+winnerModal.innerHTML = `
+  <span id="close-winner-modal" style="cursor:pointer; float:right;">&times;</span>
+  <div id="winner-modal-content"></div>
+`;
+document.body.appendChild(winnerModal);
+document.getElementById("close-winner-modal").onclick = () => winnerModal.style.display = "none";
+
+async function showWinnerInfo(winnerId) {
+  if (!winnerId) return alert("No winner info available");
+  const snap = await getDoc(doc(db, "users", winnerId));
+  if (!snap.exists()) return alert("Winner profile not found");
+
+  const winner = snap.data();
+  document.getElementById("winner-modal-content").innerHTML = `
+    <h3>Winner Info</h3>
+    <p><strong>Name:</strong> ${winner.firstName || ""} ${winner.lastName || ""}</p>
+    <p><strong>Contact:</strong> ${winner.contact || ""}</p>
+  `;
+  winnerModal.style.display = "block";
+}
 
 function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
@@ -352,10 +371,9 @@ function renderEndedPage() {
         <h5>${item.name}</h5>
         <img src="${item.image || ''}" width="100">
         <p>${item.description || ''}</p>
-        <p>Winner: ${item.winneremail || "No winner"} 
-           ${item.winnerid ? `<a href="javascript:viewWinner('${item.winnerid}')">[Info]</a>` : ''}
-        </p>
+        <p>Winner: ${item.winneremail || "No winner"}</p>
         <p>Winning Bid: £${item.winningbid || "N/A"}</p>
+        <button onclick="showWinnerInfo('${item.winnerid || ""}')">View Winner Info</button>
       </div>
     `;
   });
