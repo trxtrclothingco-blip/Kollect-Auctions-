@@ -345,7 +345,6 @@ winnerModal.innerHTML = `
 document.body.appendChild(winnerModal);
 document.getElementById("close-winner-modal").onclick = () => winnerModal.style.display = "none";
 
-// ---------- UPDATED FUNCTION ----------
 async function showWinnerInfo(winnerId) {
   if (!winnerId || winnerId.trim() === "") return alert("No winner info available");
 
@@ -371,6 +370,7 @@ async function showWinnerInfo(winnerId) {
   }
 }
 
+// ---------- UPDATED renderEndedPage with dynamic click handlers ----------
 function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
 
@@ -378,16 +378,23 @@ function renderEndedPage() {
   const pageItems = endedAuctions.slice(start, start + endedPerPage);
 
   pageItems.forEach(item => {
-    endedAuctionsContainer.innerHTML += `
-      <div class="ended-auction-item">
-        <h5>${item.name}</h5>
-        <img src="${item.image || ''}" width="100">
-        <p>${item.description || ''}</p>
-        <p>Winner: ${item.winneremail || "No winner"}</p>
-        <p>Winning Bid: £${item.winningbid || "N/A"}</p>
-        <button onclick="showWinnerInfo('${item.winnerid || ""}')">View Winner Info</button>
-      </div>
+    const div = document.createElement("div");
+    div.className = "ended-auction-item";
+
+    div.innerHTML = `
+      <h5>${item.name}</h5>
+      <img src="${item.image || ''}" width="100">
+      <p>${item.description || ''}</p>
+      <p>Winner: ${item.winneremail || "No winner"}</p>
+      <p>Winning Bid: £${item.winningbid || "N/A"}</p>
+      <button class="view-winner-btn">View Winner Info</button>
     `;
+
+    endedAuctionsContainer.appendChild(div);
+
+    // Attach dynamic click handler
+    const btn = div.querySelector(".view-winner-btn");
+    btn.addEventListener("click", () => showWinnerInfo(item.winnerid));
   });
 
   const controls = document.createElement("div");
@@ -417,7 +424,17 @@ function loadEndedAuctions() {
 
   onSnapshot(q, snapshot => {
     endedAuctions = [];
-    snapshot.forEach(d => endedAuctions.push(d.data()));
+    snapshot.forEach(d => {
+      const data = d.data();
+      endedAuctions.push({
+        name: data.name,
+        image: data.image,
+        description: data.description,
+        winnerid: data.winnerid || "",
+        winneremail: data.winneremail || "",
+        winningbid: data.winningbid || null
+      });
+    });
     endedPage = 1;
     renderEndedPage();
   });
