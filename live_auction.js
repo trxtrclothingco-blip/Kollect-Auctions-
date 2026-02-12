@@ -148,8 +148,30 @@ itemForm.addEventListener("submit", async (e) => {
 /* ---------- Load Items (LIVE ONLY) ---------- */
 const itemsList = document.getElementById("items-list");
 
+/* ---------- AUTO-END AUCTIONS & REFRESH ---------- */
+async function autoEndAuctions() {
+  const now = new Date();
+  const q = query(collection(db, "listings"), where("status", "==", "live"));
+  const snapshot = await getDocs(q);
+
+  let endedAny = false;
+
+  for (const d of snapshot.docs) {
+    const data = d.data();
+    if (data.auctionend && data.auctionend.toDate() <= now) {
+      await updateDoc(doc(db, "listings", d.id), { status: "ended" });
+      endedAny = true;
+    }
+  }
+
+  // Refresh ended auctions UI if anything ended
+  if (endedAny) loadEndedAuctions();
+}
+
 function loadItems() {
   itemsList.innerHTML = "";
+
+  autoEndAuctions();
 
   const sections = [
     { title: "PRIVATE SALES", col: "privatesales" },
@@ -180,6 +202,9 @@ function loadItems() {
     });
   });
 }
+
+// Auto-end auctions every 30 seconds
+setInterval(autoEndAuctions, 30000);
 
 /* ---------- Edit / Delete ---------- */
 window.editItem = async (id, col) => {
@@ -338,6 +363,8 @@ function renderEndedPage() {
 }
 
 function loadEndedAuctions() {
+  autoEndAuctions();
+
   const q = query(
     collection(db, "listings"),
     where("status", "==", "ended"),
