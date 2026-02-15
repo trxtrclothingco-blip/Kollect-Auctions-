@@ -346,7 +346,7 @@ function loadBids() {
   });
 }
 
-/* ---------- Ended Auctions Pagination with Winner Modal + Media Carousel ---------- */
+/* ---------- Ended Auctions Pagination with Winner Modal ---------- */
 const endedAuctionsContainer = document.getElementById("ended-auctions-container");
 let endedAuctions = [];
 let endedPage = 1;
@@ -396,7 +396,7 @@ async function showWinnerInfo(winnerId) {
   }
 }
 
-// ---------- UPDATED renderEndedPage with dynamic media carousel ----------
+// ---------- UPDATED renderEndedPage with dynamic click handlers ----------
 function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
 
@@ -407,27 +407,9 @@ function renderEndedPage() {
     const div = document.createElement("div");
     div.className = "ended-auction-item";
 
-    // Build carousel HTML
-    let mediaHtml = '';
-    const media = [...(item.images || [])];
-    if (item.video) media.push(item.video);
-
-    mediaHtml = `
-      <div class="media-carousel" style="position: relative; width: 120px; height: 120px;">
-        <button class="carousel-prev" style="position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;">&#8592;</button>
-        <div class="media-display" style="width:100%;height:100%;display:flex;overflow:hidden;">
-          ${media.map((m, i) => {
-            if (i < media.length - 1 || !item.video) return `<img src="${m}" style="width:100%;display:none;">`;
-            return `<video src="${m}" style="width:100%;display:none;" controls></video>`;
-          }).join('')}
-        </div>
-        <button class="carousel-next" style="position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:10;">&#8594;</button>
-      </div>
-    `;
-
     div.innerHTML = `
       <h5>${item.name}</h5>
-      ${mediaHtml}
+      <img src="${item.image || ''}" width="100">
       <p>${item.description || ''}</p>
       <p>Winner: ${item.winneremail || "No winner"}</p>
       <p>Winning Bid: £${item.winningbid || "N/A"}</p>
@@ -436,30 +418,9 @@ function renderEndedPage() {
 
     endedAuctionsContainer.appendChild(div);
 
-    // Attach dynamic click handler for winner info
+    // Attach dynamic click handler
     const btn = div.querySelector(".view-winner-btn");
     btn.addEventListener("click", () => showWinnerInfo(item.winnerid));
-
-    // Attach carousel functionality
-    const display = div.querySelector(".media-display");
-    const children = Array.from(display.children);
-    let idx = 0;
-    if (children[idx]) children[idx].style.display = 'block';
-
-    const prevBtn = div.querySelector(".carousel-prev");
-    const nextBtn = div.querySelector(".carousel-next");
-
-    prevBtn.onclick = () => {
-      children[idx].style.display = 'none';
-      idx = (idx - 1 + children.length) % children.length;
-      children[idx].style.display = 'block';
-    };
-
-    nextBtn.onclick = () => {
-      children[idx].style.display = 'none';
-      idx = (idx + 1) % children.length;
-      children[idx].style.display = 'block';
-    };
   });
 
   const controls = document.createElement("div");
@@ -493,8 +454,7 @@ function loadEndedAuctions() {
       const data = d.data();
       endedAuctions.push({
         name: data.name,
-        images: data.images || [],
-        video: data.video || null,
+        image: data.image,
         description: data.description,
         winnerid: data.winnerid || "",
         winneremail: data.winneremail || "",
