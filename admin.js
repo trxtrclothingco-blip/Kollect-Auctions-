@@ -112,14 +112,8 @@ itemForm.addEventListener("submit", async (e) => {
       data.winningbid = null;
     }
 
-    // ---------- UPDATED TO SUPPORT 2 IMAGES + 1 VIDEO ----------
-    const imageFiles = formData.getAll("item_images"); // multiple images
-    const videoFile = formData.get("item_video"); // single video
-    const uploadedImages = [];
-
-    // Upload images
-    for (const file of imageFiles) {
-      if (!file || !file.name) continue;
+    const file = formData.get("item_image");
+    if (file && file.name) {
       const uploadForm = new FormData();
       uploadForm.append("file", file);
       uploadForm.append("upload_preset", "Profile_pictures");
@@ -131,29 +125,9 @@ itemForm.addEventListener("submit", async (e) => {
       );
 
       const img = await res.json();
-      if (img.secure_url) uploadedImages.push(img.secure_url);
+      if (!img.secure_url) throw new Error("Image upload failed");
+      data.image = img.secure_url;
     }
-
-    if (uploadedImages.length > 0) {
-      data.images = uploadedImages; // array of image URLs
-    }
-
-    // Upload video
-    if (videoFile && videoFile.name) {
-      const uploadForm = new FormData();
-      uploadForm.append("file", videoFile);
-      uploadForm.append("upload_preset", "Profile_pictures");
-      uploadForm.append("folder", "itemVideos");
-
-      const res = await fetch(
-        "https://api.cloudinary.com/v1_1/def0sfrxq/video/upload",
-        { method: "POST", body: uploadForm }
-      );
-
-      const vid = await res.json();
-      if (vid.secure_url) data.video = vid.secure_url; // single video URL
-    }
-    // -------------------------------------------------------------
 
     const itemId = document.getElementById("item_id").value;
 
@@ -168,7 +142,7 @@ itemForm.addEventListener("submit", async (e) => {
       await setDoc(kollectRef, {
         "name:": formData.get("item_name") || "",
         "description:": formData.get("item_description") || "",
-        "image:": data.images ? data.images[0] : "", // first image for kollect100
+        "image:": data.image || "",
         "price:": Number(formData.get("item_price")) || null,
         "pricetype:": formData.get("price_type") || "",
         "saletype:": "kollect_100",
