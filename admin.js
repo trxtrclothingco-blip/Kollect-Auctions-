@@ -112,8 +112,14 @@ itemForm.addEventListener("submit", async (e) => {
       data.winningbid = null;
     }
 
-    const file = formData.get("item_image");
-    if (file && file.name) {
+    // ---------- UPDATED TO SUPPORT 2 IMAGES + 1 VIDEO ----------
+    const imageFiles = formData.getAll("item_images"); // multiple images
+    const videoFile = formData.get("item_video"); // single video
+    const uploadedImages = [];
+
+    // Upload images
+    for (const file of imageFiles) {
+      if (!file || !file.name) continue;
       const uploadForm = new FormData();
       uploadForm.append("file", file);
       uploadForm.append("upload_preset", "Profile_pictures");
@@ -125,9 +131,29 @@ itemForm.addEventListener("submit", async (e) => {
       );
 
       const img = await res.json();
-      if (!img.secure_url) throw new Error("Image upload failed");
-      data.image = img.secure_url;
+      if (img.secure_url) uploadedImages.push(img.secure_url);
     }
+
+    if (uploadedImages.length > 0) {
+      data.images = uploadedImages; // array of image URLs
+    }
+
+    // Upload video
+    if (videoFile && videoFile.name) {
+      const uploadForm = new FormData();
+      uploadForm.append("file", videoFile);
+      uploadForm.append("upload_preset", "Profile_pictures");
+      uploadForm.append("folder", "itemVideos");
+
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/def0sfrxq/video/upload",
+        { method: "POST", body: uploadForm }
+      );
+
+      const vid = await res.json();
+      if (vid.secure_url) data.video = vid.secure_url; // single video URL
+    }
+    // -------------------------------------------------------------
 
     const itemId = document.getElementById("item_id").value;
 
@@ -142,7 +168,7 @@ itemForm.addEventListener("submit", async (e) => {
       await setDoc(kollectRef, {
         "name:": formData.get("item_name") || "",
         "description:": formData.get("item_description") || "",
-        "image:": data.image || "",
+        "image:": data.images ? data.images[0] : "", // first image for kollect100
         "price:": Number(formData.get("item_price")) || null,
         "pricetype:": formData.get("price_type") || "",
         "saletype:": "kollect_100",
@@ -320,7 +346,7 @@ function loadBids() {
   });
 }
 
-/* ---------- Ended Auctions Pagination with Winner Modal ---------- */
+/* ---------- Ended Auctions Pagination with Winner Modal + Media Carousel ---------- */
 const endedAuctionsContainer = document.getElementById("ended-auctions-container");
 let endedAuctions = [];
 let endedPage = 1;
@@ -370,7 +396,7 @@ async function showWinnerInfo(winnerId) {
   }
 }
 
-// ---------- UPDATED renderEndedPage with dynamic click handlers ----------
+// ---------- UPDATED renderEndedPage with dynamic media carousel ----------
 function renderEndedPage() {
   endedAuctionsContainer.innerHTML = "";
 
@@ -381,9 +407,27 @@ function renderEndedPage() {
     const div = document.createElement("div");
     div.className = "ended-auction-item";
 
+    // Build carousel HTML
+    let mediaHtml = '';
+    const media = [...(item.images || [])];
+    if (item.video) media.push(item.video);
+
+    mediaHtml = `
+      <div class="media-carousel" style="position: relative; width: 120px; height: 120px;">
+        <button class="carousel-prev" style="position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:10;">&#8592;</button>
+        <div class="media-display" style="width:100%;height:100%;display:flex;overflow:hidden;">
+          ${media.map((m, i) => {
+            if (i < media.length - 1 || !item.video) return `<img src="${m}" style="width:100%;display:none;">`;
+            return `<video src="${m}" style="width:100%;display:none;" controls></video>`;
+          }).join('')}
+        </div>
+        <button class="carousel-next" style="position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:10;">&#8594;</button>
+      </div>
+    `;
+
     div.innerHTML = `
       <h5>${item.name}</h5>
-      <img src="${item.image || ''}" width="100">
+      ${mediaHtml}
       <p>${item.description || ''}</p>
       <p>Winner: ${item.winneremail || "No winner"}</p>
       <p>Winning Bid: £${item.winningbid || "N/A"}</p>
@@ -392,9 +436,30 @@ function renderEndedPage() {
 
     endedAuctionsContainer.appendChild(div);
 
-    // Attach dynamic click handler
+    // Attach dynamic click handler for winner info
     const btn = div.querySelector(".view-winner-btn");
     btn.addEventListener("click", () => showWinnerInfo(item.winnerid));
+
+    // Attach carousel functionality
+    const display = div.querySelector(".media-display");
+    const children = Array.from(display.children);
+    let idx = 0;
+    if (children[idx]) children[idx].style.display = 'block';
+
+    const prevBtn = div.querySelector(".carousel-prev");
+    const nextBtn = div.querySelector(".carousel-next");
+
+    prevBtn.onclick = () => {
+      children[idx].style.display = 'none';
+      idx = (idx - 1 + children.length) % children.length;
+      children[idx].style.display = 'block';
+    };
+
+    nextBtn.onclick = () => {
+      children[idx].style.display = 'none';
+      idx = (idx + 1) % children.length;
+      children[idx].style.display = 'block';
+    };
   });
 
   const controls = document.createElement("div");
@@ -428,7 +493,8 @@ function loadEndedAuctions() {
       const data = d.data();
       endedAuctions.push({
         name: data.name,
-        image: data.image,
+        images: data.images || [],
+        video: data.video || null,
         description: data.description,
         winnerid: data.winnerid || "",
         winneremail: data.winneremail || "",
