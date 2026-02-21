@@ -58,11 +58,11 @@
 
 /* Kollect100 Badge */
 .kollect-badge {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: gold;
-  color: black;
+  position: relative;
+  display: inline-block;
+  margin: 5px 0 5px -100%; /* position left of title */
+  background: black;
+  color: white;
   font-weight: bold;
   padding: 2px 6px;
   border-radius: 4px;
@@ -281,8 +281,8 @@ searchBtn.addEventListener("click", async () => {
 
     searchResults.innerHTML += `
       <div class="card">
-        ${kollectBadge}
         ${imageTag}
+        ${kollectBadge}
         <h3>${item.name}</h3>
         <p>Price: £${price}</p>
         <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
