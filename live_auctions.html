@@ -10,6 +10,29 @@
 <script type="module" src="products.js"></script>
 
 <style>
+
+/* ✅ FORCE ALL TEXT BLACK */
+* {
+  color: #000000 !important;
+}
+
+/* ✅ PAGE BACKGROUND IMAGE */
+body {
+  background: url('IMG_1917.JPEG') no-repeat center center fixed;
+  background-size: cover;
+}
+
+/* ✅ PRODUCT CARD BACKGROUND WHITE */
+.card {
+  background: #ffffff !important;
+}
+
+/* ✅ BID INPUT BACKGROUND WHITE */
+.bid-input {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
 /* ✅ Enhanced Bid Button — UPDATED TO BLUE */
 .bid-button {
   background: linear-gradient(135deg, #2bb0ed, #4fd1ff);
@@ -43,9 +66,7 @@
   width: 100%;
   padding: 10px 12px;
   margin-top: 10px;
-  background: #1a1a1a;
-  color: #ffffff; /* text is white when typing */
-  border: 1px solid #2bb0ed; /* matches card blue */
+  border: 1px solid #2bb0ed;
   border-radius: 6px;
   font-size: 14px;
   outline: none;
@@ -53,7 +74,7 @@
 }
 
 .bid-input::placeholder {
-  color: #999;
+  color: #000000;
 }
 
 .bid-input:focus {
@@ -62,8 +83,8 @@
 }
 
 .bid-input:disabled {
-  background: #111;
-  color: #666;
+  background: #ffffff !important;
+  color: #000000 !important;
   border-color: #555;
 }
 
@@ -72,8 +93,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #1a1a1a;
-  color: #FFD700;
+  background: #ffffff;
   border: 1px solid #FFD700;
   padding: 12px 18px;
   border-radius: 6px;
@@ -97,7 +117,6 @@
 .kollect-badge {
   display: inline-block;
   background: linear-gradient(135deg, #FFD700, #e6c200);
-  color: #1a1a1a;
   font-weight: bold;
   font-size: 12px;
   padding: 2px 6px;
@@ -155,7 +174,6 @@ import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/
 
 let currentUser = null;
 
-// ✅ Check auth like admin panel
 onAuthStateChanged(auth, (user) => {
   const status = document.getElementById('user-status');
   const logoutBtn = document.getElementById('logout-button');
@@ -174,7 +192,6 @@ function logoutUser() {
   signOut(auth);
 }
 
-// ✅ Place a bid (transaction-based, ONLY updates price)
 async function placeBid(listingId, bidInput) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
   const bidAmount = Number(bidInput.value);
@@ -196,12 +213,10 @@ async function placeBid(listingId, bidInput) {
       if (bidAmount <= currentPrice)
         throw `Bid must be higher than £${currentPrice}`;
 
-      // ✅ ONLY update price
       transaction.update(listingRef, {
         price: bidAmount
       });
 
-      // Record bid in bids collection
       const bidRef = doc(bidsRef);
       transaction.set(bidRef, {
         listingid: listingId,
@@ -225,7 +240,6 @@ async function placeBid(listingId, bidInput) {
   }
 }
 
-// ✅ End auction
 async function endAuction(listingId) {
   const bidsSnap = await getDocs(query(collection(db, 'bids'), orderBy('bidamount', 'desc')));
   let winningBid = null;
@@ -243,7 +257,6 @@ async function endAuction(listingId) {
   });
 }
 
-// ✅ Countdown helper
 function getCountdownText(endTimestamp) {
   const diff = endTimestamp - new Date();
   if (diff <= 0) return 'Auction ended';
@@ -254,7 +267,6 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
-// ✅ Load live auctions with Kollect100 gold badge
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -271,7 +283,6 @@ function loadLiveAuctions() {
       const card = document.createElement('div');
       card.classList.add('card');
 
-      // ✅ Kollect100 gold badge next to item name
       const badgeHTML = kollect100 ? '<span class="kollect-badge">Kollect100</span>' : '';
 
       card.innerHTML = `
