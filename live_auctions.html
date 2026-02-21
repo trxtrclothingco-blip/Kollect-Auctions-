@@ -16,14 +16,25 @@
   color: #000000 !important;
 }
 
-/* ✅ PAGE BACKGROUND IMAGE FULL SCREEN FILL */
+/* ✅ PAGE BACKGROUND IMAGE FULL SCREEN FILL USING body::before */
 body {
   margin: 0;
-  background: url('IMG_1917.jpeg') no-repeat center center fixed;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('IMG_1917.jpeg') no-repeat center center;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  min-height: 100vh;
+  z-index: -1;
 }
 
 /* ✅ NAV MENU WHITE SEE THROUGH BLURRY */
