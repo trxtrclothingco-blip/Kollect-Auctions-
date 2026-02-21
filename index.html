@@ -72,6 +72,32 @@ img {
   color: black;
 }
 
+/* Burger Menu Styles */
+.burger {
+  width: 35px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  background: rgba(255,255,255,0.6); /* White see-through */
+  backdrop-filter: blur(5px); /* Blurry */
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.burger div {
+  width: 100%;
+  height: 4px;
+  background-color: black; /* Burger icon black */
+  border-radius: 2px;
+}
+
+/* Navigation menu text color */
+.nav-menu a {
+  color: black; /* All writing black */
+}
+
 /* ---------- Background Image ---------- */
 body::before {
   content: "";
@@ -215,7 +241,6 @@ searchBtn.addEventListener("click", async () => {
         ${imageTag}
         <h3>${item.name}</h3>
         <p>Price: £${price}</p>
-        ${type === "auction" ? `<p>Highest Bidder: ${item.winneremail || "No bids"}</p>` : ""}
         <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
       </div>
     `;
