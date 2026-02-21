@@ -110,9 +110,34 @@ img {
   border-radius: 2px !important;
 }
 
+/* Navigation Menu (APPLY THE STYLES HERE FOR THE MENU BACKGROUND) */
+.nav-menu {
+  display: none; /* Assume it's hidden by default; adjust based on style.css */
+  position: fixed; /* Or absolute/fixed to overlay the page */
+  top: 0;
+  right: 0;
+  width: 250px; /* Example width for a sidebar menu */
+  height: 100%; /* Full height */
+  background: rgba(255, 255, 255, 0.7) !important; /* White see-through */
+  backdrop-filter: blur(10px) !important; /* Blurry */
+  -webkit-backdrop-filter: blur(10px) !important; /* Safari support */
+  padding: 20px !important;
+  border-radius: 5px 0 0 5px !important; /* Optional rounding */
+  z-index: 999 !important; /* Just below the burger icon */
+  overflow-y: auto; /* Scroll if too long */
+}
+
+/* When menu is open (toggled by JS) */
+.nav-menu.open {
+  display: block !important; /* Make it visible */
+}
+
 /* Navigation menu text color */
 .nav-menu a {
   color: black; /* All writing black */
+  display: block; /* Stack links vertically */
+  margin: 10px 0; /* Spacing */
+  text-decoration: none;
 }
 
 /* ---------- Background Image ---------- */
