@@ -16,15 +16,24 @@
   color: #000000 !important;
 }
 
-/* ✅ PAGE BACKGROUND IMAGE */
+/* ✅ PAGE BACKGROUND IMAGE FULL SCREEN FIT */
 body {
   background: url('IMG_1917.JPEG') no-repeat center center fixed;
   background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
 }
 
-/* ✅ PRODUCT CARD BACKGROUND WHITE */
+/* ✅ PRODUCT CARD BACKGROUND WHITE + BLACK OUTLINE */
 .card {
   background: #ffffff !important;
+  border: 2px solid #000000 !important;
+}
+
+/* ✅ BURGER MENU ICON BLACK */
+.burger div {
+  background-color: #000000 !important;
 }
 
 /* ✅ BID INPUT BACKGROUND WHITE */
@@ -61,7 +70,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ✅ Bid input styling — UPDATED BORDER BLUE + WHITE TEXT ON INPUT */
+/* ✅ Bid input styling */
 .bid-input {
   width: 100%;
   padding: 10px 12px;
@@ -88,17 +97,17 @@ body {
   border-color: #555;
 }
 
-/* ✅ Bid success popup */
+/* ✅ Bid success popup with BLACK BORDER */
 #bid-success-msg {
   position: fixed;
   top: 20px;
   right: 20px;
   background: #ffffff;
-  border: 1px solid #FFD700;
+  border: 2px solid #000000 !important;
   padding: 12px 18px;
   border-radius: 6px;
   font-weight: bold;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
   display: none;
   align-items: center;
   justify-content: center;
@@ -113,10 +122,11 @@ body {
   100% { opacity: 0; }
 }
 
-/* ✅ Kollect100 gold badge */
+/* ✅ Kollect100 badge BLACK with WHITE text */
 .kollect-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #FFD700, #e6c200);
+  background: #000000 !important;
+  color: #ffffff !important;
   font-weight: bold;
   font-size: 12px;
   padding: 2px 6px;
