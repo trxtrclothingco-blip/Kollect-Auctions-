@@ -12,6 +12,56 @@
 <!-- Firebase & Custom Script -->
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
+
+<style>
+
+/* ✅ FORCE ALL TEXT BLACK */
+* {
+  color: #000000 !important;
+}
+
+/* ✅ FULL SCREEN RESPONSIVE BACKGROUND */
+body {
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('IMG_1917.JPEG') no-repeat center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+}
+
+/* ✅ ALL CARDS WHITE */
+.card {
+  background: #ffffff !important;
+}
+
+/* ✅ INPUT FIELDS WHITE BACKGROUND */
+input,
+textarea,
+select {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* ✅ PLACEHOLDER TEXT BLACK */
+input::placeholder,
+textarea::placeholder {
+  color: #000000 !important;
+}
+
+</style>
+
 </head>
 <body>
 
@@ -35,7 +85,7 @@
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
 <div class="container">
-  <img src="IMG_1729.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+  <img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
   <h1>Contact Us</h1>
   <p>Submit your collectible or get in touch with our team.</p>
@@ -99,7 +149,7 @@
   })();
 </script>
 
-  <script src="/js/notification.js"></script>
+<script src="/js/notification.js"></script>
 
 </body>
 </html>
