@@ -19,18 +19,57 @@
 </script>
 
 <style>
+/* ✅ FORCE ALL TEXT BLACK */
+* {
+  color: #000000 !important;
+}
+
+/* ✅ FULL SCREEN RESPONSIVE BACKGROUND */
+body {
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('IMG_1917.jpeg') no-repeat center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+}
+
+/* ✅ BURGER MENU ICON BLACK */
+.burger div {
+  background-color: #000000 !important;
+}
+
+/* ✅ NAV BAR WHITE BLURRY SEE THROUGH */
+.nav-menu {
+  background: rgba(255,255,255,0.75) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ✅ PRODUCT CARDS BLACK BORDER */
 .ended-auction {
   background: #2a2a2a;
-  border: 2px solid #2bb0ed; /* updated border to match live auctions */
+  border: 2px solid #000000; /* black border added */
   border-radius: 8px;
   padding: 12px;
-  width: 300px; /* fixed width */
-  height: 400px; /* fixed height */
+  width: 300px;
+  height: 400px;
   margin: 15px;
   display: inline-block;
   vertical-align: top;
   text-align: center;
-  overflow: hidden; /* prevent overflow if text is long */
+  overflow: hidden;
 }
 
 .ended-auction img {
@@ -44,7 +83,7 @@
 .ended-auction h3,
 .ended-auction p {
   margin: 5px 0;
-  color: #ffffff; /* changed from gold to white */
+  color: #000000; /* all text black */
 }
 
 .ended-auction .button {
@@ -57,10 +96,11 @@
   cursor: pointer;
 }
 
+/* ✅ KOLLECT100 BADGE BLACK WITH WHITE TEXT */
 .kollect100-badge {
   display: inline-block;
-  background: gold;
-  color: black;
+  background: #000000;
+  color: #ffffff;
   font-weight: bold;
   padding: 2px 6px;
   margin-left: 6px;
