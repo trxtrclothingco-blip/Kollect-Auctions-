@@ -7,6 +7,29 @@
 <link rel="stylesheet" href="style.css">
 <script type="module" src="firebase.js"></script>
 <script type="module" src="script.js"></script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  background-image: url('IMG_1917.jpeg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  background-color: #ffffff;
+  color: black;
+}
+
+.container {
+  color: black;
+}
+
+h1, p, a, #user-status {
+  color: black;
+}
+</style>
+
 </head>
 <body>
 
@@ -25,9 +48,6 @@
     window._firebase = { db, auth };
   </script>
 
-</head>
-<body>
-  
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
