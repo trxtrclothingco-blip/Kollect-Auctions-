@@ -44,7 +44,6 @@
   flex-wrap: wrap;
   gap: 15px;
   margin-top: 20px;
-  color: black; /* ADDED: Force all search items (including empty state) to black */
 }
 
 #searchResults .card {
@@ -66,6 +65,11 @@ img {
 .search-bar input,
 .search-bar select {
   color: black; /* Updated text color to black */
+}
+
+/* ADDED: Placeholder text color */
+.search-bar input::placeholder {
+  color: black;
 }
 
 /* ---------- Background Image ---------- */
