@@ -693,8 +693,10 @@ onAuthStateChanged(auth, async (user) => {
 }
 
 .bid-card {
-  background:#2a2a2a;
-  border:1px solid rgba(43,176,237,0.6);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border:1px solid black;
   padding:8px;
   margin-bottom:5px;
   border-radius:4px;
@@ -764,7 +766,7 @@ onAuthStateChanged(auth, async (user) => {
   right: 10px;
   font-size: 24px;
   cursor: pointer;
-  color: #FFD700;
+  color: black;
 }
 
 #notification-dropdown {
@@ -790,8 +792,8 @@ onAuthStateChanged(auth, async (user) => {
 
 /* Burger Menu Styles */
 .burger {
-  width: 35px;
-  height: 30px;
+  width: 30px;
+  height: 25px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -806,6 +808,12 @@ onAuthStateChanged(auth, async (user) => {
 }
 
 /* Navigation menu text color */
+.nav-menu {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 .nav-menu a {
   color: black;
 }
@@ -823,6 +831,19 @@ body::before {
   background-position: center;
   background-repeat: no-repeat;
   z-index: -1;
+}
+
+/* Specific text colors */
+.bid-card p {
+  color: black;
+}
+
+.user-bid {
+  color: black;
+}
+
+.countdown-timer {
+  color: black;
 }
 </style>
 </head>
@@ -895,4 +916,3 @@ body::before {
   
 </body>
 </html>
-```.createElement
