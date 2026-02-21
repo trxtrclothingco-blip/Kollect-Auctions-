@@ -53,6 +53,21 @@
   padding: 10px;
   text-align: center;
   color: black; /* Updated text color to black */
+  position: relative; /* For Kollect100 badge */
+}
+
+/* Kollect100 Badge */
+.kollect-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: gold;
+  color: black;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
 }
 
 /* Remove blue border around images */
@@ -236,9 +251,11 @@ searchBtn.addEventListener("click", async () => {
 
     const price = type === "auction" ? (item.winningbid || item.price) : item.price;
     const imageTag = item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : "";
+    const kollectBadge = item.kollect100 ? `<div class="kollect-badge">Kollect100</div>` : "";
 
     searchResults.innerHTML += `
       <div class="card">
+        ${kollectBadge}
         ${imageTag}
         <h3>${item.name}</h3>
         <p>Price: £${price}</p>
