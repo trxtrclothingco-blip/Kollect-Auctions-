@@ -414,8 +414,8 @@ onAuthStateChanged(auth, async (user) => {
       bidInput.min = b.livePrice + 1;
       bidInput.placeholder = "Your bid";
       bidInput.style.flex = "1";
-      bidInput.style.backgroundColor = "#1e1e1e";
-      bidInput.style.color = "#fff";
+      bidInput.style.backgroundColor = "white";
+      bidInput.style.color = "black";
       bidInput.style.border = "2px solid rgba(43,176,237,0.6)";
       bidInput.style.borderRadius = "4px";
       bidInput.style.padding = "6px";
@@ -714,7 +714,7 @@ onAuthStateChanged(auth, async (user) => {
 
 #welcome-name {
   font-weight: normal;
-  color: inherit;
+  color: black;
   font-size: inherit;
 }
 
@@ -843,6 +843,18 @@ body::before {
 }
 
 .countdown-timer {
+  color: black;
+}
+
+h1 {
+  color: black;
+}
+
+.card h2 {
+  color: black;
+}
+
+input::placeholder {
   color: black;
 }
 </style>
