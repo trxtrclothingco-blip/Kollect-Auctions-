@@ -399,7 +399,7 @@ onAuthStateChanged(auth, async (user) => {
             // ---------- Notification: 5 minutes remaining ----------
             if(diff <= 5*60*1000 && !notificationState.auctionEndingSoon[b.listingid]){
               const msg = `Auction for "${b.itemName}" ends in 5 minutes!`;
-              // showPopup(msg);   ← removed
+              showPopup(msg);
               addNotification(msg, b.listingid, "endingSoon");
               notificationState.auctionEndingSoon[b.listingid] = true;
               saveNotificationState();
@@ -461,7 +461,7 @@ onAuthStateChanged(auth, async (user) => {
         if(userHighest > 0 && userHighest < highestBid){
           if(!notificationState.outbid[b.listingid]){
             const msg = `You've been outbid on "${b.itemName}"! Place a higher bid.`;
-            // showPopup(msg);   ← removed
+            showPopup(msg);
             addNotification(msg, b.listingid, "outbid");
             notificationState.outbid[b.listingid] = true;
             saveNotificationState();
@@ -638,7 +638,7 @@ onAuthStateChanged(auth, async (user) => {
       // ---------- Notification: Auction Won ----------
       if(!notificationState.auctionWon[docSnap.id]){
         const msg = `Congratulations! You won the auction for "${d.name}"!`;
-        // showPopup(msg);   ← removed
+        showPopup(msg);
         addNotification(msg, docSnap.id, "won");
         notificationState.auctionWon[docSnap.id] = true;
         saveNotificationState();
