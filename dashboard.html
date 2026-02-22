@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard – Kollect Auctions</title>
 <link rel="stylesheet" href="style.css">
+  
+<!-- Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
 
-<script type="module">
+  <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, updateDoc, collection, query, where, orderBy, getDoc, addDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
