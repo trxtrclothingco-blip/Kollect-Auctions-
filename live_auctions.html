@@ -391,14 +391,14 @@ function openAllBidsPopup(listingId, itemName) {
     if (e.target === modal) closeModal();
   };
 
-  // Live load bids
+  // Live load bids filtered by listingId
   const q = query(
     collection(db, 'bids'),
     where('listingid', '==', listingId),
     orderBy('timestamp', 'desc')
   );
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
+  onSnapshot(q, (snapshot) => {
     listContainer.innerHTML = '';
     if (snapshot.empty) {
       listContainer.innerHTML = '<p style="color:#666; font-style:italic;">No bids yet.</p>';
