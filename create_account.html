@@ -133,7 +133,7 @@ input, textarea, select {
 
 <script type="module">
 import { auth, db } from "./firebase.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 // ---------- DOM ----------
@@ -183,12 +183,21 @@ function showPopupMessage(message){
   setTimeout(()=>popup.remove(), 3000);
 }
 
-// ---------- Login ----------
+// ---------- Login with Email Verification Check ----------
 loginButton?.addEventListener("click", async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    if(!user.emailVerified){
+      alert("Please verify your email before logging in. Check your inbox.");
+      await sendEmailVerification(user); // optional: resend verification email
+      await signOut(auth);
+      return;
+    }
+
     showPopupMessage("Login successful!");
     loginForm.reset();
     window.location.href = "index.html"; // redirect after login
@@ -197,7 +206,7 @@ loginButton?.addEventListener("click", async () => {
   }
 });
 
-// ---------- Signup ----------
+// ---------- Signup with Email Verification ----------
 signupForm?.addEventListener("submit", async e => {
   e.preventDefault();
   const firstName = document.getElementById("signup-firstname").value.trim();
@@ -235,9 +244,15 @@ signupForm?.addEventListener("submit", async e => {
       createdAt: serverTimestamp()
     });
 
-    showPopupMessage("Account created successfully!");
+    // ✅ Send email verification
+    await sendEmailVerification(user, {
+      url: window.location.origin + '/create_account.html' // after verification redirect here (sign in)
+    });
+
+    showPopupMessage("Account created! Check your email to verify before signing in.");
     signupForm.reset();
-    setTimeout(() => window.location.href = "dashboard.html", 1500); // auto redirect
+
+    // Do NOT auto redirect to dashboard until verified
   } catch (err) {
     alert("Signup failed: " + err.message);
   }
