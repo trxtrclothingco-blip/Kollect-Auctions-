@@ -239,7 +239,8 @@ function openAllBidsPopup(listingId, itemName) {
       p.style.margin = "12px 0";
       p.style.paddingBottom = "12px";
       p.style.borderBottom = "1px solid #ddd";
-      p.innerHTML = `£${amount}<br><small style="color:#555;">${time}</small>`;
+      // ✅ Updated to include colons
+      p.innerHTML = `listingid: ${b.listingid}<br>bidamount: £${amount}<br>timestamp: ${time}`;
       list.appendChild(p);
     });
   });
@@ -515,4 +516,4 @@ export async function showBidHistory(listingId) {
 const bidModal = document.getElementById("bid-history-modal");
 const closeSpan = bidModal?.querySelector(".close");
 if (closeSpan) closeSpan.onclick = () => { bidModal.style.display = "none"; };
-window.onclick = (event) => { if (event.target === bidModal) bidModal.style.display = "none"; };
+window.onclick = (event) => { if (event.target === bidModal) bid
