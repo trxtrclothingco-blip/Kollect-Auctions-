@@ -152,6 +152,60 @@ body::before {
   margin-left: 6px;
   border-radius: 4px;
 }
+
+/* ────────────────────────────────────────────────
+   NEW: Styles for admin bid history modal popup
+   ──────────────────────────────────────────────── */
+#admin-bid-history-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+#admin-bid-history-modal .modal-content {
+  background: #ffffff;
+  border: 3px solid #000000;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 540px;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+#admin-bid-history-modal .close {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  font-size: 36px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #000 !important;
+}
+
+#admin-bid-history-modal h3 {
+  margin: 0 0 20px 0;
+  padding-right: 50px;
+  font-size: 22px;
+}
+
+#admin-bid-list p {
+  margin: 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ddd;
+  font-size: 15px;
+}
+
+#admin-bid-list small {
+  color: #555 !important;
+  font-size: 13px;
+}
 </style>
 
 </head>
@@ -184,6 +238,17 @@ body::before {
 
 <div id="bid-success-msg">
   <p>Bid placed successfully!</p>
+</div>
+
+<!-- ────────────────────────────────────────────────
+     NEW: Reusable modal for viewing bid history (admin)
+     ──────────────────────────────────────────────── -->
+<div id="admin-bid-history-modal">
+  <div class="modal-content">
+    <span class="close" id="close-bid-modal">×</span>
+    <h3 id="bid-modal-title">Bids on item</h3>
+    <div id="admin-bid-list"></div>
+  </div>
 </div>
 
 <script type="module">
@@ -356,6 +421,26 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 function toggleMenu() {
   const nav = document.getElementById("navMenu");
   nav.classList.toggle("open");
+}
+
+// ────────────────────────────────────────────────
+// NEW: Close admin bid history modal
+// ────────────────────────────────────────────────
+const bidModal = document.getElementById('admin-bid-history-modal');
+const closeBidModal = document.getElementById('close-bid-modal');
+
+if (closeBidModal) {
+  closeBidModal.onclick = () => {
+    bidModal.style.display = 'none';
+  };
+}
+
+if (bidModal) {
+  bidModal.onclick = (event) => {
+    if (event.target === bidModal) {
+      bidModal.style.display = 'none';
+    }
+  };
 }
 </script>
 
