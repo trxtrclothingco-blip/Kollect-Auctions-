@@ -154,22 +154,22 @@ body::before {
 }
 
 /* ────────────────────────────────────────────────
-   NEW: Styles for admin bid history modal popup
+   NEW: Minimal styles for "All bids" popup on public page
    ──────────────────────────────────────────────── */
-#admin-bid-history-modal {
-  display: none;
+.all-bids-popup {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.65);
-  z-index: 2000;
+  display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1500;
 }
 
-#admin-bid-history-modal .modal-content {
+.all-bids-content {
   background: #ffffff;
   border: 3px solid #000000;
-  border-radius: 8px;
+  border-radius: 10px;
   width: 90%;
   max-width: 540px;
   max-height: 82vh;
@@ -179,32 +179,39 @@ body::before {
   box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
 
-#admin-bid-history-modal .close {
+.all-bids-content .close {
   position: absolute;
-  right: 18px;
+  right: 20px;
   top: 12px;
   font-size: 36px;
   font-weight: bold;
   cursor: pointer;
-  color: #000 !important;
 }
 
-#admin-bid-history-modal h3 {
+.all-bids-content h3 {
   margin: 0 0 20px 0;
   padding-right: 50px;
   font-size: 22px;
 }
 
-#admin-bid-list p {
+.all-bids-content p {
   margin: 12px 0;
   padding-bottom: 12px;
   border-bottom: 1px solid #ddd;
   font-size: 15px;
 }
 
-#admin-bid-list small {
+.all-bids-content small {
   color: #555 !important;
   font-size: 13px;
+}
+
+.all-bids-link {
+  color: #0066cc !important;
+  cursor: pointer;
+  font-size: 0.95em;
+  margin-left: 10px;
+  text-decoration: underline;
 }
 </style>
 
@@ -238,17 +245,6 @@ body::before {
 
 <div id="bid-success-msg">
   <p>Bid placed successfully!</p>
-</div>
-
-<!-- ────────────────────────────────────────────────
-     NEW: Reusable modal for viewing bid history (admin)
-     ──────────────────────────────────────────────── -->
-<div id="admin-bid-history-modal">
-  <div class="modal-content">
-    <span class="close" id="close-bid-modal">×</span>
-    <h3 id="bid-modal-title">Bids on item</h3>
-    <div id="admin-bid-list"></div>
-  </div>
 </div>
 
 <script type="module">
@@ -361,6 +357,63 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
+// ────────────────────────────────────────────────
+// NEW: Popup for showing all bids (amount + timestamp only)
+// ────────────────────────────────────────────────
+function openAllBidsPopup(listingId, itemName) {
+  const modal = document.createElement('div');
+  modal.className = 'all-bids-popup';
+
+  const content = document.createElement('div');
+  content.className = 'all-bids-content';
+
+  const closeBtn = document.createElement('span');
+  closeBtn.className = 'close';
+  closeBtn.textContent = '×';
+
+  const title = document.createElement('h3');
+  title.textContent = `All bids: ${itemName}`;
+
+  const listContainer = document.createElement('div');
+  listContainer.innerHTML = '<p>Loading bids...</p>';
+
+  content.appendChild(closeBtn);
+  content.appendChild(title);
+  content.appendChild(listContainer);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  // Close behavior
+  const closeModal = () => document.body.removeChild(modal);
+  closeBtn.onclick = closeModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
+  // Live load bids
+  const q = query(
+    collection(db, 'bids'),
+    where('listingid', '==', listingId),
+    orderBy('timestamp', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    listContainer.innerHTML = '';
+    if (snapshot.empty) {
+      listContainer.innerHTML = '<p style="color:#666; font-style:italic;">No bids yet.</p>';
+      return;
+    }
+    snapshot.forEach((docSnap) => {
+      const bid = docSnap.data();
+      const amount = Number(bid.bidamount).toLocaleString();
+      const time = bid.timestamp ? bid.timestamp.toDate().toLocaleString() : '—';
+      const p = document.createElement('p');
+      p.innerHTML = `£${amount}<br><small>${time}</small>`;
+      listContainer.appendChild(p);
+    });
+  });
+}
+
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -379,11 +432,14 @@ function loadLiveAuctions() {
 
       const badgeHTML = kollect100 ? '<span class="kollect-badge">Kollect100</span>' : '';
 
+      // Add "All bids" link
+      const allBidsLink = `<span class="all-bids-link" onclick="openAllBidsPopup('${docSnap.id}', '${name.replace(/'/g, "\\'")}')">All bids</span>`;
+
       card.innerHTML = `
         <img src="${image}" alt="${name}">
         <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
-        <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()}</p>
+        <p><strong>Current Bid:</strong> £${Number(price).toLocaleString()} ${allBidsLink}</p>
         <p class="auction-length"></p>
         <input type="number" class="bid-input" placeholder="Your bid">
         <button class="bid-button">Place Bid</button>
@@ -421,26 +477,6 @@ document.addEventListener('DOMContentLoaded', loadLiveAuctions);
 function toggleMenu() {
   const nav = document.getElementById("navMenu");
   nav.classList.toggle("open");
-}
-
-// ────────────────────────────────────────────────
-// NEW: Close admin bid history modal
-// ────────────────────────────────────────────────
-const bidModal = document.getElementById('admin-bid-history-modal');
-const closeBidModal = document.getElementById('close-bid-modal');
-
-if (closeBidModal) {
-  closeBidModal.onclick = () => {
-    bidModal.style.display = 'none';
-  };
-}
-
-if (bidModal) {
-  bidModal.onclick = (event) => {
-    if (event.target === bidModal) {
-      bidModal.style.display = 'none';
-    }
-  };
 }
 </script>
 
