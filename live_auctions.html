@@ -414,6 +414,8 @@ function openAllBidsPopup(listingId, itemName) {
   });
 }
 
+window.openAllBidsPopup = openAllBidsPopup;
+
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
