@@ -168,109 +168,87 @@ async function autoEndAuctions() {
   if (endedAny) loadEndedAuctions();
 }
 
-/* ────────────────────────────────────────────────
-   NEW: Live bid counters for auctions (admin view)
-   ──────────────────────────────────────────────── */
-const bidCountMap = new Map(); // itemId → number of bids
-
-function updateBidCount(itemId, count) {
-  bidCountMap.set(itemId, count);
-  // Re-render only the affected line if you want micro-updates
-  // For simplicity we just re-call loadItems() less frequently
-}
-
-onSnapshot(collection(db, "bids"), (snap) => {
-  const tempMap = new Map();
-  snap.forEach((b) => {
-    const lid = b.data().listingid;
-    if (lid) {
-      tempMap.set(lid, (tempMap.get(lid) || 0) + 1);
-    }
-  });
-  // Only update if changed (optional optimization)
-  tempMap.forEach((count, id) => {
-    if (bidCountMap.get(id) !== count) {
-      updateBidCount(id, count);
-    }
-  });
-  // Optional: trigger UI refresh — here we rely on loadItems snapshot
-});
-
-function openBidHistoryPopup(itemId, itemName) {
+function openAllBidsPopup(listingId, itemName) {
   const modal = document.createElement("div");
   modal.style.position = "fixed";
-  modal.style.top = "0";
-  modal.style.left = "0";
-  modal.style.width = "100%";
-  modal.style.height = "100%";
-  modal.style.background = "rgba(0,0,0,0.6)";
+  modal.style.inset = "0";
+  modal.style.background = "rgba(0,0,0,0.65)";
   modal.style.display = "flex";
   modal.style.alignItems = "center";
   modal.style.justifyContent = "center";
-  modal.style.zIndex = "2000";
+  modal.style.zIndex = "1500";
 
   const box = document.createElement("div");
-  box.style.background = "white";
-  box.style.padding = "20px";
-  box.style.borderRadius = "8px";
-  box.style.maxWidth = "500px";
+  box.style.background = "#fff";
+  box.style.padding = "24px";
+  box.style.borderRadius = "10px";
+  box.style.maxWidth = "520px";
   box.style.width = "90%";
   box.style.maxHeight = "80vh";
   box.style.overflowY = "auto";
   box.style.position = "relative";
+  box.style.border = "2px solid #000";
 
   const title = document.createElement("h3");
-  title.textContent = `Bids on: ${itemName}`;
-  title.style.marginTop = "0";
+  title.textContent = `All bids: ${itemName}`;
+  title.style.margin = "0 0 20px 0";
+  title.style.paddingRight = "50px";
 
-  const closeBtn = document.createElement("span");
-  closeBtn.textContent = "×";
-  closeBtn.style.position = "absolute";
-  closeBtn.style.right = "15px";
-  closeBtn.style.top = "10px";
-  closeBtn.style.fontSize = "28px";
-  closeBtn.style.cursor = "pointer";
-  closeBtn.style.fontWeight = "bold";
-  closeBtn.onclick = () => document.body.removeChild(modal);
+  const close = document.createElement("span");
+  close.textContent = "×";
+  close.style.position = "absolute";
+  close.style.right = "20px";
+  close.style.top = "12px";
+  close.style.fontSize = "34px";
+  close.style.fontWeight = "bold";
+  close.style.cursor = "pointer";
+  close.style.color = "#000";
 
   const list = document.createElement("div");
-  list.id = `bidlist-${itemId}`;
   list.innerHTML = "<p>Loading bids...</p>";
 
-  box.appendChild(closeBtn);
+  box.appendChild(close);
   box.appendChild(title);
   box.appendChild(list);
   modal.appendChild(box);
   document.body.appendChild(modal);
 
-  // Load bids
+  // Close handlers
+  const closeModal = () => document.body.removeChild(modal);
+  close.onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+  // Load bids live
   const q = query(
     collection(db, "bids"),
-    where("listingid", "==", itemId),
+    where("listingid", "==", listingId),
     orderBy("timestamp", "desc")
   );
 
-  onSnapshot(q, (snap) => {
+  const unsubscribe = onSnapshot(q, (snap) => {
     list.innerHTML = "";
     if (snap.empty) {
-      list.innerHTML = "<p>No bids yet.</p>";
+      list.innerHTML = "<p style='color:#666; font-style:italic;'>No bids yet.</p>";
       return;
     }
-    snap.forEach((doc) => {
-      const b = doc.data();
-      const time = b.timestamp
-        ? b.timestamp.toDate().toLocaleString()
-        : "—";
-      const row = document.createElement("p");
-      row.style.margin = "8px 0";
-      row.innerHTML = `£${Number(b.bidamount).toLocaleString()} — ${time}`;
-      list.appendChild(row);
+    snap.forEach((docSnap) => {
+      const b = docSnap.data();
+      const amount = Number(b.bidamount).toLocaleString();
+      const time = b.timestamp ? b.timestamp.toDate().toLocaleString() : "—";
+      const p = document.createElement("p");
+      p.style.margin = "12px 0";
+      p.style.paddingBottom = "12px";
+      p.style.borderBottom = "1px solid #ddd";
+      p.innerHTML = `£${amount}<br><small style="color:#555;">${time}</small>`;
+      list.appendChild(p);
     });
   });
 
-  // Close on background click
-  modal.onclick = (e) => {
-    if (e.target === modal) document.body.removeChild(modal);
+  // Optional cleanup (not strictly needed for quick view)
+  closeModal.old = closeModal;
+  closeModal = () => {
+    unsubscribe();
+    document.body.removeChild(modal);
   };
 }
 
@@ -299,22 +277,13 @@ function loadItems() {
 
         const kollectBadge = item.kollect100 ? `<span class="kollect100-badge">🌟 Kollect100</span>` : "";
 
-        let bidCounterHTML = "";
-        if (item.saletype === "live_auctions") {
-          const count = bidCountMap.get(d.id) || 0;
-          bidCounterHTML = `
-            <small style="cursor:pointer; color:#0066cc; margin-left:12px;"
-                   onclick="openBidHistoryPopup('${d.id}', '${item.name.replace(/'/g,"\\\'")}')">
-              ${count} bid${count !== 1 ? 's' : ''}
-            </small>
-          `;
+        let bidsLink = "";
+        if (item.saletype === "live_auctions" && item.status === "live") {
+          bidsLink = `<span style="margin-left:12px; color:#0066cc; cursor:pointer; font-size:0.95em;" onclick="openAllBidsPopup('${d.id}', '${item.name.replace(/'/g,"\\'")}')">All bids</span>`;
         }
 
         section.innerHTML += `
-          <p>
-            ${item.name} ${kollectBadge} – £${item.price}
-            ${bidCounterHTML}
-          </p>
+          <p>${item.name} ${kollectBadge} – £${item.price}${bidsLink}</p>
           <button onclick="editItem('${d.id}','${col}')">Edit</button>
           <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
         `;
