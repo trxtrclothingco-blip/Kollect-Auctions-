@@ -79,7 +79,6 @@ input, textarea, select {
 </head>
 <body>
 
-<!-- Burger Menu -->
 <div class="burger" onclick="toggleMenu()">
   <div></div><div></div><div></div>
 </div>
@@ -95,14 +94,12 @@ input, textarea, select {
   <a href="create_account.html">Sign In</a>
 </nav>
 
-<!-- User Status -->
 <div id="user-status">Checking login status...</div>
 <button id="logout-button" style="display:none;" onclick="logoutUser()">Logout</button>
 
 <div class="container">
   <img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
 
-  <!-- Login Form -->
   <div class="card">
     <h2>Sign In</h2>
     <form id="login-form">
@@ -112,7 +109,6 @@ input, textarea, select {
     </form>
   </div>
 
-  <!-- Sign Up Form -->
   <div class="card">
     <h2>Create Account</h2>
     <form id="signup-form">
@@ -136,17 +132,17 @@ import { auth, db } from "./firebase.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// ---------- DOM ----------
+const ADMIN_UID = "gBrbEobcS5RCG47acE5ySqxO8yB2";
+const ADMIN_EMAIL = "peterjames-barrett@outlook.com";
+
 const loginForm = document.getElementById("login-form");
 const loginButton = document.getElementById("login-button");
 const signupForm = document.getElementById("signup-form");
 const userStatus = document.getElementById("user-status");
 const logoutButton = document.getElementById("logout-button");
 
-// ---------- Burger Menu ----------
 window.toggleMenu = () => document.getElementById("navMenu")?.classList.toggle("open");
 
-// ---------- Light/Dark Mode ----------
 const body = document.body;
 if(localStorage.getItem("lightMode")==="true") body.classList.add("light-mode");
 window.toggleMode = () => {
@@ -154,7 +150,6 @@ window.toggleMode = () => {
   localStorage.setItem("lightMode", isLight);
 };
 
-// ---------- Logout ----------
 window.logoutUser = async () => {
   try { 
     await signOut(auth);
@@ -162,7 +157,6 @@ window.logoutUser = async () => {
   } catch(e) { console.error(e); }
 };
 
-// ---------- Auth State ----------
 onAuthStateChanged(auth, user => {
   if(user){
     userStatus.textContent = `Logged in as ${user.email}`;
@@ -173,7 +167,6 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// ---------- Show Popup ----------
 function showPopupMessage(message){
   const popup = document.createElement("div");
   popup.className = "popup-message";
@@ -183,7 +176,7 @@ function showPopupMessage(message){
   setTimeout(()=>popup.remove(), 3000);
 }
 
-// ---------- Login with Email Verification Check ----------
+// ✅ LOGIN (Admin Bypass Added)
 loginButton?.addEventListener("click", async () => {
   const email = document.getElementById("login-email").value;
   const password = document.getElementById("login-password").value;
@@ -191,22 +184,23 @@ loginButton?.addEventListener("click", async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    if(!user.emailVerified){
+    const isAdmin = user.uid === ADMIN_UID || user.email === ADMIN_EMAIL;
+
+    if(!user.emailVerified && !isAdmin){
       alert("Please verify your email before logging in. Check your inbox.");
-      await sendEmailVerification(user); // optional: resend verification email
       await signOut(auth);
       return;
     }
 
     showPopupMessage("Login successful!");
     loginForm.reset();
-    window.location.href = "index.html"; // redirect after login
+    window.location.href = "index.html";
   } catch (err) {
     alert("Login failed: " + err.message);
   }
 });
 
-// ---------- Signup with Email Verification ----------
+// Signup remains unchanged (still sends verification)
 signupForm?.addEventListener("submit", async e => {
   e.preventDefault();
   const firstName = document.getElementById("signup-firstname").value.trim();
@@ -229,7 +223,6 @@ signupForm?.addEventListener("submit", async e => {
     const user = userCredential.user;
     await updateProfile(user, { displayName: firstName + " " + lastName });
 
-    // ✅ Save additional user info in Firestore using uid as doc ID
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       firstName,
@@ -244,15 +237,12 @@ signupForm?.addEventListener("submit", async e => {
       createdAt: serverTimestamp()
     });
 
-    // ✅ Send email verification
     await sendEmailVerification(user, {
-      url: window.location.origin + '/create_account.html' // after verification redirect here (sign in)
+      url: window.location.origin + '/create_account.html'
     });
 
     showPopupMessage("Account created! Check your email to verify before signing in.");
     signupForm.reset();
-
-    // Do NOT auto redirect to dashboard until verified
   } catch (err) {
     alert("Signup failed: " + err.message);
   }
