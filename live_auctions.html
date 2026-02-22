@@ -559,8 +559,8 @@ function toggleMenu() {
 // ADDED: Stripe integration – first bid card save + bid placement
 // ────────────────────────────────────────────────
 
-// REPLACE 'pk_live_xxxxxxxxxxxxxxxxxxxxxxxx' with YOUR REAL Stripe publishable key
-const stripe = Stripe('pk_live_xxxxxxxxxxxxxxxxxxxxxxxx');
+// Your real test publishable key:
+const stripe = Stripe('pk_test_51T3d6HF7tJn4gBxvucuqimQmfg71cDpalXYwLWSqjWeczJeP6ac7AWkT8CbCTXQVv2fvyegcsEKqoQFrQApkQjrr00udGl6Q3Z');
 const elements = stripe.elements();
 
 // Mount Stripe card element when form becomes visible
