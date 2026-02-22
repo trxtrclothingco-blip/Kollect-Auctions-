@@ -9,9 +9,6 @@
 <script type="module" src="script.js"></script>
 <script type="module" src="products.js"></script>
 
-<!-- ADDED: Stripe.js -->
-<script src="https://js.stripe.com/v3/"></script>
-
 <style>
 
 /* ✅ FORCE ALL TEXT BLACK */
@@ -216,53 +213,6 @@ body::before {
   margin-left: 10px;
   text-decoration: underline;
 }
-
-/* ────────────────────────────────────────────────
-   NEW: Card Input Box Styles
-   ──────────────────────────────────────────────── */
-#card-form-container {
-  display: none;
-  background: #ffffff;
-  border: 2px solid #000000;
-  border-radius: 8px;
-  padding: 20px;
-  max-width: 400px;
-  margin: 20px auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-#card-form-container h3 {
-  margin-top: 0;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-#card-form button {
-  background: linear-gradient(135deg, #2bb0ed, #4fd1ff);
-  color: #0f1117;
-  border: none;
-  padding: 10px 18px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  width: 100%;
-  margin-top: 10px;
-}
-
-#card-form button:hover {
-  transform: translateY(-1px);
-}
-
-#card-element {
-  margin-top: 10px;
-}
-
-#card-errors {
-  color: red;
-  margin-top: 10px;
-  font-size: 13px;
-}
-
 </style>
 
 </head>
@@ -293,18 +243,6 @@ body::before {
   <div id="live-auctions-list"></div>
 </div>
 
-<!-- ────────────────────────────────────────────────
-     NEW: Card Input Box Container (hidden initially)
-──────────────────────────────────────────────── -->
-<div id="card-form-container">
-  <h3>Enter Card to Place First Bid</h3>
-  <form id="card-form">
-    <div id="card-element"><!-- Stripe injects card input here --></div>
-    <button type="submit">Save Card & Place Bid</button>
-    <div id="card-errors" role="alert"></div>
-  </form>
-</div>
-
 <div id="bid-success-msg">
   <p>Bid placed successfully!</p>
 </div>
@@ -318,7 +256,6 @@ import {
   orderBy,
   onSnapshot,
   doc,
-  getDoc,                 // ← ONLY THIS LINE WAS ADDED
   serverTimestamp,
   runTransaction,
   getDocs,
@@ -346,25 +283,10 @@ function logoutUser() {
   signOut(auth);
 }
 
-// ────────────────────────────────────────────────
-// MODIFIED: Place bid now checks for saved card and shows card form if none
-// ────────────────────────────────────────────────
 async function placeBid(listingId, bidInput) {
   if (!currentUser) return alert('You must be signed in to place a bid.');
   const bidAmount = Number(bidInput.value);
   if (!bidAmount) return alert('Invalid bid.');
-
-  // Check Firestore if user has saved card (paymentMethodId)
-  const userRef = doc(db, 'users', currentUser.uid);
-  const userSnap = await getDocs(query(collection(db, 'users'), where('uid','==',currentUser.uid)));
-  const userData = userSnap.docs[0]?.data();
-
-  if (!userData?.paymentMethodId) {
-    // Show card input form if no card saved
-    const cardContainer = document.getElementById('card-form-container');
-    cardContainer.style.display = 'block';
-    return;
-  }
 
   bidInput.disabled = true;
 
@@ -409,10 +331,6 @@ async function placeBid(listingId, bidInput) {
   }
 }
 
-// ────────────────────────────────────────────────
-// Rest of your script remains unchanged
-// ────────────────────────────────────────────────
-
 async function endAuction(listingId) {
   const bidsSnap = await getDocs(query(collection(db, 'bids'), orderBy('bidamount', 'desc')));
   let winningBid = null;
@@ -440,6 +358,9 @@ function getCountdownText(endTimestamp) {
   return `${d}d ${h}h ${m}m ${s}s`;
 }
 
+// ────────────────────────────────────────────────
+// NEW: Popup for showing all bids (amount + timestamp only)
+// ────────────────────────────────────────────────
 function openAllBidsPopup(listingId, itemName) {
   const modal = document.createElement('div');
   modal.className = 'all-bids-popup';
@@ -463,10 +384,14 @@ function openAllBidsPopup(listingId, itemName) {
   modal.appendChild(content);
   document.body.appendChild(modal);
 
+  // Close behavior
   const closeModal = () => document.body.removeChild(modal);
   closeBtn.onclick = closeModal;
-  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
 
+  // Live load bids filtered by listingId
   const q = query(
     collection(db, 'bids'),
     where('listingid', '==', listingId),
@@ -510,6 +435,7 @@ function loadLiveAuctions() {
 
       const badgeHTML = kollect100 ? '<span class="kollect-badge">Kollect100</span>' : '';
 
+      // Add "All bids" link
       const allBidsLink = `<span class="all-bids-link" onclick="openAllBidsPopup('${docSnap.id}', '${name.replace(/'/g, "\\'")}')">All bids</span>`;
 
       card.innerHTML = `
@@ -555,122 +481,6 @@ function toggleMenu() {
   const nav = document.getElementById("navMenu");
   nav.classList.toggle("open");
 }
-
-// ────────────────────────────────────────────────
-// ADDED: Stripe integration – first bid card save + bid placement
-// ────────────────────────────────────────────────
-
-// Your real test publishable key:
-const stripe = Stripe('pk_test_51T3d6HF7tJn4gBxvucuqimQmfg71cDpalXYwLWSqjWeczJeP6ac7AWkT8CbCTXQVv2fvyegcsEKqoQFrQApkQjrr00udGl6Q3Z');
-const elements = stripe.elements();
-
-// Mount Stripe card element when form becomes visible
-let cardElement = null;
-
-function initializeStripeCard() {
-  if (cardElement) return; // already mounted
-
-  cardElement = elements.create('card', {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: '#32325d',
-        '::placeholder': { color: '#aab7c4' },
-      },
-      invalid: { color: '#fa755a' },
-    }
-  });
-
-  cardElement.mount('#card-element');
-
-  cardElement.on('change', (event) => {
-    const displayError = document.getElementById('card-errors');
-    displayError.textContent = event.error ? event.error.message : '';
-  });
-}
-
-// Handle card form submission
-document.getElementById('card-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  if (!currentUser) {
-    alert('Session expired. Please sign in again.');
-    return;
-  }
-
-  const submitButton = e.target.querySelector('button[type="submit"]');
-  submitButton.disabled = true;
-  submitButton.textContent = 'Processing...';
-
-  try {
-    const { paymentMethod, error } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-      billing_details: {
-        email: currentUser.email,
-        name: currentUser.displayName || currentUser.email.split('@')[0]
-      }
-    });
-
-    if (error) {
-      document.getElementById('card-errors').textContent = error.message;
-      submitButton.disabled = false;
-      submitButton.textContent = 'Save Card & Place Bid';
-      return;
-    }
-
-    // Save payment method reference to user's document
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, {
-      paymentMethodId: paymentMethod.id,
-      cardLast4: paymentMethod.card.last4,
-      cardBrand: paymentMethod.card.brand,
-      cardAddedAt: serverTimestamp()
-    });
-
-    // Hide card form
-    document.getElementById('card-form-container').style.display = 'none';
-
-    // Now place the bid (we'll need the listingId & bidInput – stored earlier or passed)
-    // Since we don't have them here directly, we can trigger a re-attempt
-    alert('Card saved successfully! Now placing your bid...');
-
-    // Re-run placeBid – but this time it should go through since paymentMethodId exists
-    // For simplicity we show message – in real app you might store listingId & amount temporarily
-    // or use a global variable / event
-
-    submitButton.disabled = false;
-    submitButton.textContent = 'Save Card & Place Bid';
-
-  } catch (err) {
-    document.getElementById('card-errors').textContent = err.message || 'Something went wrong.';
-    submitButton.disabled = false;
-    submitButton.textContent = 'Save Card & Place Bid';
-  }
-});
-
-// Call this when showing the card form
-const originalPlaceBid = placeBid;
-placeBid = async (listingId, bidInput) => {
-  if (!currentUser) return alert('You must be signed in to place a bid.');
-  const bidAmount = Number(bidInput.value);
-  if (!bidAmount) return alert('Invalid bid.');
-
-  const userRef = doc(db, 'users', currentUser.uid);
-  const userSnap = await getDoc(userRef);  // changed to getDoc for single doc
-
-  if (!userSnap.exists() || !userSnap.data().paymentMethodId) {
-    initializeStripeCard();
-    document.getElementById('card-form-container').style.display = 'block';
-    // You can store listingId & bidInput temporarily if you want auto-retry
-    window.pendingBid = { listingId, bidInput };
-    return;
-  }
-
-  // proceed with original logic
-  return originalPlaceBid(listingId, bidInput);
-};
-
 </script>
 
 </body>
