@@ -21,22 +21,17 @@
   position: relative;
 }
 
-/* ⭐ Star button – white with black outline when inactive */
+/* ⭐ Star button – white star with black outline when inactive */
 .star-btn {
   position: absolute;
   top: 12px;
   right: 12px;
-  width: 32px;
-  height: 32px;
-  font-size: 22px;
+  font-size: 32px;
   line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #000000;
-  border-radius: 50%;
-  background: #ffffff;
+  background: transparent;
   color: transparent;
+  -webkit-text-stroke: 1.5px #000000;
+  text-stroke: 1.5px #000000;
   cursor: pointer;
   transition: all 0.18s ease;
   z-index: 10;
@@ -45,15 +40,16 @@
 
 .star-btn::before {
   content: "★";
-  color: #000000;
+  color: #ffffff;
 }
 
 .star-btn.active {
-  background: #000000;
+  -webkit-text-stroke: 0px #000000;
+  text-stroke: 0px #000000;
 }
 
 .star-btn.active::before {
-  color: #ffffff;
+  color: #000000;
 }
 
 /* ⭐ Filter button */
