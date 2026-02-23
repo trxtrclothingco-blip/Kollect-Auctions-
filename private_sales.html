@@ -119,13 +119,12 @@ body::before {
   color: #000 !important;
 }
 
-/* NEW: Blue Buy Now button to match main site button exactly */
+/* UPDATED: Matched to main site .button style (Private Sales button) */
 .buy-now-btn {
-  background: #0066cc !important;
   background: linear-gradient(135deg, #0055bb, #0077ee) !important;
   color: white !important;
   border: none;
-  padding: 12px 20px;
+  padding: 10px 20px !important;          /* ← matched typical .button padding */
   margin-top: 12px;
   font-weight: bold;
   border-radius: 6px;
@@ -135,6 +134,7 @@ body::before {
   transition: all 0.2s ease;
   width: 100%;
   text-align: center;
+  min-width: 120px;                        /* ← helps match flex button feel */
 }
 
 .buy-now-btn:hover {
@@ -183,7 +183,7 @@ body::before {
 <!-- Modal -->
 <div id="itemModal" class="modal">
   <div class="modal-content">
-    <span class="close">&times;</span>
+    <span class="close">×</span>
     <div id="modalBody">
       <img id="modalImage" src="" alt="">
       <h2 id="modalName"></h2>
