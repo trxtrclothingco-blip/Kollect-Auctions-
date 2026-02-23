@@ -55,10 +55,75 @@ body::before {
   background: #ffffff !important;
 }
 
-/* NEW: Basic styling for Buy Now button using Stripe link */
+/* Clickable product name */
+.card h3 {
+  cursor: pointer;
+  margin: 8px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.card h3:hover {
+  color: #0066cc !important;
+}
+
+/* NEW: Modal / Popup Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.7);
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 8% auto;
+  padding: 25px;
+  border: 1px solid #888;
+  width: 90%;
+  max-width: 580px;
+  border-radius: 10px;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.close {
+  color: #333;
+  float: right;
+  font-size: 36px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 0.8;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+}
+
+.modal img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.modal h2 {
+  margin-top: 0;
+  color: #000 !important;
+}
+
+/* NEW: Blue Buy Now button to match site style */
 .buy-now-btn {
-  background: linear-gradient(135deg, #28a745, #34d058);
-  color: #ffffff !important;
+  background: #0066cc !important;
+  background: linear-gradient(135deg, #0055bb, #0077ee) !important;
+  color: white !important;
   border: none;
   padding: 12px 20px;
   margin-top: 12px;
@@ -74,7 +139,8 @@ body::before {
 
 .buy-now-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.35);
+  background: linear-gradient(135deg, #0050aa, #0066dd) !important;
 }
 
 .no-link-msg {
@@ -114,9 +180,45 @@ body::before {
   <div id="private-sales-list"></div>
 </div>
 
+<!-- Modal -->
+<div id="itemModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="modalBody">
+      <img id="modalImage" src="" alt="">
+      <h2 id="modalName"></h2>
+      <p id="modalDescription"></p>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { db } from './firebase.js';
   import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+  const modal = document.getElementById('itemModal');
+  const modalImage = document.getElementById('modalImage');
+  const modalName = document.getElementById('modalName');
+  const modalDescription = document.getElementById('modalDescription');
+
+  function showModal(name, description, image) {
+    modalImage.src = image || '';
+    modalImage.style.display = image ? 'block' : 'none';
+    modalName.textContent = name;
+    modalDescription.textContent = description || 'No description available.';
+    modal.style.display = 'block';
+  }
+
+  window.closeModal = function() {
+    modal.style.display = 'none';
+  }
+
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+    if (event.target === modal) {
+      closeModal();
+    }
+  }
 
   async function loadPrivateSales() {
     const privateSalesList = document.getElementById('private-sales-list');
@@ -144,7 +246,7 @@ body::before {
 
         card.innerHTML = `
           <img src="${image}" alt="${name}">
-          <h3>${name}</h3>
+          <h3 onclick="showModal('${name.replace(/'/g, "\\'")}', '${(description || '').replace(/'/g, "\\'")}', '${image || ''}')">${name}</h3>
           <p>Price: £${price.toFixed(2)}</p>
           ${buyNowSection}
         `;
