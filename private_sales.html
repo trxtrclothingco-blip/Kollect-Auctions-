@@ -119,28 +119,26 @@ body::before {
   color: #000 !important;
 }
 
-/* UPDATED: Matched to main site .button style (Private Sales button) */
+/* ✅ UPDATED: Buy Now button now EXACTLY matches dashboardButton */
 .buy-now-btn {
-  background: linear-gradient(135deg, #0055bb, #0077ee) !important;
-  color: white !important;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #2bb0ed, #4fd1ff) !important;
+  color: #0f1117 !important;
   border: none;
-  padding: 10px 20px !important;          /* ← matched typical .button padding */
-  margin-top: 12px;
-  font-weight: bold;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: 0 0 10px rgba(43, 176, 237, 0.4);
   text-decoration: none;
   display: inline-block;
-  transition: all 0.2s ease;
   width: 100%;
   text-align: center;
-  min-width: 120px;                        /* ← helps match flex button feel */
+  margin-top: 12px;
 }
 
 .buy-now-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.35);
-  background: linear-gradient(135deg, #0050aa, #0066dd) !important;
 }
 
 .no-link-msg {
@@ -183,7 +181,7 @@ body::before {
 <!-- Modal -->
 <div id="itemModal" class="modal">
   <div class="modal-content">
-    <span class="close">×</span>
+    <span class="close">&times;</span>
     <div id="modalBody">
       <img id="modalImage" src="" alt="">
       <h2 id="modalName"></h2>
@@ -216,7 +214,6 @@ body::before {
 
   closeBtn.addEventListener('click', closeModal);
 
-  // Close modal when clicking outside content
   modal.addEventListener('click', (event) => {
     if (event.target === modal) {
       closeModal();
@@ -225,7 +222,7 @@ body::before {
 
   async function loadPrivateSales() {
     const privateSalesList = document.getElementById('private-sales-list');
-    privateSalesList.innerHTML = ''; // Clear existing content
+    privateSalesList.innerHTML = '';
 
     try {
       const querySnapshot = await getDocs(collection(db, 'privatesales'));
@@ -253,7 +250,6 @@ body::before {
           ${buyNowSection}
         `;
 
-        // Make the <h3> clickable
         const title = card.querySelector('h3');
         title.addEventListener('click', () => {
           showModal(
