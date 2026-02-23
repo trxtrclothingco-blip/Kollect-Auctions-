@@ -580,10 +580,21 @@ window.openAllBidsPopup = openAllBidsPopup;
 document.addEventListener('DOMContentLoaded', () => {
   const filterBtn = document.getElementById('star-filter-btn');
 
+  // NEW: Load persisted filter state from localStorage
+  const savedFilter = localStorage.getItem('showStarredOnly');
+  if (savedFilter !== null) {
+    showStarredOnly = savedFilter === 'true';
+    filterBtn.classList.toggle('active', showStarredOnly);
+    filterBtn.textContent = showStarredOnly ? '★ Starred (showing)' : '★ Starred';
+  }
+
   filterBtn.addEventListener('click', () => {
     showStarredOnly = !showStarredOnly;
     filterBtn.classList.toggle('active', showStarredOnly);
     filterBtn.textContent = showStarredOnly ? '★ Starred (showing)' : '★ Starred';
+
+    // NEW: Save to localStorage whenever toggled
+    localStorage.setItem('showStarredOnly', showStarredOnly);
 
     document.querySelectorAll('.card').forEach(card => {
       const star = card.querySelector('.star-btn');
@@ -703,9 +714,12 @@ function loadLiveAuctions() {
           }
         });
 
+        // NEW: Re-apply persisted filter after stars are loaded
         if (showStarredOnly) {
-          document.getElementById('star-filter-btn').click();
-          document.getElementById('star-filter-btn').click();
+          document.querySelectorAll('.card').forEach(card => {
+            const star = card.querySelector('.star-btn');
+            card.style.display = star?.classList.contains('active') ? '' : 'none';
+          });
         }
       });
     }
