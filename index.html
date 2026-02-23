@@ -290,11 +290,13 @@ searchBtn.addEventListener("click", async () => {
     const imageTag = item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : "";
     const kollectBadge = item.kollect100 ? `<div class="kollect-badge">Kollect100</div>` : "";
 
+    // ✅ Added description display
     searchResults.innerHTML += `
       <div class="card">
         ${imageTag}
         ${kollectBadge}
         <h3>${item.name || "Unnamed Item"}</h3>
+        <p>${item.description || ""}</p>
         <p>Price: £${price || "?"}</p>
         <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
       </div>
