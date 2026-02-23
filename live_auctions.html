@@ -558,7 +558,7 @@ function loadLiveAuctions() {
       const allBidsLink = `<span class="all-bids-link" onclick="openAllBidsPopup('${docSnap.id}', '${name.replace(/'/g, "\\'")}')">All bids</span>`;
 
       card.innerHTML = `
-        <button class="star-btn" data-id="${docSnap.id}">★</button>
+        <button class="star-btn" data-id="${docSnap.id}"></button>
         <img src="${image}" alt="${name}">
         <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
