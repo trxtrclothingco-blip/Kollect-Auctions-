@@ -101,6 +101,12 @@ itemForm.addEventListener("submit", async (e) => {
       createdat: serverTimestamp()
     };
 
+    // NEW: Save Stripe Checkout link if provided (mainly for private sales)
+    const stripeLink = formData.get("stripe_checkout_link")?.trim();
+    if (stripeLink) {
+      data.stripeLink = stripeLink;
+    }
+
     if (saleType === "live_auctions") {
       const auctionStart = formData.get("auctionstart");
       const auctionEnd = formData.get("auctionend");
@@ -219,6 +225,9 @@ window.editItem = async (id, col) => {
   document.querySelector('[name="sale_type"]').value = d.saletype || "";
   document.querySelector('[name="kollect100"]').checked = d.kollect100 || false;
   document.getElementById("item_id").value = id;
+
+  // NEW: Populate Stripe link field when editing
+  document.querySelector('[name="stripe_checkout_link"]').value = d.stripeLink || "";
 
   if (d.saletype === "live_auctions" || d.saletype === "kollect_100") {
     auctionFields.style.display = "block";
@@ -339,7 +348,7 @@ winnerModal.style.padding = "20px";
 winnerModal.style.border = "2px solid #000";
 winnerModal.style.zIndex = "1000";
 winnerModal.innerHTML = `
-  <span id="close-winner-modal" style="cursor:pointer; float:right;">&times;</span>
+  <span id="close-winner-modal" style="cursor:pointer; float:right;">×</span>
   <div id="winner-modal-content" style="color: black;"></div>
 `;
 document.body.appendChild(winnerModal);
