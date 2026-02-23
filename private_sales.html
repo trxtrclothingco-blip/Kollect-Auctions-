@@ -183,7 +183,7 @@ body::before {
 <!-- Modal -->
 <div id="itemModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeModal()">&times;</span>
+    <span class="close">&times;</span>
     <div id="modalBody">
       <img id="modalImage" src="" alt="">
       <h2 id="modalName"></h2>
@@ -200,6 +200,7 @@ body::before {
   const modalImage = document.getElementById('modalImage');
   const modalName = document.getElementById('modalName');
   const modalDescription = document.getElementById('modalDescription');
+  const closeBtn = document.querySelector('.modal .close');
 
   function showModal(name, description, image) {
     modalImage.src = image || '';
@@ -209,16 +210,18 @@ body::before {
     modal.style.display = 'block';
   }
 
-  window.closeModal = function() {
+  function closeModal() {
     modal.style.display = 'none';
   }
 
-  // Close modal when clicking outside
-  window.onclick = function(event) {
+  closeBtn.addEventListener('click', closeModal);
+
+  // Close modal when clicking outside content
+  modal.addEventListener('click', (event) => {
     if (event.target === modal) {
       closeModal();
     }
-  }
+  });
 
   async function loadPrivateSales() {
     const privateSalesList = document.getElementById('private-sales-list');
@@ -239,17 +242,26 @@ body::before {
         const card = document.createElement('div');
         card.classList.add('card');
 
-        // Use stripeLink if it exists, otherwise show fallback message
         const buyNowSection = stripeLink
           ? `<a href="${stripeLink}" target="_blank" rel="noopener noreferrer" class="buy-now-btn">Buy Now</a>`
           : `<div class="no-link-msg">Contact for purchase</div>`;
 
         card.innerHTML = `
-          <img src="${image}" alt="${name}">
-          <h3 onclick="showModal('${name.replace(/'/g, "\\'")}', '${(description || '').replace(/'/g, "\\'")}', '${image || ''}')">${name}</h3>
-          <p>Price: £${price.toFixed(2)}</p>
+          <img src="${image || ''}" alt="${name || 'Item'}">
+          <h3>${name || 'Unnamed Item'}</h3>
+          <p>Price: £${Number(price || 0).toFixed(2)}</p>
           ${buyNowSection}
         `;
+
+        // Make the <h3> clickable
+        const title = card.querySelector('h3');
+        title.addEventListener('click', () => {
+          showModal(
+            name || 'Unnamed Item',
+            description || 'No description available.',
+            image || ''
+          );
+        });
 
         privateSalesList.appendChild(card);
       });
