@@ -275,15 +275,14 @@ searchBtn.addEventListener("click", async () => {
     const name = (item.name || "").toLowerCase();
     const description = (item.description || "").toLowerCase();
 
-    // Stricter filtering: require match in name (primary), or in description (secondary)
+    // ✅ Updated: Apply search filter to BOTH auctions and private sales
     const matches = name.includes(searchText) || description.includes(searchText);
+    if (!matches) return; // skip items that don't match
 
     if (type === "auction") {
       if (item.pricetype !== "auction") return;
       if (item.status !== "live") return;
     }
-
-    if (!matches) return;
 
     foundAny = true;
 
