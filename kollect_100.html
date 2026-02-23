@@ -175,7 +175,7 @@ button:hover {
 
 <script>
 (function(){
-  emailjs.init("YOUR_PUBLIC_KEY");
+  emailjs.init("Fx2CfwymZU9f86Gfl");
 })();
 
 function sendEmail() {
@@ -187,11 +187,12 @@ function sendEmail() {
     message: document.getElementById("message").value
   };
 
-  emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", params)
+  emailjs.send("service_n5frahn", "template_z743tz9", params)
   .then(function(response) {
       alert("Message sent successfully!");
   }, function(error) {
       alert("Failed to send message.");
+      console.log(error);
   });
 }
 
