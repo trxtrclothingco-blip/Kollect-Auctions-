@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Support – Kollect</title>
 <link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
@@ -38,6 +40,11 @@ body::before {
 .nav-menu {
   background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(10px);
+}
+
+/* Burger icon black */
+.burger div {
+  background-color: #000000 !important;
 }
 
 /* CONTAINER */
@@ -92,6 +99,24 @@ button:hover {
 </head>
 
 <body>
+
+<!-- ✅ Burger Menu Added -->
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<!-- ✅ Nav Menu Added -->
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="about.html">About Us</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="kollect_100.html">Watchlist ⭐️</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="results.html">Results</a>
+  <a href="create_account.html">Sign In</a>
+</nav>
 
 <div class="container">
 
@@ -181,6 +206,12 @@ function sendEmail() {
   }, function(error) {
       alert("Failed to send message.");
   });
+}
+
+/* ✅ Burger toggle function added */
+function toggleMenu() {
+  const nav = document.getElementById("navMenu");
+  nav.classList.toggle("open");
 }
 </script>
 
