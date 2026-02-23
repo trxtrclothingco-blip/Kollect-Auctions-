@@ -16,6 +16,63 @@
   color: #000000 !important;
 }
 
+/* ⭐ Make card relative so we can position the star absolutely */
+.card {
+  position: relative;
+}
+
+/* ⭐ Star button – white with black outline when inactive */
+.star-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #000000;
+  border-radius: 50%;
+  background: #ffffff;
+  color: transparent;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  z-index: 10;
+  user-select: none;
+}
+
+.star-btn::before {
+  content: "★";
+  color: #000000;
+}
+
+.star-btn.active {
+  background: #000000;
+}
+
+.star-btn.active::before {
+  color: #ffffff;
+}
+
+/* ⭐ Filter button */
+#star-filter-btn {
+  margin: 16px 0 20px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#star-filter-btn.active {
+  background: #000000;
+  color: #ffffff !important;
+}
+
 /* ✅ PAGE BACKGROUND IMAGE FULL SCREEN FILL USING body::before */
 body {
   margin: 0;
@@ -240,6 +297,10 @@ body::before {
 <div class="container">
   <img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
   <h1 class="live-auctions-title">Live Auctions</h1>
+
+  <!-- Star filter button -->
+  <button id="star-filter-btn">★ Starred</button>
+
   <div id="live-auctions-list"></div>
 </div>
 
@@ -259,11 +320,14 @@ import {
   serverTimestamp,
   runTransaction,
   getDocs,
-  updateDoc
+  updateDoc,
+  setDoc,
+  deleteDoc
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
 let currentUser = null;
+let showStarredOnly = false;
 
 onAuthStateChanged(auth, (user) => {
   const status = document.getElementById('user-status');
@@ -417,6 +481,66 @@ function openAllBidsPopup(listingId, itemName) {
 
 window.openAllBidsPopup = openAllBidsPopup;
 
+// ────────────────────────────────────────────────
+// Star filter logic
+// ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const filterBtn = document.getElementById('star-filter-btn');
+
+  filterBtn.addEventListener('click', () => {
+    showStarredOnly = !showStarredOnly;
+    filterBtn.classList.toggle('active', showStarredOnly);
+    filterBtn.textContent = showStarredOnly ? '★ Starred (showing)' : '★ Starred';
+
+    document.querySelectorAll('.card').forEach(card => {
+      const star = card.querySelector('.star-btn');
+      if (showStarredOnly) {
+        card.style.display = star?.classList.contains('active') ? '' : 'none';
+      } else {
+        card.style.display = '';
+      }
+    });
+  });
+});
+
+// ────────────────────────────────────────────────
+// Star click → save/remove from watchlist
+// ────────────────────────────────────────────────
+document.addEventListener('click', async e => {
+  if (!e.target.classList.contains('star-btn')) return;
+  if (!currentUser) {
+    alert('Please sign in to use the watchlist.');
+    return;
+  }
+
+  const listingId = e.target.dataset.id;
+  if (!listingId) return;
+
+  const ref = doc(db, 'users', currentUser.uid, 'watchlist', listingId);
+
+  try {
+    if (e.target.classList.contains('active')) {
+      await deleteDoc(ref);
+      e.target.classList.remove('active');
+    } else {
+      await setDoc(ref, {
+        addedAt: serverTimestamp(),
+        listingId
+      });
+      e.target.classList.add('active');
+    }
+
+    // Optional: re-apply filter if active
+    if (showStarredOnly) {
+      document.getElementById('star-filter-btn').click();
+      document.getElementById('star-filter-btn').click();
+    }
+  } catch (err) {
+    console.error('Watchlist toggle failed:', err);
+    alert('Could not update watchlist.');
+  }
+});
+
 function loadLiveAuctions() {
   const list = document.getElementById('live-auctions-list');
   const q = query(collection(db, 'listings'), orderBy('createdat', 'desc'));
@@ -439,6 +563,7 @@ function loadLiveAuctions() {
       const allBidsLink = `<span class="all-bids-link" onclick="openAllBidsPopup('${docSnap.id}', '${name.replace(/'/g, "\\'")}')">All bids</span>`;
 
       card.innerHTML = `
+        <button class="star-btn" data-id="${docSnap.id}">★</button>
         <img src="${image}" alt="${name}">
         <h3>${name} ${badgeHTML}</h3>
         <p>${description || ''}</p>
@@ -472,6 +597,25 @@ function loadLiveAuctions() {
 
       list.appendChild(card);
     });
+
+    // After cards are rendered → load current watchlist state
+    if (currentUser) {
+      const watchlistQuery = query(collection(db, 'users', currentUser.uid, 'watchlist'));
+      onSnapshot(watchlistQuery, snap => {
+        const starredIds = new Set(snap.docs.map(d => d.id));
+        document.querySelectorAll('.star-btn').forEach(btn => {
+          if (starredIds.has(btn.dataset.id)) {
+            btn.classList.add('active');
+          }
+        });
+
+        // Re-apply filter if it's currently on
+        if (showStarredOnly) {
+          document.getElementById('star-filter-btn').click();
+          document.getElementById('star-filter-btn').click();
+        }
+      });
+    }
   });
 }
 
