@@ -174,43 +174,78 @@ itemForm.addEventListener("submit", async (e) => {
   }
 });
 
-/* ---------- Load Items (LIVE ONLY) ---------- */
+/* ---------- Load Items (LIVE ONLY) with Search ---------- */
 const itemsList = document.getElementById("items-list");
+let allPrivateSales = [];
+let allListings = [];
 
-function loadItems() {
+function renderItems() {
   itemsList.innerHTML = "";
 
-  const sections = [
-    { title: "PRIVATE SALES", col: "privatesales" },
-    { title: "LISTINGS (AUCTIONS / KOLLECT)", col: "listings" }
-  ];
+  const searchTerm = document.getElementById("items-search")?.value.toLowerCase().trim() || "";
 
-  sections.forEach(({ title, col }) => {
-    const section = document.createElement("div");
-    section.innerHTML = `<h4>${title}</h4>`;
-    itemsList.appendChild(section);
+  // PRIVATE SALES section
+  const privateSection = document.createElement("div");
+  privateSection.innerHTML = `<h4>PRIVATE SALES</h4>`;
+  const filteredPrivate = allPrivateSales.filter(item =>
+    item.name?.toLowerCase().includes(searchTerm) ||
+    item.description?.toLowerCase().includes(searchTerm)
+  );
+  filteredPrivate.forEach(item => {
+    let kollectHeader = "";
+    if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
+    privateSection.innerHTML += `
+      ${kollectHeader}
+      <p>${item.name} – £${item.price}</p>
+      <button onclick="editItem('${item.id}','privatesales')">Edit</button>
+      <button onclick="deleteItem('${item.id}','privatesales')">Delete</button>
+    `;
+  });
+  itemsList.appendChild(privateSection);
 
-    onSnapshot(collection(db, col), snapshot => {
-      section.innerHTML = `<h4>${title}</h4>`;
+  // LISTINGS section
+  const listingsSection = document.createElement("div");
+  listingsSection.innerHTML = `<h4>LISTINGS (AUCTIONS / KOLLECT)</h4>`;
+  const filteredListings = allListings.filter(item =>
+    item.name?.toLowerCase().includes(searchTerm) ||
+    item.description?.toLowerCase().includes(searchTerm)
+  );
+  filteredListings.forEach(item => {
+    if (item.status === "ended") return;
+    let kollectHeader = "";
+    if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
+    listingsSection.innerHTML += `
+      ${kollectHeader}
+      <p>${item.name} – £${item.price}</p>
+      <button onclick="editItem('${item.id}','listings')">Edit</button>
+      <button onclick="deleteItem('${item.id}','listings')">Delete</button>
+    `;
+  });
+  itemsList.appendChild(listingsSection);
+}
 
-      snapshot.forEach(d => {
-        const item = d.data();
-
-        if (col === "listings" && item.status === "ended") return;
-
-        let kollectHeader = "";
-        if (item.kollect100) kollectHeader = `<h5>Kollect 100</h5>`;
-
-        section.innerHTML += `
-          ${kollectHeader}
-          <p>${item.name} – £${item.price}</p>
-          <button onclick="editItem('${d.id}','${col}')">Edit</button>
-          <button onclick="deleteItem('${d.id}','${col}')">Delete</button>
-        `;
-      });
+function loadItems() {
+  // Load Private Sales
+  onSnapshot(collection(db, "privatesales"), snapshot => {
+    allPrivateSales = [];
+    snapshot.forEach(d => {
+      allPrivateSales.push({ id: d.id, ...d.data() });
     });
+    renderItems();
+  });
+
+  // Load Listings (only live ones for display, but we keep all for filtering)
+  onSnapshot(collection(db, "listings"), snapshot => {
+    allListings = [];
+    snapshot.forEach(d => {
+      allListings.push({ id: d.id, ...d.data() });
+    });
+    renderItems();
   });
 }
+
+// Search bar listener
+document.getElementById("items-search")?.addEventListener("input", renderItems);
 
 /* ---------- Edit / Delete ---------- */
 window.editItem = async (id, col) => {
