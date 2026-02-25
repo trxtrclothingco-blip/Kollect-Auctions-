@@ -53,6 +53,7 @@ body::before {
 .card {
   border: 2px solid #000000 !important;
   background: #ffffff !important;
+  position: relative; /* helps with absolute positioning if needed later */
 }
 
 /* Clickable product name */
@@ -65,6 +66,22 @@ body::before {
 
 .card h3:hover {
   color: #0066cc !important;
+}
+
+/* NEW: Kollect100 badge */
+.kollect100-badge {
+  display: inline-block;
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin: 6px auto 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  text-align: center;
+  width: fit-content;
 }
 
 /* NEW: Modal / Popup Styles */
@@ -181,7 +198,7 @@ body::before {
 <!-- Modal -->
 <div id="itemModal" class="modal">
   <div class="modal-content">
-    <span class="close">&times;</span>
+    <span class="close">×</span>
     <div id="modalBody">
       <img id="modalImage" src="" alt="">
       <h2 id="modalName"></h2>
@@ -234,7 +251,7 @@ body::before {
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        const { name, description, price, image, stripeLink } = data;
+        const { name, description, price, image, stripeLink, kollect100 = false } = data;
 
         const card = document.createElement('div');
         card.classList.add('card');
@@ -243,8 +260,13 @@ body::before {
           ? `<a href="${stripeLink}" target="_blank" rel="noopener noreferrer" class="buy-now-btn">Buy Now</a>`
           : `<div class="no-link-msg">Contact for purchase</div>`;
 
+        const badgeHTML = kollect100 
+          ? `<div class="kollect100-badge">kollect100</div>`
+          : '';
+
         card.innerHTML = `
           <img src="${image || ''}" alt="${name || 'Item'}">
+          ${badgeHTML}
           <h3>${name || 'Unnamed Item'}</h3>
           <p>Price: £${Number(price || 0).toFixed(2)}</p>
           ${buyNowSection}
