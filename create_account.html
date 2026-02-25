@@ -247,6 +247,12 @@ signupForm?.addEventListener("submit", async e => {
   const password = signupForm["signup-password"].value;
   const confirmPassword = signupForm["signup-confirm-password"].value;
 
+  const address1   = signupForm["signup-address1"].value.trim();
+  const address2   = signupForm["signup-address2"].value.trim();
+  const city       = signupForm["signup-city"].value.trim();
+  const postcode   = signupForm["signup-postcode"].value.trim();
+  const contact    = signupForm["signup-contact"].value.trim();
+
   if(password !== confirmPassword) return alert("Passwords do not match!");
 
   try {
@@ -255,8 +261,17 @@ signupForm?.addEventListener("submit", async e => {
     await updateProfile(user, { displayName: firstName + " " + lastName });
 
     await setDoc(doc(db, "users", user.uid), {
-      uid:user.uid,
-      firstName,lastName,email,
+      uid: user.uid,
+      firstName,
+      lastName,
+      email,
+      contact,
+      address: {
+        line1: address1,
+        line2: address2 || "",
+        city,
+        postcode
+      },
       createdAt: serverTimestamp()
     });
 
