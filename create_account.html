@@ -266,12 +266,10 @@ signupForm?.addEventListener("submit", async e => {
       lastName,
       email,
       contact,
-      address: {
-        line1: address1,
-        line2: address2 || "",
-        city,
-        postcode
-      },
+      address1,
+      address2: address2 || "",
+      city,
+      postcode,
       createdAt: serverTimestamp()
     });
 
