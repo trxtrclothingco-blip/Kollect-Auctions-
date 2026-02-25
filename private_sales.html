@@ -53,7 +53,22 @@ body::before {
 .card {
   border: 2px solid #000000 !important;
   background: #ffffff !important;
-  position: relative; /* helps with absolute positioning if needed later */
+  position: relative;
+  text-align: center;          /* helps center children horizontally */
+}
+
+/* Image container to keep layout stable */
+.card .image-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.card img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 /* Clickable product name */
@@ -68,16 +83,16 @@ body::before {
   color: #0066cc !important;
 }
 
-/* NEW: Kollect100 badge */
+/* Kollect100 badge - centered under image */
 .kollect100-badge {
   display: inline-block;
   background-color: #000000;
-  color: #ffffff;
+  color: #ffffff !important;     /* white text */
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: 4px;
-  margin: 6px auto 2px;
+  margin: 6px auto 4px auto;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   text-align: center;
@@ -136,7 +151,7 @@ body::before {
   color: #000 !important;
 }
 
-/* ✅ UPDATED: Buy Now button now EXACTLY matches dashboardButton */
+/* Buy Now button */
 .buy-now-btn {
   padding: 6px 12px;
   background: linear-gradient(135deg, #2bb0ed, #4fd1ff) !important;
@@ -265,8 +280,10 @@ body::before {
           : '';
 
         card.innerHTML = `
-          <img src="${image || ''}" alt="${name || 'Item'}">
-          ${badgeHTML}
+          <div class="image-container">
+            <img src="${image || ''}" alt="${name || 'Item'}">
+            ${badgeHTML}
+          </div>
           <h3>${name || 'Unnamed Item'}</h3>
           <p>Price: £${Number(price || 0).toFixed(2)}</p>
           ${buyNowSection}
