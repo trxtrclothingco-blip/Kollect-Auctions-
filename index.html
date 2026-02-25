@@ -153,6 +153,38 @@ body::before {
   background-repeat: no-repeat;
   z-index: -1;
 }
+
+/* NEW: Trusted Marketplace Tagline Container */
+.trusted-tagline {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #000000;
+  border-radius: 12px;
+  padding: 20px 30px;
+  margin: 25px auto 35px auto;
+  max-width: 700px;
+  text-align: center;
+  color: #000000 !important;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.trusted-tagline h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.trusted-tagline p {
+  margin: 4px 0;
+  font-size: 1.1rem;
+}
+
+.trusted-tagline .slogan {
+  margin-top: 14px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
 </style>
 </head>
 
@@ -182,6 +214,13 @@ body::before {
 <!-- Main Container -->
 <div class="container">
   <img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+
+  <!-- NEW: Trusted Marketplace Container (placed below logo, above buttons) -->
+  <div class="trusted-tagline">
+    <h2>The trusted marketplace for Trading Cards.</h2>
+    <p>Built by Collectors for Collectors.</p>
+    <div class="slogan">Bid. Buy. Secure.</div>
+  </div>
 
   <!-- Hero Buttons -->
   <div id="heroButtons">
@@ -312,7 +351,5 @@ searchBtn.addEventListener("click", async () => {
 <!-- Global Notifications JS -->
 <script src="/js/notification.js"></script>
 
-<script src="/js/notification.js"></script>
-  
 </body>
 </html>
