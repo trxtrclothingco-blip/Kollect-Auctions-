@@ -280,6 +280,14 @@ signupForm?.addEventListener("submit", async e => {
     alert("Signup failed: " + err.message);
   }
 });
+
+// ────────────────────────────────────────────────
+// Added: Burger menu toggle functionality
+// ────────────────────────────────────────────────
+function toggleMenu() {
+  const menu = document.getElementById("navMenu");
+  menu.classList.toggle("active");
+}
 </script>
 </body>
 </html>
