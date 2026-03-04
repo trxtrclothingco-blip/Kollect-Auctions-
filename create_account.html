@@ -94,6 +94,51 @@ input, textarea, select {
 .reset-modal button {
   margin:5px;
 }
+
+/* ──────────────────────────────────────────────── */
+/* Added: Rules to make .active toggle actually show the menu */
+/* ──────────────────────────────────────────────── */
+.nav-menu {
+  display: none;
+}
+
+.nav-menu.active {
+  display: block;
+}
+
+/* Optional – improves mobile experience (adjust values to fit your design) */
+@media (max-width: 768px) {
+  .nav-menu {
+    position: absolute;
+    top: 50px;              /* move this down if your burger is taller */
+    left: 0;
+    width: 100%;
+    padding: 20px 0;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+  
+  .nav-menu a {
+    display: block;
+    padding: 12px;
+    font-size: 1.1em;
+  }
+
+  .burger {
+    position: fixed;
+    top: 15px;
+    right: 15px;            /* typical burger position – adjust if needed */
+    z-index: 1000;
+    cursor: pointer;
+  }
+
+  .burger div {
+    width: 30px;
+    height: 4px;
+    margin: 6px 0;
+    transition: 0.4s;
+  }
+}
 </style>
 </head>
 <body>
