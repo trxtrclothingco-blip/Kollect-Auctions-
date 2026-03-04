@@ -121,6 +121,14 @@ textarea::placeholder {
         <option value="private">Private Sale</option>
       </select>
 
+      <!-- ✅ PROMO CODE FIELD ADDED -->
+      <input
+        type="text"
+        name="promo_code"
+        id="promo_code"
+        placeholder="Enter Promo Code (if applicable)"
+      >
+
       <!-- Social Media URL (optional) -->
       <input
         type="url"
@@ -140,10 +148,7 @@ textarea::placeholder {
   <div class="card" style="margin-top:20px;">
     <h2>Consignment Fees & Auction Process</h2>
     <p>All consignments are subject to a 20% consignment fee (20% of the final sale price)</p>
-    <ul>
-      
-      
-    </ul>
+    <ul></ul>
     <p>All auctions on Kollect are fully transparent and carefully managed to ensure a fair and secure experience for both buyers and sellers. 
       Users provide the details of items they wish to sell, but only the admin uploads and manages the live auction. 
       This means users cannot cheat by uploading fake items or manipulating bids, and admin oversight ensures auctions run smoothly while preventing disputes over bidding errors or misrepresentation.
@@ -161,7 +166,76 @@ textarea::placeholder {
   })();
 </script>
 
+<!-- ✅ AUTH + CONDITIONAL FIRESTORE LOGIC -->
+<script type="module">
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { app } from "./firebase.js";
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+const form = document.getElementById("contact-form");
+const userStatus = document.getElementById("user-status");
+
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    userStatus.innerHTML = "Signed in as: " + user.email;
+    document.getElementById("logout-button").style.display = "inline-block";
+  } else {
+    currentUser = null;
+    userStatus.innerHTML = "You must be signed in to submit a consignment.";
+    document.getElementById("logout-button").style.display = "none";
+  }
+});
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!currentUser) {
+    alert("You must be signed in to submit a consignment.");
+    return;
+  }
+
+  document.getElementById("time").value = new Date().toLocaleString();
+
+  const promoCode = document.getElementById("promo_code").value.trim();
+  const formData = new FormData(form);
+
+  // ✅ Always send EmailJS
+  try {
+    await emailjs.sendForm("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", form);
+  } catch (error) {
+    alert("Email failed to send.");
+    return;
+  }
+
+  // ✅ Only update Firestore if promo code is filled
+  if (promoCode !== "") {
+    const data = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
+
+    data.user_uid = currentUser.uid;
+    data.user_email = currentUser.email;
+    data.submitted_at = serverTimestamp();
+
+    try {
+      await addDoc(collection(db, "promocodes"), data);
+    } catch (error) {
+      console.error("Firestore error:", error);
+    }
+  }
+
+  alert("Consignment submitted successfully.");
+  form.reset();
+});
+</script>
+
 <script src="/js/notification.js"></script>
 
 </body>
-</html>
+</html> 
