@@ -29,23 +29,10 @@ body::before {
   z-index: -1;
 }
 
-.burger div { background-color: #000000 !important; }
-
 .nav-menu {
   background: rgba(255,255,255,0.75) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  display: none; /* hide menu by default */
-  position: absolute;
-  top: 60px;
-  right: 20px;
-  flex-direction: column;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-.nav-menu a {
-  margin: 5px 0;
 }
 
 .card { background: #ffffff !important; }
@@ -108,10 +95,6 @@ input, textarea, select {
 </style>
 </head>
 <body>
-
-<div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
-</div>
 
 <nav class="nav-menu" id="navMenu">
   <a href="index.html">Home</a>
@@ -291,16 +274,6 @@ signupForm?.addEventListener("submit", async e => {
     alert("Signup failed: " + err.message);
   }
 });
-
-/* ✅ BURGER MENU TOGGLE */
-function toggleMenu(){
-  const navMenu = document.getElementById("navMenu");
-  if(navMenu.style.display === "flex"){
-    navMenu.style.display = "none";
-  } else {
-    navMenu.style.display = "flex";
-  }
-}
 </script>
 </body>
 </html>
