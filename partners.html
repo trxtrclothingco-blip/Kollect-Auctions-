@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partners – Kollect100</title>
+<link rel="stylesheet" href="style.css">
+<script type="module" src="firebase.js"></script>
+<script type="module" src="script.js"></script>
+
+<style>
+
+/* FORCE ALL TEXT BLACK */
+* {
+  color: #000000 !important;
+}
+
+/* FULL SCREEN RESPONSIVE BACKGROUND */
+body {
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('IMG_1917.jpeg') no-repeat center center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+}
+
+/* NAV BAR WHITE SEE THROUGH BLURRY */
+.nav-menu {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* BURGER ICON BLACK */
+.burger div {
+  background-color: #000000 !important;
+}
+
+/* PRODUCT / PARTNER CARDS */
+.card {
+  border: 2px solid #000000 !important;
+  background: #ffffff !important;
+  position: relative;
+  text-align: center;
+  padding: 15px;
+  max-width: 320px;
+  margin: 20px auto;
+  border-radius: 6px;
+}
+
+.card img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 10px auto;
+}
+
+.card h3 {
+  margin: 10px 0;
+}
+
+/* Kollect100 badge */
+.kollect100-badge {
+  display: inline-block;
+  background-color: #000000;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* View Channel Button */
+.view-channel-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #2bb0ed, #4fd1ff) !important;
+  color: #0f1117 !important;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 10px;
+  box-shadow: 0 0 10px rgba(43, 176, 237, 0.4);
+  transition: transform 0.2s;
+}
+
+.view-channel-btn:hover {
+  transform: translateY(-2px);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="burger" onclick="toggleMenu()">
+  <div></div><div></div><div></div>
+</div>
+
+<nav class="nav-menu" id="navMenu">
+  <a href="index.html">Home</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="live_auctions.html">Live Auctions</a>
+  <a href="private_sales.html">Private Sales</a>
+  <a href="partners.html">Partners</a>
+  <a href="contact.html">Contact Us</a>
+  <a href="results.html">Results</a>
+  <a href="about.html">About Us</a>
+  <a href="kollect_100.html">Support</a>
+  <a href="create_account.html">Sign In</a>
+</nav>
+
+<div class="container">
+
+<img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+
+<h1>Kollect100 Partners</h1>
+<p>Creators, collectors and communities we proudly collaborate with.</p>
+
+<!-- Partner Card -->
+
+<div class="card">
+
+<div class="kollect100-badge">kollect100 partner</div>
+
+<img src="IMG_2112.jpeg" alt="Kingdom Cards & Collectibles Logo">
+
+<h3>Kingdom Cards & Collectibles</h3>
+
+<p>Trading cards, collectibles and live breaks.</p>
+
+<a href="https://www.tiktok.com/@kingdom_of_cards?_r=1&_t=ZN-94W1wCYffGw"
+target="_blank"
+rel="noopener noreferrer"
+class="view-channel-btn">
+View Channel
+</a>
+
+</div>
+
+</div>
+
+<script src="/js/notification.js"></script>
+
+</body>
+</html>
