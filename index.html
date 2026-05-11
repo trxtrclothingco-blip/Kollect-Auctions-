@@ -1,356 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kollect Auctions</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kollect100 | Coming Soon</title>
 
-<script type="module" src="firebase.js"></script>
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial, Helvetica, sans-serif;
+    }
 
-<!-- ✅ Load saved mode BEFORE page renders (DEFAULT = DARK) -->
-<script>
-(function () {
-  const savedMode = localStorage.getItem("theme");
+    body{
+      height:100vh;
+      overflow:hidden;
+      color:white;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      position:relative;
 
-  if (savedMode === "light") {
-    document.documentElement.classList.add("light-mode");
-  } else {
-    // Default to dark if nothing saved
-    document.documentElement.classList.add("dark-mode");
-  }
-})();
-</script>
+      /* BACKGROUND IMAGE */
+      background:url('background.jpg') center center / cover no-repeat fixed;
+    }
 
-<style>
-/* Hero Buttons Flex Layout */
-#heroButtons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+    /* Dark overlay */
+    body::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,0.65);
+      backdrop-filter:blur(2px);
+      z-index:0;
+    }
 
-#heroButtons .button {
-  flex: 1 1 auto;
-  min-width: 120px;
-  text-align: center;
-  padding: 10px 20px;
-}
+    .container{
+      position:relative;
+      z-index:1;
+      max-width:800px;
+      padding:40px;
+    }
 
-/* Search Results Cards */
-#searchResults {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  margin-top: 20px;
-}
+    .logo{
+      font-size:5rem;
+      font-weight:900;
+      letter-spacing:4px;
+      text-transform:uppercase;
+      margin-bottom:20px;
 
-#searchResults .card {
-  width: 100%;
-  max-width: 220px;
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: center;
-  color: black; /* Updated text color to black */
-  position: relative; /* For Kollect100 badge */
-}
+      background:linear-gradient(90deg,#ff2b2b,#00ff99);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
 
-/* Kollect100 Badge */
-.kollect-badge {
-  display: block;
-  margin: 5px auto; /* Centered under image */
-  background: black;
-  color: white;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 10;
-}
+      animation:glow 3s ease-in-out infinite alternate;
+    }
 
-/* Remove blue border around images */
-img {
-  border: none;
-  outline: none;
-}
+    @keyframes glow{
+      from{
+        filter:drop-shadow(0 0 10px rgba(255,0,0,0.3));
+      }
+      to{
+        filter:drop-shadow(0 0 20px rgba(0,255,153,0.4));
+      }
+    }
 
-/* Search bar text and select color */
-.search-bar input,
-.search-bar select {
-  color: black; /* Updated text color to black */
-}
+    h2{
+      font-size:2rem;
+      margin-bottom:20px;
+      font-weight:600;
+    }
 
-/* ADDED: Placeholder text color */
-.search-bar input::placeholder {
-  color: black;
-}
+    p{
+      color:#d1d1d1;
+      line-height:1.7;
+      margin-bottom:40px;
+      font-size:1.1rem;
+    }
 
-/* ---------- Burger Menu Styles: forced white see-through blurry ---------- */
-.burger {
-  width: 35px !important;
-  height: 30px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: space-between !important;
-  cursor: pointer !important;
-  background: rgba(255, 255, 255, 0.7) !important; /* White see-through */
-  backdrop-filter: blur(10px) !important; /* Blurry */
-  -webkit-backdrop-filter: blur(10px) !important; /* Safari support */
-  padding: 5px !important;
-  border-radius: 5px !important;
-  z-index: 1000 !important; /* On top of everything */
-}
+    .countdown{
+      display:flex;
+      justify-content:center;
+      gap:20px;
+      flex-wrap:wrap;
+      margin-bottom:40px;
+    }
 
-.burger div {
-  width: 100% !important;
-  height: 4px !important;
-  background-color: black !important; /* Burger icon black */
-  border-radius: 2px !important;
-}
+    .time-box{
+      width:110px;
+      padding:20px;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:15px;
+      backdrop-filter:blur(8px);
+    }
 
-/* Navigation Menu (APPLY THE STYLES HERE FOR THE MENU BACKGROUND) */
-.nav-menu {
-  display: none; /* Assume it's hidden by default; adjust based on style.css */
-  position: fixed; /* Or absolute/fixed to overlay the page */
-  top: 0;
-  right: 0;
-  width: 250px; /* Example width for a sidebar menu */
-  height: 100%; /* Full height */
-  background: rgba(255, 255, 255, 0.7) !important; /* White see-through */
-  backdrop-filter: blur(10px) !important; /* Blurry */
-  -webkit-backdrop-filter: blur(10px) !important; /* Safari support */
-  padding: 20px !important;
-  border-radius: 5px 0 0 5px !important; /* Optional rounding */
-  z-index: 999 !important; /* Just below the burger icon */
-  overflow-y: auto; /* Scroll if too long */
-}
+    .time-box h3{
+      font-size:2.2rem;
+      color:#00ff99;
+      margin-bottom:5px;
+    }
 
-/* When menu is open (toggled by JS) */
-.nav-menu.open {
-  display: block !important; /* Make it visible */
-}
+    .time-box span{
+      font-size:0.85rem;
+      letter-spacing:2px;
+      color:#bbb;
+      text-transform:uppercase;
+    }
 
-/* Navigation menu text color */
-.nav-menu a {
-  color: black; /* All writing black */
-  display: block; /* Stack links vertically */
-  margin: 10px 0; /* Spacing */
-  text-decoration: none;
-}
+    .button{
+      display:inline-block;
+      padding:15px 40px;
+      border-radius:50px;
+      text-decoration:none;
+      color:white;
+      font-weight:bold;
+      letter-spacing:1px;
 
-/* ---------- Background Image ---------- */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('IMG_1917.jpeg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  z-index: -1;
-}
+      background:linear-gradient(90deg,#ff2b2b,#00ff99);
 
-/* NEW: Trusted Marketplace Tagline Container */
-.trusted-tagline {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 2px solid #000000;
-  border-radius: 12px;
-  padding: 20px 30px;
-  margin: 25px auto 35px auto;
-  max-width: 700px;
-  text-align: center;
-  color: #000000 !important;
-  font-family: system-ui, -apple-system, sans-serif;
-}
+      transition:0.3s ease;
+    }
 
-.trusted-tagline h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
+    .button:hover{
+      transform:translateY(-3px) scale(1.03);
+      opacity:0.95;
+    }
 
-.trusted-tagline p {
-  margin: 4px 0;
-  font-size: 1.1rem;
-}
+    @media(max-width:768px){
 
-.trusted-tagline .slogan {
-  margin-top: 14px;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-</style>
+      .logo{
+        font-size:3rem;
+      }
+
+      h2{
+        font-size:1.5rem;
+      }
+
+      p{
+        font-size:1rem;
+      }
+
+      .time-box{
+        width:85px;
+        padding:15px;
+      }
+
+      .time-box h3{
+        font-size:1.7rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- Burger Menu -->
-<div class="burger" onclick="toggleMenu()">
-  <div></div><div></div><div></div>
-</div>
+  <div class="container">
 
-<!-- Navigation -->
-<nav class="nav-menu" id="navMenu">
-  <a href="index.html">Home</a>
-  <a href="dashboard.html" id="dashboardNav" style="display:none;">Dashboard</a>
-  <a href="live_auctions.html">Live Auctions</a>
-  <a href="private_sales.html">Private Sales</a>
-  <a href="contact.html">Sell with us</a>
-  <a href="results.html">Results</a>
-  <a href="partners.html">Partners</a>
-  <a href="about.html">About Us</a>
-  <a href="kollect_100.html">Support</a>
-  <a href="create_account.html">Sign In</a>
-</nav>
+    <div class="logo">KOLLECT100</div>
 
-<!-- User Status -->
-<div id="user-status">Checking login status...</div>
+    <h2>COMING SOON</h2>
 
-<!-- Main Container -->
-<div class="container">
-  <img src="IMG_1840.jpeg" alt="Kollect Auctions Logo" class="hero-image">
+    <p>
+      Live Pokémon breaks, football cards, exclusive collectibles,
+      giveaways, and a community built for collectors.
+      Kollect100 launches soon.
+    </p>
 
-  <!-- NEW: Trusted Marketplace Container (placed below logo, above buttons) -->
-  <div class="trusted-tagline">
-    <h2>The trusted marketplace for Trading Cards.</h2>
-    <p>Built by Collectors for Collectors.</p>
-    <div class="slogan">Bid. Buy. Secure.</div>
-  </div>
+    <div class="countdown">
 
-  <!-- Hero Buttons -->
-  <div id="heroButtons">
-    <a href="private_sales.html" class="button">Private Sales</a>
-    <a href="live_auctions.html" class="button">Live Auctions</a>
-    <a href="dashboard.html" class="button" id="dashboardButton" style="display:none;">Dashboard</a>
-  </div>
-
-  <!-- Simplified Search Bar -->
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Search items...">
-    <select id="typeSelect">
-      <option value="auction">Auction</option>
-      <option value="private">Private Sale</option>
-    </select>
-    <button class="button" id="searchBtn">Search</button>
-  </div>
-
-  <!-- Search Results -->
-  <div id="searchResults"></div>
-</div>
-
-<script type="module">
-import { db } from './firebase.js';
-import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { auth } from './firebase.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-const userStatus = document.getElementById("user-status");
-const dashboardBtn = document.getElementById("dashboardButton");
-const dashboardNav = document.getElementById("dashboardNav");
-const searchBtn = document.getElementById("searchBtn");
-const searchInput = document.getElementById("searchInput");
-const typeSelect = document.getElementById("typeSelect");
-const searchResults = document.getElementById("searchResults");
-
-// ---------- Auth ----------
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    userStatus.textContent = `Logged in as ${user.email}`;
-    dashboardBtn.style.display = "inline-block";
-    dashboardNav.style.display = "inline-block";
-  } else {
-    userStatus.textContent = "";
-    dashboardBtn.style.display = "none";
-    dashboardNav.style.display = "none";
-  }
-});
-
-// ---------- Burger ----------
-window.toggleMenu = () => {
-  document.getElementById("navMenu").classList.toggle("open");
-};
-
-// ---------- Dark / Light Mode ----------
-window.toggleMode = () => {
-  const root = document.documentElement;
-
-  if (root.classList.contains("dark-mode")) {
-    root.classList.remove("dark-mode");
-    root.classList.add("light-mode");
-    localStorage.setItem("theme", "light");
-  } else {
-    root.classList.remove("light-mode");
-    root.classList.add("dark-mode");
-    localStorage.setItem("theme", "dark");
-  }
-};
-
-// ---------- Search Function ----------
-searchBtn.addEventListener("click", async () => {
-  const searchText = searchInput.value.trim().toLowerCase();
-  const type = typeSelect.value;
-  searchResults.innerHTML = "";
-
-  if (!searchText) {
-    searchResults.innerHTML = '<p>Please enter a search term.</p>';
-    return;
-  }
-
-  const collName = type === "private" ? "privatesales" : "listings";
-  const pageUrl = type === "private" ? "private_sales.html" : "live_auctions.html";
-  const q = query(collection(db, collName));
-  const snapshot = await getDocs(q);
-
-  let foundAny = false;
-
-  snapshot.forEach(docSnap => {
-    const item = docSnap.data();
-    const docId = docSnap.id;
-    const name = (item.name || "").toLowerCase();
-    const description = (item.description || "").toLowerCase();
-
-    // ✅ Updated: Apply search filter to BOTH auctions and private sales
-    const matches = name.includes(searchText) || description.includes(searchText);
-    if (!matches) return; // skip items that don't match
-
-    if (type === "auction") {
-      if (item.pricetype !== "auction") return;
-      if (item.status !== "live") return;
-    }
-
-    foundAny = true;
-
-    const price = type === "auction" ? (item.winningbid || item.price) : item.price;
-    const imageTag = item.image ? `<img src="${item.image}" style="width:100%;max-width:200px;">` : "";
-    const kollectBadge = item.kollect100 ? `<div class="kollect-badge">Kollect100</div>` : "";
-
-    // ✅ Added description display
-    searchResults.innerHTML += `
-      <div class="card">
-        ${imageTag}
-        ${kollectBadge}
-        <h3>${item.name || "Unnamed Item"}</h3>
-        <p>${item.description || ""}</p>
-        <p>Price: £${price || "?"}</p>
-        <button class="button" onclick="window.location='${pageUrl}#${docId}'">View Item</button>
+      <div class="time-box">
+        <h3 id="days">00</h3>
+        <span>Days</span>
       </div>
-    `;
-  });
 
-  if (!foundAny) {
-    searchResults.innerHTML = '<p>No matching items found.</p>';
-  }
-});
-</script>
+      <div class="time-box">
+        <h3 id="hours">00</h3>
+        <span>Hours</span>
+      </div>
 
-<!-- Global Notifications JS -->
-<script src="/js/notification.js"></script>
+      <div class="time-box">
+        <h3 id="minutes">00</h3>
+        <span>Minutes</span>
+      </div>
+
+      <div class="time-box">
+        <h3 id="seconds">00</h3>
+        <span>Seconds</span>
+      </div>
+
+    </div>
+
+    <a href="#" class="button">Launching Soon</a>
+
+  </div>
+
+  <script>
+
+    // SET YOUR LAUNCH DATE HERE
+    const launchDate = new Date("July 1, 2026 00:00:00").getTime();
+
+    const countdown = setInterval(() => {
+
+      const now = new Date().getTime();
+      const distance = launchDate - now;
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      document.getElementById("days").innerHTML = days;
+      document.getElementById("hours").innerHTML = hours;
+      document.getElementById("minutes").innerHTML = minutes;
+      document.getElementById("seconds").innerHTML = seconds;
+
+      if(distance < 0){
+        clearInterval(countdown);
+
+        document.querySelector(".countdown").innerHTML = `
+          <h2 style="color:#00ff99;">WE ARE LIVE</h2>
+        `;
+      }
+
+    }, 1000);
+
+  </script>
 
 </body>
 </html>
