@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title></title>
+  <title>KOLLECT100 | Coming Soon</title>
 
   <style>
     *{
@@ -50,7 +50,7 @@
     .container{
       position:relative;
       z-index:1;
-      max-width:800px;
+      max-width:900px;
       padding:40px;
     }
 
@@ -85,7 +85,7 @@
 
     p{
       color:#d1d1d1;
-      line-height:1.7;
+      line-height:1.8;
       margin-bottom:40px;
       font-size:1.1rem;
     }
@@ -122,7 +122,7 @@
 
     .button{
       display:inline-block;
-      padding:15px 40px;
+      padding:16px 42px;
       border-radius:50px;
       text-decoration:none;
       color:white;
@@ -140,6 +140,14 @@
     }
 
     @media(max-width:768px){
+
+      body{
+        overflow:auto;
+      }
+
+      .container{
+        padding:25px;
+      }
 
       .logo{
         font-size:3rem;
@@ -171,10 +179,14 @@
 
     <div class="logo">KOLLECT100</div>
 
-    <h2></h2>
+    <h2>Auctions Are Coming Soon</h2>
 
     <p>
-      
+      We will be live with auctions soon. Our new site is currently being built
+      and will appear here in the near future.
+      <br><br>
+      In the meantime, you can view the site's progress by clicking the button
+      below, where you can sign up and start earning your XP.
     </p>
 
     <div class="countdown">
@@ -201,14 +213,20 @@
 
     </div>
 
-    <a href="#" class="button">Launching Soon</a>
+    <a 
+      href="https://www.bubblestcg.com" 
+      target="_blank" 
+      class="button"
+    >
+      View Progress & Earn XP
+    </a>
 
   </div>
 
   <script>
 
     // SET YOUR LAUNCH DATE HERE
-    const launchDate = new Date("may 30, 2026 00:00:00").getTime();
+    const launchDate = new Date("May 30, 2026 00:00:00").getTime();
 
     const countdown = setInterval(() => {
 
